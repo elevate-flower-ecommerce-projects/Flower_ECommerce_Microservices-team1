@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="Address &amp; Store Coverage Service/Address &amp; Store Coverage Service.csproj" />
   <Project Path="API Gateway/API Gateway.csproj" />
+  <Project Path="Base.Repository/Base.Repository.csproj" />
   <Project Path="Cart Service/Cart Service.csproj" />
   <Project Path="Catalog Service/Catalog Service.csproj" />
   <Project Path="docker-compose.dcproj">

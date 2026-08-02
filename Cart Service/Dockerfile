@@ -13,6 +13,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["Cart Service/Cart Service.csproj", "Cart Service/"]
+COPY ["Base.Repository/Base.Repository.csproj", "Base.Repository/"]
 RUN dotnet restore "./Cart Service/Cart Service.csproj"
 COPY . .
 WORKDIR "/src/Cart Service"

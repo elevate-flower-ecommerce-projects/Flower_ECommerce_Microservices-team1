@@ -13,6 +13,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["Payment Service/Payment Service.csproj", "Payment Service/"]
+COPY ["Base.Repository/Base.Repository.csproj", "Base.Repository/"]
 RUN dotnet restore "./Payment Service/Payment Service.csproj"
 COPY . .
 WORKDIR "/src/Payment Service"
