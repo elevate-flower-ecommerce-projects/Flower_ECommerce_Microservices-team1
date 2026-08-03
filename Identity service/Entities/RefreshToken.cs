@@ -1,6 +1,6 @@
 using Identity_service.Domain.Common;
 
-namespace Identity_service.Domain.Entities;
+namespace Identity_service.Entities;
 
 public class RefreshToken : BaseEntity
 {

@@ -1,7 +1,7 @@
 using Identity_service.Domain.Common;
 using Identity_service.Domain.Enums;
 
-namespace Identity_service.Domain.Entities;
+namespace Identity_service.Entities;
 
 public class VerificationCode : BaseEntity
 {

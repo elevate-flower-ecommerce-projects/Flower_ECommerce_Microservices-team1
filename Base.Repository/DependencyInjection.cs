@@ -1,3 +1,4 @@
+using Base.Repository;
 using Base.Repository.Concurrency;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

@@ -1,5 +1,3 @@
 ﻿namespace Identity_service.Features.Users.Login;
 
-public class LoginCommand
-{
-}
+public record LoginCommand(string Email, string Password); 
