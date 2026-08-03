@@ -1,26 +1,15 @@
-using Identity_service.Domain.Common;
-
 namespace Identity_service.Entities;
 
-public class RefreshToken : BaseEntity
+public class RefreshToken
 {
-    public Guid UserId { get; set; }
+    public Guid Id { get; set; } = Guid.CreateVersion7();
+    public string Token { get; set; } = string.Empty;
+    public DateTime ExpiresOn { get; set; }
+    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+    public DateTime? RevokedOn { get; set; }
+    public bool IsExpired => DateTime.UtcNow > ExpiresOn;
+    public bool IsActive => RevokedOn is null && !IsExpired;
+    public string UserId { get; set; } = string.Empty;
 
-    public string TokenHash { get; set; } = null!;
-
-    public DateTimeOffset ExpiresAt { get; set; }
-
-    public DateTimeOffset? RevokedAt { get; set; }
-
-    public string? ReplacedByTokenHash { get; set; }
-
-    public string? CreatedByIp { get; set; }
-
-    public string? RevokedByIp { get; set; }
-
-    public User User { get; set; } = null!;
-
-    public bool IsExpired => DateTimeOffset.UtcNow >= ExpiresAt;
-
-    public bool IsActive => RevokedAt is null && !IsExpired;
+    public ApplicationUser? User { get; set; }
 }
