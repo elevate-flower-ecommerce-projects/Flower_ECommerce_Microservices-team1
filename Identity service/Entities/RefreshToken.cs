@@ -3,7 +3,7 @@ namespace Identity_service.Entities;
 public class RefreshToken
 {
     public Guid Id { get; set; } = Guid.CreateVersion7();
-    public string Token { get; set; } = string.Empty;
+    public string TokenHash { get; set; } = string.Empty;
     public DateTime ExpiresOn { get; set; }
     public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
     public DateTime? RevokedOn { get; set; }

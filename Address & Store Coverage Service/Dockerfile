@@ -13,7 +13,6 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["Address & Store Coverage Service/Address & Store Coverage Service.csproj", "Address & Store Coverage Service/"]
-COPY ["Base.Repository/Base.Repository.csproj", "Base.Repository/"]
 RUN dotnet restore "./Address & Store Coverage Service/Address & Store Coverage Service.csproj"
 COPY . .
 WORKDIR "/src/Address & Store Coverage Service"
