@@ -9,6 +9,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     : IdentityDbContext<ApplicationUser, ApplicationRole, string>(options)
 {
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<DriverProfile> DriverProfiles => Set<DriverProfile>();
+    public DbSet<DriverApplication> DriverApplications => Set<DriverApplication>();
+    public DbSet<DriverDocument> DriverDocuments => Set<DriverDocument>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

@@ -1,6 +1,10 @@
 ﻿using Carter;
+using Identity_service.Abstractions;
 using Identity_service.Entities;
+using Identity_service.Features.Drivers.Applications.Submit;
+using Identity_service.Infrastructure;
 using Identity_service.Persistence;
+using Identity_service.Services;
 using Identity_service.Settings;
 using Mapster;
 using MapsterMapper;
@@ -8,6 +12,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Repository.Layer;
+using Repository.Layer.Interfaces;
 using System.Text;
 
 namespace Identity_service;
@@ -21,7 +27,16 @@ public static class DependencyInjection
                 "Connection string 'DefaultConnection' was not found.");
 
         services.AddDbContext<ApplicationDbContext>(options =>
-           options.UseSqlServer(connectionString));
+           options.UseSqlServer(connectionString, sqlOptions => sqlOptions.EnableRetryOnFailure()));
+
+        services.Configure<DriverDocumentStorageOptions>(
+            configuration.GetSection(DriverDocumentStorageOptions.SectionName));
+
+        services.AddScoped(typeof(IUnitOfWork<ApplicationDbContext>), typeof(UnitOfWork<ApplicationDbContext>));
+        services.AddScoped<IDriverDocumentStorage, LocalDriverDocumentStorage>();
+        services.AddScoped<IDriverApplicationValidator, DriverApplicationValidator>();
+        services.AddScoped<IDriverLoginStatusGuard, DriverLoginStatusGuard>();
+        services.AddScoped<IIdentityDataSeeder, IdentityDataSeeder>();
 
         services.AddIdentityConfig();
 
@@ -51,11 +66,11 @@ public static class DependencyInjection
         {
             options.User.RequireUniqueEmail = true;
 
-            options.Password.RequiredLength = 8;
+            options.Password.RequiredLength = 6;
             options.Password.RequireDigit = true;
             options.Password.RequireUppercase = true;
-            options.Password.RequireLowercase = true;
-            options.Password.RequireNonAlphanumeric = true;
+            options.Password.RequireLowercase = false;
+            options.Password.RequireNonAlphanumeric = false;
 
             options.Lockout.MaxFailedAccessAttempts = 5;
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);

@@ -12,6 +12,8 @@ builder.Services.AddSwaggerDocumentation();
 
 var app = builder.Build();
 
+await app.MigrateAndSeedIdentityDatabaseAsync();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

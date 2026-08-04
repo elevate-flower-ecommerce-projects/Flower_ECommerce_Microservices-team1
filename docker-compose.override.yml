@@ -69,7 +69,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_HTTPS_PORTS=8081
-      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=FlowerDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Flower_Dev_2026!};TrustServerCertificate=True;MultipleActiveResultSets=True
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=FlowerIdentityDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Flower_Dev_2026!};TrustServerCertificate=True;Encrypt=False;MultipleActiveResultSets=True
     ports:
       - "5022:8080"
       - "7098:8081"

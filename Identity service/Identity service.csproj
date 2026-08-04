@@ -34,4 +34,15 @@
     <Folder Include="Features\Users\Register\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="Base.Repository">
+      <HintPath>libs\Base.Repository.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Common\StandardizedResponse\**\*.cs" LinkBase="Common\StandardizedResponse" />
+  </ItemGroup>
+
 </Project>
