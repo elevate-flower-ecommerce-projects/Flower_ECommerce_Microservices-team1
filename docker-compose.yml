@@ -1,6 +1,59 @@
 services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-CU15-ubuntu-22.04
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-Flower_Dev_2026!}"
+      MSSQL_PID: Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
   apigateway:
     image: ${DOCKER_REGISTRY-}apigateway
     build:
       context: .
       dockerfile: API Gateway/Dockerfile
+  addressstorecoverageservice:
+    image: ${DOCKER_REGISTRY-}addressstorecoverageservice
+    build:
+      context: .
+      dockerfile: Address & Store Coverage Service/Dockerfile
+  cartservice:
+    image: ${DOCKER_REGISTRY-}cartservice
+    build:
+      context: .
+      dockerfile: Cart Service/Dockerfile
+  catalogservice:
+    image: ${DOCKER_REGISTRY-}catalogservice
+    build:
+      context: .
+      dockerfile: Catalog Service/Dockerfile
+  identityservice:
+    image: ${DOCKER_REGISTRY-}identityservice
+    build:
+      context: .
+      dockerfile: Identity service/Dockerfile
+  orderfulfillmentservice:
+    image: ${DOCKER_REGISTRY-}orderfulfillmentservice
+    build:
+      context: .
+      dockerfile: Order & Fulfillment Service/Dockerfile
+  paymentservice:
+    image: ${DOCKER_REGISTRY-}paymentservice
+    build:
+      context: .
+      dockerfile: Payment Service/Dockerfile
+
+volumes:
+  sqlserver-data:
