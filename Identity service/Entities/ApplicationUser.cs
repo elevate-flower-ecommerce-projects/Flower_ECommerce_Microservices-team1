@@ -14,6 +14,8 @@ public class ApplicationUser : IdentityUser
     public bool IsDisabled { get; set; }
 
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
+    public CustomerProfile? CustomerProfile { get; set; }
     public DriverProfile? DriverProfile { get; set; }
     public ICollection<DriverApplication> DriverApplications { get; set; } = [];
+    public Gender? Gender { get; set; }
 }

@@ -2,6 +2,7 @@
 using Identity_service.Abstractions;
 using Identity_service.Entities;
 using Identity_service.Features.Drivers.Applications.Submit;
+using Identity_service.Features.Users.Register;
 using Identity_service.Infrastructure;
 using Identity_service.Persistence;
 using Identity_service.Services;
@@ -35,6 +36,7 @@ public static class DependencyInjection
         services.AddScoped(typeof(IUnitOfWork<ApplicationDbContext>), typeof(UnitOfWork<ApplicationDbContext>));
         services.AddScoped<IDriverDocumentStorage, LocalDriverDocumentStorage>();
         services.AddScoped<IDriverApplicationValidator, DriverApplicationValidator>();
+        services.AddScoped<IRegisterCustomerValidator, RegisterCustomerValidator>();
         services.AddScoped<IDriverLoginStatusGuard, DriverLoginStatusGuard>();
         services.AddScoped<IIdentityDataSeeder, IdentityDataSeeder>();
 
