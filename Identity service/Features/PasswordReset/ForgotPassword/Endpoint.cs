@@ -33,6 +33,6 @@ public sealed class ForgotPasswordEndpoint : ICarterModule
             }
         }
 
-        return OperationResultFactory.Success(new ForgotPasswordResponse(30), Message, Message, (StatusCode)StatusCodes.Status202Accepted).ToHttpResult();
+        return OperationResultFactory.Success(new ForgotPasswordResponse(30), Message, Message).ToHttpResult();
     }
 }

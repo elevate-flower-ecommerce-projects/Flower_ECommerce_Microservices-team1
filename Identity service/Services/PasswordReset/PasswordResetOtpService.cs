@@ -21,14 +21,14 @@ public sealed class PasswordResetOtpService(ApplicationDbContext dbContext, User
 
         var now = DateTime.UtcNow;
         var requests = await dbContext.PasswordResetRequests
-            .Where(request => request.UserId == user.Id && request.VerifiedAtUtc == null && request.ConsumedAtUtc == null)
+            .Where(request => request.UserId == user.Id && request.ConsumedAtUtc == null && request.InvalidatedAtUtc == null)
             .OrderByDescending(request => request.LastSentAtUtc).ToListAsync(cancellationToken);
 
-        var latest = requests.FirstOrDefault(request => request.InvalidatedAtUtc is null);
+        var latest = requests.FirstOrDefault();
         if (latest is not null && now < latest.LastSentAtUtc.AddSeconds(_options.ResendCooldownSeconds))
             return new(latest.Id, string.Empty, latest.ExpiresAtUtc, (int)Math.Ceiling((latest.LastSentAtUtc.AddSeconds(_options.ResendCooldownSeconds) - now).TotalSeconds));
 
-        foreach (var request in requests.Where(request => request.InvalidatedAtUtc is null))
+        foreach (var request in requests)
             request.InvalidatedAtUtc = now;
 
         var otp = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6", CultureInfo.InvariantCulture);

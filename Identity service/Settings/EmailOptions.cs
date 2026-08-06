@@ -11,4 +11,6 @@ public sealed class EmailOptions
     public string Password { get; set; } = string.Empty;
     public string FromAddress { get; set; } = string.Empty;
     public string FromName { get; set; } = "Flower E-Commerce";
+    public int MaxRetries { get; set; } = 2;
+    public int InitialRetryDelaySeconds { get; set; } = 1;
 }

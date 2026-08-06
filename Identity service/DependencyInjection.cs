@@ -29,12 +29,9 @@ public static class DependencyInjection
         services.AddDbContext<ApplicationDbContext>(options =>
            options.UseSqlServer(connectionString, sqlOptions => sqlOptions.EnableRetryOnFailure()));
 
-        services.Configure<DriverDocumentStorageOptions>(
-            configuration.GetSection(DriverDocumentStorageOptions.SectionName));
-        services.Configure<PasswordResetOptions>(
-            configuration.GetSection(PasswordResetOptions.SectionName));
-        services.Configure<EmailOptions>(
-            configuration.GetSection(EmailOptions.SectionName));
+        services.Configure<DriverDocumentStorageOptions>(configuration.GetSection(DriverDocumentStorageOptions.SectionName));
+        services.Configure<PasswordResetOptions>(configuration.GetSection(PasswordResetOptions.SectionName));
+        services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
 
         services.AddScoped(typeof(IUnitOfWork<ApplicationDbContext>), typeof(UnitOfWork<ApplicationDbContext>));
         services.AddScoped<IDriverDocumentStorage, LocalDriverDocumentStorage>();

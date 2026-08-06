@@ -13,7 +13,7 @@ namespace Identity_service.Features.PasswordReset.VerifyResetOtp;
 public sealed class VerifyResetOtpEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
-        => app.MapPost("/auth/verify-reset-otp", HandleAsync).WithTags("Authentication").AllowAnonymous();
+        => app.MapPost("/auth/verify-otp", HandleAsync).WithTags("Authentication").AllowAnonymous();
 
     private static async Task<IResult> HandleAsync(VerifyResetOtpRequest request, PasswordResetOtpService otpService, UserManager<ApplicationUser> userManager, ApplicationDbContext dbContext, IOptions<PasswordResetOptions> options, CancellationToken cancellationToken)
     {
