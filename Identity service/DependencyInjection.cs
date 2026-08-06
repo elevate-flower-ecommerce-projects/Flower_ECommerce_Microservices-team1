@@ -31,12 +31,18 @@ public static class DependencyInjection
 
         services.Configure<DriverDocumentStorageOptions>(
             configuration.GetSection(DriverDocumentStorageOptions.SectionName));
+        services.Configure<PasswordResetOptions>(
+            configuration.GetSection(PasswordResetOptions.SectionName));
+        services.Configure<EmailOptions>(
+            configuration.GetSection(EmailOptions.SectionName));
 
         services.AddScoped(typeof(IUnitOfWork<ApplicationDbContext>), typeof(UnitOfWork<ApplicationDbContext>));
         services.AddScoped<IDriverDocumentStorage, LocalDriverDocumentStorage>();
         services.AddScoped<IDriverApplicationValidator, DriverApplicationValidator>();
         services.AddScoped<IDriverLoginStatusGuard, DriverLoginStatusGuard>();
         services.AddScoped<IIdentityDataSeeder, IdentityDataSeeder>();
+        services.AddScoped<PasswordResetOtpService>();
+        services.AddScoped<PasswordResetEmailService>();
 
         services.AddIdentityConfig();
 
