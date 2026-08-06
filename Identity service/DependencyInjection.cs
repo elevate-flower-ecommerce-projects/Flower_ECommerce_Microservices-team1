@@ -1,30 +1,11 @@
-﻿using Carter;
-using Identity_service.Abstractions;
-using Identity_service.Entities;
-using Identity_service.Features.Drivers.Applications.Submit;
-using Identity_service.Infrastructure;
-using Identity_service.Persistence;
-using Identity_service.Services;
-using Identity_service.Settings;
-using Mapster;
-using MapsterMapper;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Repository.Layer;
-using Repository.Layer.Interfaces;
-using System.Text;
-
-namespace Identity_service;
+﻿namespace Identity_service;
 
 public static class DependencyInjection
 {
     public static IServiceCollection AddDependencies(this IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException(
-                "Connection string 'DefaultConnection' was not found.");
+            ?? throw new NullReferenceException("Connection string 'DefaultConnection' was not found.");
 
         services.AddDbContext<ApplicationDbContext>(options =>
            options.UseSqlServer(connectionString, sqlOptions => sqlOptions.EnableRetryOnFailure()));
@@ -50,6 +31,7 @@ public static class DependencyInjection
         services.AddMediatR(cfg =>
         {
             cfg.RegisterServicesFromAssembly(assembly);
+            cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
         });
 
         var mappingConfiguration = TypeAdapterConfig.GlobalSettings;
@@ -66,7 +48,7 @@ public static class DependencyInjection
         {
             options.User.RequireUniqueEmail = true;
 
-            options.Password.RequiredLength = 6;
+            options.Password.RequiredLength = 8;
             options.Password.RequireDigit = true;
             options.Password.RequireUppercase = true;
             options.Password.RequireLowercase = false;

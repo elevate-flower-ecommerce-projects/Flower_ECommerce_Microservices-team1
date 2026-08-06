@@ -2,7 +2,7 @@ namespace Flower.Common.StandardizedResponse;
 
 public static partial class APIConstants
 {
-    public static class APIMessages
+    public static class APIMessages 
     {
         public const string Success = "The operation was successful.";
         public const string SuccessLocalized = "The operation was successful.";

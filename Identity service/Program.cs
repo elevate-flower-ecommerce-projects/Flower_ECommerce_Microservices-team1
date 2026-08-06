@@ -1,4 +1,3 @@
-using Carter;
 using Identity_service;
 using Identity_service.Extensions;
 
@@ -22,15 +21,13 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-
 app.UseAuthentication();
 
 app.UseAuthorization();
 
 app.MapCarter();
 
-
 app.MapGet("/", () => "Identity service is running...");
 
-//app.UseExceptionHandler();
+app.UseExceptionHandler();
 app.Run();

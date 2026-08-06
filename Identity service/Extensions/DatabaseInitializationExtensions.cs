@@ -1,7 +1,3 @@
-using Identity_service.Infrastructure;
-using Identity_service.Persistence;
-using Microsoft.EntityFrameworkCore;
-
 namespace Identity_service.Extensions;
 
 public static class DatabaseInitializationExtensions
