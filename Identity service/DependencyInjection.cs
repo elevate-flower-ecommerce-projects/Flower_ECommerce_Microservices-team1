@@ -31,9 +31,12 @@ public static class DependencyInjection
 
         services.Configure<DriverDocumentStorageOptions>(
             configuration.GetSection(DriverDocumentStorageOptions.SectionName));
+        services.Configure<EmailOptions>(
+            configuration.GetSection(EmailOptions.SectionName));
 
         services.AddScoped(typeof(IUnitOfWork<ApplicationDbContext>), typeof(UnitOfWork<ApplicationDbContext>));
         services.AddScoped<IDriverDocumentStorage, LocalDriverDocumentStorage>();
+        services.AddScoped<IApplicantNotificationService, SmtpApplicantNotificationService>();
         services.AddScoped<IDriverApplicationValidator, DriverApplicationValidator>();
         services.AddScoped<IDriverLoginStatusGuard, DriverLoginStatusGuard>();
         services.AddScoped<IIdentityDataSeeder, IdentityDataSeeder>();
