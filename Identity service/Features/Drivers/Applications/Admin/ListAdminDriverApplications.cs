@@ -2,8 +2,8 @@ using Flower.Common.StandardizedResponse;
 using Identity_service.Entities;
 using Identity_service.Persistence;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using Repository.Layer.Interfaces;
+using System.Linq.Expressions;
 
 namespace Identity_service.Features.Drivers.Applications.Admin;
 
@@ -26,22 +26,22 @@ public sealed class ListAdminDriverApplicationsHandler(IUnitOfWork<ApplicationDb
 
         #endregion
 
-        #region Build filtered query
+        #region Build filter
 
-        var query = unitOfWork.Repository<DriverApplication, Guid>().Query();
-        if (request.Status is not null)
-            query = query.Where(driverApplication => driverApplication.Status == request.Status);
+        Expression<Func<DriverApplication, bool>>? predicate = request.Status is null
+            ? null
+            : driverApplication => driverApplication.Status == request.Status;
 
         #endregion
 
-        #region Project paged summaries
+        #region Get projected page from repository
 
-        var totalCount = await query.CountAsync(cancellationToken);
-        var items = await query
-            .OrderByDescending(driverApplication => driverApplication.SubmittedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(driverApplication => new AdminDriverApplicationSummaryResponse(
+        var paged = await unitOfWork.Repository<DriverApplication, Guid>()
+            .GetPageSelectAsync(
+                page,
+                pageSize,
+                predicate,
+                driverApplication => new AdminDriverApplicationSummaryResponse(
                 driverApplication.Id,
                 driverApplication.Status,
                 $"{driverApplication.User!.FirstName} {driverApplication.User.LastName}",
@@ -53,12 +53,12 @@ public sealed class ListAdminDriverApplicationsHandler(IUnitOfWork<ApplicationDb
                 driverApplication.Documents.Count,
                 driverApplication.SubmittedAt,
                 driverApplication.ReviewedBy,
-                driverApplication.ReviewedAt))
-            .ToListAsync(cancellationToken);
+                driverApplication.ReviewedAt),
+                query => query.OrderByDescending(driverApplication => driverApplication.SubmittedAt));
 
         #endregion
 
         return OperationResultFactory.Success<object>(
-            new PagedResponse<AdminDriverApplicationSummaryResponse>(page, pageSize, totalCount, items));
+            new PagedResponse<AdminDriverApplicationSummaryResponse>(page, pageSize, paged.TotalCount, paged.Items));
     }
 }
