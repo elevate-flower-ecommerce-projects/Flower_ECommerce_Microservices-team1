@@ -20,8 +20,6 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
             .HasForeignKey(rt => rt.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        var passwordHasher = new PasswordHasher<ApplicationUser>().HashPassword(null, DefaultUsers.Admin.Password);
-
         var adminUser = new ApplicationUser
         {
             Id = DefaultUsers.Admin.Id,
@@ -32,7 +30,8 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
             UserName = DefaultUsers.Admin.Email,
             NormalizedUserName = DefaultUsers.Admin.Email.ToUpper(),
             EmailConfirmed = true,
-            PasswordHash = passwordHasher,
+            LockoutEnabled = true,
+            PasswordHash = DefaultUsers.Admin.PasswordHash,
             SecurityStamp = DefaultUsers.Admin.SecurityStamp,
             ConcurrencyStamp = DefaultUsers.Admin.ConcurrencyStamp,
         };

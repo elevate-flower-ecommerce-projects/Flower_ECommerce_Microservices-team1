@@ -9,7 +9,7 @@ public class DefaultUsers
         public const string LastName = "Admin";
         public const string Email = "admin@Flower.local";
         public const string Password = "AdminFL@123";
-        //public const string PasswordHash = "AQAAAAIAAYagAAAAEFySCHpGeKeygItao5hRquACwjYkd1vfkwg6sHzojSPqiO8Z2iM9dN6qVQuog6hrtA==";
+        public const string PasswordHash = "AQAAAAIAAYagAAAAEGFFZLVBwBalF+FTDXO1WbheZPMwNhce4LAYMS9UPR6805wv7XIqwUZ+ha+BmDSJFg==";
         public const string SecurityStamp = "A1B2C3D8-E5F6-7892-ABCD-EF1234567890";
         public const string ConcurrencyStamp = "A1B2C3D4E5F67890ABCDEF1234567890";
     }

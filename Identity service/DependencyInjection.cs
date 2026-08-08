@@ -1,4 +1,9 @@
-﻿namespace Identity_service;
+﻿using Identity_service.Exceptions;
+using Identity_service.Infrastructure.Implementations.Services;
+using Identity_service.Infrastructure.Interfaces.Services;
+using System.Reflection;
+
+namespace Identity_service;
 
 public static class DependencyInjection
 {
@@ -18,21 +23,34 @@ public static class DependencyInjection
         services.AddScoped<IDriverApplicationValidator, DriverApplicationValidator>();
         services.AddScoped<IDriverLoginStatusGuard, DriverLoginStatusGuard>();
         services.AddScoped<IIdentityDataSeeder, IdentityDataSeeder>();
+        services.AddScoped<IJwtProvider, JwtProvider>();
+        services.AddScoped<IAdminSecurityAudit, AdminSecurityAuditWriter>();
+        services.AddSingleton<IAdminLoginAttemptGuard, AdminLoginAttemptGuard>();
 
         services.AddIdentityConfig();
 
         services.AddOpenApi();
         services.AddCarter();
         services.AddAuthenticationConfig(configuration);
-        services.AddAuthorization();
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy(AuthorizationPolicies.AdminOnly, policy => policy.RequireRole(DefaultRoles.Admin.Name));
+        });
+        services.AddSingleton<IAuthorizationMiddlewareResultHandler, AdminAuthorizationMiddlewareResultHandler>();
+        services.AddProblemDetails();
 
-        var assembly = typeof(DependencyInjection).Assembly;
+        services.AddExceptionHandler<ValidationExceptionHandler>();
+        services.AddExceptionHandler<GlobalExceptionHandler>();
+
+        var assembly = Assembly.GetExecutingAssembly();
 
         services.AddMediatR(cfg =>
         {
             cfg.RegisterServicesFromAssembly(assembly);
             cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
         });
+
+        services.AddValidatorsFromAssembly(assembly);
 
         var mappingConfiguration = TypeAdapterConfig.GlobalSettings;
         mappingConfiguration.Scan(assembly);
@@ -51,8 +69,8 @@ public static class DependencyInjection
             options.Password.RequiredLength = 8;
             options.Password.RequireDigit = true;
             options.Password.RequireUppercase = true;
-            options.Password.RequireLowercase = false;
-            options.Password.RequireNonAlphanumeric = false;
+            options.Password.RequireLowercase = true;
+            options.Password.RequireNonAlphanumeric = true;
 
             options.Lockout.MaxFailedAccessAttempts = 5;
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
@@ -69,6 +87,8 @@ public static class DependencyInjection
     {
         var jwtSettings = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
             ?? throw new InvalidOperationException("JWT settings are not configured properly.");
+
+        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
 
         services.AddAuthentication(options =>
         {

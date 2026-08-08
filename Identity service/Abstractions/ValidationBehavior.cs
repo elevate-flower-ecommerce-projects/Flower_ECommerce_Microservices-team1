@@ -1,28 +1,32 @@
-﻿using MediatR;
+﻿namespace Identity_service.Abstractions;
 
-namespace Identity_service.Abstractions;
-
-public class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidator<TRequest>> validators) : IPipelineBehavior<TRequest, TResponse>
-    where TRequest : IRequest<TResponse>
+public sealed class ValidationBehavior<TRequest, TResponse>(
+    IEnumerable<IValidator<TRequest>> validators)
+    : IPipelineBehavior<TRequest, TResponse>
+    where TRequest : notnull
 {
-    private readonly IEnumerable<IValidator<TRequest>> _validators = validators;
-
-    public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public async Task<TResponse> Handle(
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
     {
-        if (_validators.Any())
-        {
-            var context = new ValidationContext<TRequest>(request);
+        if (!validators.Any())
+            return await next(cancellationToken);
 
-            var failures = _validators
-                .Select(v => v.Validate(context))
-                .SelectMany(r => r.Errors)
-                .Where(f => f != null)
-                .ToList();
+        var context = new ValidationContext<TRequest>(request);
 
-            if (failures.Count != 0)
-                throw new ValidationException(failures);
-        }
+        var validationResults = await Task.WhenAll(
+            validators.Select(v =>
+                v.ValidateAsync(context, cancellationToken)));
 
-        return await next();
+        var failures = validationResults
+            .SelectMany(result => result.Errors)
+            .Where(error => error is not null)
+            .ToList();
+
+        if (failures.Count != 0)
+            throw new ValidationException(failures);
+
+        return await next(cancellationToken);
     }
 }

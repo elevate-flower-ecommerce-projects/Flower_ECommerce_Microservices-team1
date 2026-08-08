@@ -11,7 +11,7 @@ builder.Services.AddSwaggerDocumentation();
 
 var app = builder.Build();
 
-await app.MigrateAndSeedIdentityDatabaseAsync();
+//await app.MigrateAndSeedIdentityDatabaseAsync();
 
 if (app.Environment.IsDevelopment())
 {
@@ -27,7 +27,6 @@ app.UseAuthorization();
 
 app.MapCarter();
 
-app.MapGet("/", () => "Identity service is running...");
-
 app.UseExceptionHandler();
+
 app.Run();

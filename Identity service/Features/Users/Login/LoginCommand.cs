@@ -1,4 +1,4 @@
-﻿using Identity_service.Contracts.Auth;
+﻿using Identity_service.Contracts.Admins;
 
 namespace Identity_service.Features.Users.Login;
 

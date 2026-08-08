@@ -9,11 +9,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Identity_service.Persistence.Migrations
+namespace Identity_service.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260804124121_AddDriverApplications")]
-    partial class AddDriverApplications
+    [Migration("20260808111633_addAdminSecurityAuditTable")]
+    partial class addAdminSecurityAuditTable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,48 @@ namespace Identity_service.Persistence.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("Identity_service.Entities.AdminSecurityAudit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("OccurredOnUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Path")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OccurredOnUtc");
+
+                    b.ToTable("AdminSecurityAudits", (string)null);
+                });
 
             modelBuilder.Entity("Identity_service.Entities.ApplicationRole", b =>
                 {
@@ -56,6 +98,26 @@ namespace Identity_service.Persistence.Migrations
                         .HasFilter("[NormalizedName] IS NOT NULL");
 
                     b.ToTable("AspNetRoles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "b0d60c5c-4d20-4991-9171-772a0a8bd2f8",
+                            ConcurrencyStamp = "aaa623d1-2a70-49e8-96e3-53bd3380149a",
+                            IsDefault = false,
+                            IsDeleted = false,
+                            Name = "Admin",
+                            NormalizedName = "ADMIN"
+                        },
+                        new
+                        {
+                            Id = "23c617eb-34dd-41ca-b15a-b5630999daaa",
+                            ConcurrencyStamp = "ffc2d9b2-b2f9-4bcc-af93-eec61e521c87",
+                            IsDefault = false,
+                            IsDeleted = false,
+                            Name = "Customer",
+                            NormalizedName = "CUSTOMER"
+                        });
                 });
 
             modelBuilder.Entity("Identity_service.Entities.ApplicationUser", b =>
@@ -134,6 +196,27 @@ namespace Identity_service.Persistence.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "D7817610-68FA-4707-88A9-1CED640C8BF9",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "A1B2C3D4E5F67890ABCDEF1234567890",
+                            Email = "admin@Flower.local",
+                            EmailConfirmed = true,
+                            FirstName = "Admin",
+                            IsDisabled = false,
+                            LastName = "Admin",
+                            LockoutEnabled = true,
+                            NormalizedEmail = "ADMIN@FLOWER.LOCAL",
+                            NormalizedUserName = "ADMIN@FLOWER.LOCAL",
+                            PasswordHash = "AQAAAAIAAYagAAAAEGFFZLVBwBalF+FTDXO1WbheZPMwNhce4LAYMS9UPR6805wv7XIqwUZ+ha+BmDSJFg==",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "A1B2C3D8-E5F6-7892-ABCD-EF1234567890",
+                            TwoFactorEnabled = false,
+                            UserName = "admin@Flower.local"
+                        });
                 });
 
             modelBuilder.Entity("Identity_service.Entities.DriverApplication", b =>
@@ -373,6 +456,13 @@ namespace Identity_service.Persistence.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("AspNetUserRoles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            UserId = "D7817610-68FA-4707-88A9-1CED640C8BF9",
+                            RoleId = "b0d60c5c-4d20-4991-9171-772a0a8bd2f8"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
