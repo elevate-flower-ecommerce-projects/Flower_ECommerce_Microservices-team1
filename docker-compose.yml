@@ -19,36 +19,48 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+
   apigateway:
     image: ${DOCKER_REGISTRY-}apigateway
     build:
       context: .
       dockerfile: API Gateway/Dockerfile
+
   addressstorecoverageservice:
     image: ${DOCKER_REGISTRY-}addressstorecoverageservice
     build:
       context: .
       dockerfile: Address & Store Coverage Service/Dockerfile
+
   cartservice:
     image: ${DOCKER_REGISTRY-}cartservice
     build:
       context: .
       dockerfile: Cart Service/Dockerfile
+
   catalogservice:
     image: ${DOCKER_REGISTRY-}catalogservice
     build:
       context: .
       dockerfile: Catalog Service/Dockerfile
+
   identityservice:
     image: ${DOCKER_REGISTRY-}identityservice
     build:
       context: .
       dockerfile: Identity service/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+
   orderfulfillmentservice:
     image: ${DOCKER_REGISTRY-}orderfulfillmentservice
     build:
       context: .
       dockerfile: Order & Fulfillment Service/Dockerfile
+
   paymentservice:
     image: ${DOCKER_REGISTRY-}paymentservice
     build:
