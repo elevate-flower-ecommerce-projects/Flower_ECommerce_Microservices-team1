@@ -31,10 +31,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Features\Users\Register\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Reference Include="Base.Repository">
       <HintPath>libs\Base.Repository.dll</HintPath>
       <Private>true</Private>
@@ -43,6 +39,13 @@
 
   <ItemGroup>
     <Compile Include="..\Common\StandardizedResponse\**\*.cs" LinkBase="Common\StandardizedResponse" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Features\Users\Register\**" />
+    <Content Remove="Features\Users\Register\**" />
+    <EmbeddedResource Remove="Features\Users\Register\**" />
+    <None Remove="Features\Users\Register\**" />
   </ItemGroup>
 
 </Project>
