@@ -16,6 +16,10 @@ public static class UserErrors
     
     public static readonly Error PasswordTooWeak =
         new("User.PasswordTooWeak", "The provided password does not meet the strength requirements.", StatusCodes.Status400BadRequest);
+    public static readonly Error AccountLocked =
+        new("User.AccountLocked", "Too many failed login attempts. Your account is temporarily locked.", StatusCodes.Status423Locked);
+    public static readonly Error AccountDisabled =
+        new("User.AccountDisabled", "This account is disabled.", StatusCodes.Status403Forbidden);
     
     public static readonly Error UserNotAdmin =
         new("User.NotAdmin", "The provided user is not an administrator.", StatusCodes.Status403Forbidden);

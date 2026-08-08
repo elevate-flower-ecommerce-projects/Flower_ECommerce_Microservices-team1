@@ -1,7 +1,27 @@
-﻿using Identity_service.Exceptions;
+﻿using Carter;
+using Flower.Common.StandardizedResponse;
+using Identity_service.Abstractions;
+using Identity_service.Entities;
+using Identity_service.Exceptions;
+using Identity_service.Features.Drivers.Applications.Submit;
+using Identity_service.Features.Users.Login;
+using Identity_service.Infrastructure;
 using Identity_service.Infrastructure.Implementations.Services;
 using Identity_service.Infrastructure.Interfaces.Services;
+using Identity_service.Persistence;
+using Identity_service.Services;
+using Identity_service.Settings;
+using Mapster;
+using MapsterMapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Repository.Layer;
+using Repository.Layer.Interfaces;
 using System.Reflection;
+using System.Text;
+using System.Threading.RateLimiting;
 
 namespace Identity_service;
 
@@ -25,6 +45,7 @@ public static class DependencyInjection
         services.AddScoped<IApplicantNotificationService, SmtpApplicantNotificationService>();
         services.AddScoped<IDriverApplicationValidator, DriverApplicationValidator>();
         services.AddScoped<IDriverLoginStatusGuard, DriverLoginStatusGuard>();
+        services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IIdentityDataSeeder, IdentityDataSeeder>();
         services.AddScoped<IJwtProvider, JwtProvider>();
         services.AddScoped<IAdminSecurityAudit, AdminSecurityAuditWriter>();
@@ -34,6 +55,8 @@ public static class DependencyInjection
 
         services.AddOpenApi();
         services.AddCarter();
+        services.AddControllers();
+        services.AddLoginRateLimiting();
         services.AddAuthenticationConfig(configuration);
         services.AddAuthorization(options =>
         {
@@ -59,6 +82,47 @@ public static class DependencyInjection
         mappingConfiguration.Scan(assembly);
 
         services.AddSingleton<IMapper>(new Mapper(mappingConfiguration));
+
+        return services;
+    }
+
+    private static IServiceCollection AddLoginRateLimiting(this IServiceCollection services)
+    {
+        services.AddRateLimiter(options =>
+        {
+            options.OnRejected = (context, cancellationToken) =>
+            {
+                var httpContext = context.HttpContext;
+                var logger = httpContext.RequestServices
+                    .GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("LoginRateLimiter");
+                var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+                logger.LogWarning("Login request rate limited for IP address {IpAddress}", ipAddress);
+
+                httpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                return new ValueTask(httpContext.Response.WriteAsJsonAsync(
+                    new OperationResult(
+                        Flower.Common.StandardizedResponse.StatusCode.TooManyRequests,
+                        "Too many login attempts. Please try again later.",
+                        "Too many login attempts. Please try again later."),
+                    cancellationToken));
+            };
+
+            options.AddPolicy("login", httpContext =>
+            {
+                var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    ipAddress,
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 10,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                        AutoReplenishment = true
+                    });
+            });
+        });
 
         return services;
     }

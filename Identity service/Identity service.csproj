@@ -48,4 +48,11 @@
     <Compile Include="..\Common\StandardizedResponse\**\*.cs" LinkBase="Common\StandardizedResponse" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="Features\Users\Register\**" />
+    <Content Remove="Features\Users\Register\**" />
+    <EmbeddedResource Remove="Features\Users\Register\**" />
+    <None Remove="Features\Users\Register\**" />
+  </ItemGroup>
+
 </Project>

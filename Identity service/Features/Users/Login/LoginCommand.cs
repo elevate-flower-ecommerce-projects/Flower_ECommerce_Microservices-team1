@@ -1,8 +1,9 @@
-﻿using Identity_service.Contracts.Admins;
+﻿namespace Identity_service.Features.Users.Login;
 
-namespace Identity_service.Features.Users.Login;
+using Identity_service.Abstractions;
 
-public record LoginCommand(string Email, string Password) : IRequest<Result<LoginResponse>>;
+public sealed record LoginCommand(string Email, string Password)
+    : IRequest<Result<LoginResponseDto>>;
 
 public class LoginCommandValidator : AbstractValidator<LoginCommand>
 {
