@@ -1,8 +1,3 @@
-using Identity_service.Entities;
-using Identity_service.Persistence;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-
 namespace Identity_service.Infrastructure;
 
 public interface IIdentityDataSeeder
