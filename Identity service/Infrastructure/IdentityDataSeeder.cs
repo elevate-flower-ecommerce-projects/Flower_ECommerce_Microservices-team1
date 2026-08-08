@@ -12,11 +12,14 @@ public interface IIdentityDataSeeder
 
 public sealed class IdentityDataSeeder(
     UserManager<ApplicationUser> userManager,
+    RoleManager<ApplicationRole> roleManager,
     ApplicationDbContext dbContext,
     IConfiguration configuration) : IIdentityDataSeeder
 {
     public async Task SeedAsync(CancellationToken cancellationToken)
     {
+        await SeedCustomerRoleAsync(cancellationToken);
+
         var applicants = configuration
             .GetSection("Seed:DriverApplicants")
             .Get<List<SeedDriverApplicant>>() ?? [];
@@ -24,6 +27,27 @@ public sealed class IdentityDataSeeder(
         foreach (var applicant in applicants)
         {
             await SeedDriverApplicantAsync(applicant, cancellationToken);
+        }
+    }
+
+    private async Task SeedCustomerRoleAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (await roleManager.RoleExistsAsync(ApplicationRoleNames.Customer))
+            return;
+
+        var result = await roleManager.CreateAsync(new ApplicationRole
+        {
+            Name = ApplicationRoleNames.Customer,
+            IsDefault = true,
+            IsDeleted = false
+        });
+
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException(
+                $"Unable to seed the Customer role: {string.Join(" ", result.Errors.Select(error => error.Description))}");
         }
     }
 

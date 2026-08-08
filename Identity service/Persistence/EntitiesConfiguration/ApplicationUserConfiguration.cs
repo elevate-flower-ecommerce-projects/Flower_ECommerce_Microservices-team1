@@ -20,5 +20,17 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
             .WithOne(rt => rt.User)
             .HasForeignKey(rt => rt.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Property(user => user.Gender)
+            .HasConversion<string>()
+            .HasMaxLength(10);
+
+        builder.Property(u => u.PhoneNumber)
+            .HasMaxLength(32);
+
+        builder.HasIndex(u => u.PhoneNumber)
+           .IsUnique()
+            .HasDatabaseName("UX_ApplicationUser_PhoneNumber")
+            .HasFilter("[PhoneNumber] IS NOT NULL");
     }
 }

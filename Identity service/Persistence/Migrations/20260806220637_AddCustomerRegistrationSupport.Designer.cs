@@ -4,6 +4,7 @@ using Identity_service.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Identity_service.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260806220637_AddCustomerRegistrationSupport")]
+    partial class AddCustomerRegistrationSupport
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -283,90 +286,6 @@ namespace Identity_service.Persistence.Migrations
                     b.ToTable("DriverProfiles");
                 });
 
-            modelBuilder.Entity("Identity_service.Entities.PasswordResetAuditEvent", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("EventType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("OccurredAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("ResetRequestId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ResetRequestId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("PasswordResetAuditEvents", (string)null);
-                });
-
-            modelBuilder.Entity("Identity_service.Entities.PasswordResetRequest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("AttemptsRemaining")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("ConsumedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("ExpiresAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("InvalidatedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("LastSentAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("OtpHash")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<DateTime?>("ResetTokenExpiresAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ResetTokenHash")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime?>("VerifiedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("UserId", "CreatedAtUtc");
-
-                    b.ToTable("PasswordResetRequests", (string)null);
-                });
-
             modelBuilder.Entity("Identity_service.Entities.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -551,36 +470,6 @@ namespace Identity_service.Persistence.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Identity_service.Entities.PasswordResetAuditEvent", b =>
-                {
-                    b.HasOne("Identity_service.Entities.PasswordResetRequest", "ResetRequest")
-                        .WithMany("AuditEvents")
-                        .HasForeignKey("ResetRequestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Identity_service.Entities.ApplicationUser", "User")
-                        .WithMany("PasswordResetAuditEvents")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ResetRequest");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Identity_service.Entities.PasswordResetRequest", b =>
-                {
-                    b.HasOne("Identity_service.Entities.ApplicationUser", "User")
-                        .WithMany("PasswordResetRequests")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Identity_service.Entities.RefreshToken", b =>
                 {
                     b.HasOne("Identity_service.Entities.ApplicationUser", "User")
@@ -651,21 +540,12 @@ namespace Identity_service.Persistence.Migrations
 
                     b.Navigation("DriverProfile");
 
-                    b.Navigation("PasswordResetAuditEvents");
-
-                    b.Navigation("PasswordResetRequests");
-
                     b.Navigation("RefreshTokens");
                 });
 
             modelBuilder.Entity("Identity_service.Entities.DriverApplication", b =>
                 {
                     b.Navigation("Documents");
-                });
-
-            modelBuilder.Entity("Identity_service.Entities.PasswordResetRequest", b =>
-                {
-                    b.Navigation("AuditEvents");
                 });
 #pragma warning restore 612, 618
         }

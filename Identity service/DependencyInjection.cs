@@ -3,6 +3,7 @@ using Flower.Common.StandardizedResponse;
 using Identity_service.Abstractions;
 using Identity_service.Entities;
 using Identity_service.Features.Drivers.Applications.Submit;
+using Identity_service.Features.Users.Register;
 using Identity_service.Features.Users.Login;
 using Identity_service.Infrastructure;
 using Identity_service.Persistence;
@@ -41,6 +42,7 @@ public static class DependencyInjection
         services.AddScoped(typeof(IUnitOfWork<ApplicationDbContext>), typeof(UnitOfWork<ApplicationDbContext>));
         services.AddScoped<IDriverDocumentStorage, LocalDriverDocumentStorage>();
         services.AddScoped<IDriverApplicationValidator, DriverApplicationValidator>();
+        services.AddScoped<IRegisterCustomerValidator, RegisterCustomerValidator>();
         services.AddScoped<IDriverLoginStatusGuard, DriverLoginStatusGuard>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IIdentityDataSeeder, IdentityDataSeeder>();
