@@ -21,8 +21,7 @@ public static class DatabaseInitializationExtensions
         }
         catch (Exception exception)
         {
-            logger.LogCritical(exception, "Identity database migration or seeding failed.");
-            throw;
+            logger.LogError(exception, "Identity database migration or seeding failed. Verify SQL Server is running.");
         }
     }
 }
