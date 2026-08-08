@@ -12,4 +12,8 @@ public interface IDriverDocumentStorage
         Guid applicationId,
         IFormFile file,
         CancellationToken cancellationToken);
+
+    Task<Stream?> OpenReadAsync(
+        string storageKey,
+        CancellationToken cancellationToken);
 }
