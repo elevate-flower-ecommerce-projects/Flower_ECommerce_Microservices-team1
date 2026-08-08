@@ -18,4 +18,6 @@ public class ApplicationUser : IdentityUser
     public DriverProfile? DriverProfile { get; set; }
     public ICollection<DriverApplication> DriverApplications { get; set; } = [];
     public Gender? Gender { get; set; }
+    public ICollection<PasswordResetRequest> PasswordResetRequests { get; set; } = [];
+    public ICollection<PasswordResetAuditEvent> PasswordResetAuditEvents { get; set; } = [];
 }

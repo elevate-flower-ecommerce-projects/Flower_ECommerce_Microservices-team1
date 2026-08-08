@@ -13,6 +13,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<DriverProfile> DriverProfiles => Set<DriverProfile>();
     public DbSet<DriverApplication> DriverApplications => Set<DriverApplication>();
     public DbSet<DriverDocument> DriverDocuments => Set<DriverDocument>();
+    public DbSet<PasswordResetRequest> PasswordResetRequests => Set<PasswordResetRequest>();
+    public DbSet<PasswordResetAuditEvent> PasswordResetAuditEvents => Set<PasswordResetAuditEvent>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

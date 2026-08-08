@@ -1,8 +1,10 @@
 ﻿using Carter;
+using Flower.Common.StandardizedResponse;
 using Identity_service.Abstractions;
 using Identity_service.Entities;
 using Identity_service.Features.Drivers.Applications.Submit;
 using Identity_service.Features.Users.Register;
+using Identity_service.Features.Users.Login;
 using Identity_service.Infrastructure;
 using Identity_service.Persistence;
 using Identity_service.Services;
@@ -16,6 +18,7 @@ using Microsoft.IdentityModel.Tokens;
 using Repository.Layer;
 using Repository.Layer.Interfaces;
 using System.Text;
+using System.Threading.RateLimiting;
 
 namespace Identity_service;
 
@@ -32,18 +35,26 @@ public static class DependencyInjection
 
         services.Configure<DriverDocumentStorageOptions>(
             configuration.GetSection(DriverDocumentStorageOptions.SectionName));
+        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.Configure<PasswordResetOptions>(configuration.GetSection(PasswordResetOptions.SectionName));
+        services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
 
         services.AddScoped(typeof(IUnitOfWork<ApplicationDbContext>), typeof(UnitOfWork<ApplicationDbContext>));
         services.AddScoped<IDriverDocumentStorage, LocalDriverDocumentStorage>();
         services.AddScoped<IDriverApplicationValidator, DriverApplicationValidator>();
         services.AddScoped<IRegisterCustomerValidator, RegisterCustomerValidator>();
         services.AddScoped<IDriverLoginStatusGuard, DriverLoginStatusGuard>();
+        services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IIdentityDataSeeder, IdentityDataSeeder>();
+        services.AddScoped<PasswordResetOtpService>();
+        services.AddScoped<PasswordResetEmailService>();
 
         services.AddIdentityConfig();
 
         services.AddOpenApi();
         services.AddCarter();
+        services.AddControllers();
+        services.AddLoginRateLimiting();
         services.AddAuthenticationConfig(configuration);
         services.AddAuthorization();
 
@@ -58,6 +69,47 @@ public static class DependencyInjection
         mappingConfiguration.Scan(assembly);
 
         services.AddSingleton<IMapper>(new Mapper(mappingConfiguration));
+
+        return services;
+    }
+
+    private static IServiceCollection AddLoginRateLimiting(this IServiceCollection services)
+    {
+        services.AddRateLimiter(options =>
+        {
+            options.OnRejected = (context, cancellationToken) =>
+            {
+                var httpContext = context.HttpContext;
+                var logger = httpContext.RequestServices
+                    .GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("LoginRateLimiter");
+                var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+                logger.LogWarning("Login request rate limited for IP address {IpAddress}", ipAddress);
+
+                httpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                return new ValueTask(httpContext.Response.WriteAsJsonAsync(
+                    new OperationResult(
+                        Flower.Common.StandardizedResponse.StatusCode.TooManyRequests,
+                        "Too many login attempts. Please try again later.",
+                        "Too many login attempts. Please try again later."),
+                    cancellationToken));
+            };
+
+            options.AddPolicy("login", httpContext =>
+            {
+                var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    ipAddress,
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 10,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                        AutoReplenishment = true
+                    });
+            });
+        });
 
         return services;
     }
