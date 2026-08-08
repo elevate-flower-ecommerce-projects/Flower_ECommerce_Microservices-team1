@@ -4,7 +4,7 @@ using Identity_service.Errors;
 namespace Identity_service.Features.Admins.Login;
 
 public sealed class RefreshAdminTokenCommandHandler(
-    UnitOfWork<ApplicationDbContext> unitOfWork,
+    IUnitOfWork<ApplicationDbContext> unitOfWork,
     UserManager<ApplicationUser> userManager,
     IJwtProvider jwtProvider) : IRequestHandler<RefreshAdminTokenCommand, Result<LoginResponse>>
 {
@@ -26,7 +26,7 @@ public sealed class RefreshAdminTokenCommandHandler(
         existing.RevokedOn = DateTime.UtcNow;
         var replacement = RefreshTokenProtector.Generate();
         var refreshExpiry = DateTime.UtcNow.AddDays(RefreshTokenExpirationDays);
-        unitOfWork.Repository<RefreshToken, Guid>().Create(new RefreshToken
+        await unitOfWork.Repository<RefreshToken, Guid>().Create(new RefreshToken
         {
             UserId = existing.UserId,
             TokenHash = RefreshTokenProtector.Hash(replacement),

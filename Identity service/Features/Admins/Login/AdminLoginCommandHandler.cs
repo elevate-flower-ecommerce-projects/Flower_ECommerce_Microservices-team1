@@ -1,15 +1,15 @@
 ﻿using Identity_service.Contracts.Admins;
 using Identity_service.Errors;
-using Identity_service.Infrastructure.Interfaces.Services;
 
 namespace Identity_service.Features.Admins.Login;
 
-public class AdminLoginCommandHandler(UserManager<ApplicationUser> userManager, IJwtProvider jwtProvider,
+public sealed class AdminLoginCommandHandler(UserManager<ApplicationUser> userManager, IJwtProvider jwtProvider,
     SignInManager<ApplicationUser> signInManager, IUnitOfWork<ApplicationDbContext> unitOfWork,
     IAdminLoginAttemptGuard attemptGuard, IAdminSecurityAudit audit)
     : IRequestHandler<AdminLoginCommand, Result<LoginResponse>>
 {
-    private readonly int _refreshTokenExpirationDays = 7;
+    private const int RefreshTokenExpirationDays = 7;
+
     public async Task<Result<LoginResponse>> Handle(AdminLoginCommand request, CancellationToken cancellationToken)
     {
         if (attemptGuard.IsBlocked(request.Email, request.IpAddress))
@@ -38,7 +38,7 @@ public class AdminLoginCommandHandler(UserManager<ApplicationUser> userManager, 
         var (token, ExpiresIn) = jwtProvider.GenerateToken(user, userRoles);
 
         var refreshToken = RefreshTokenProtector.Generate();
-        var refreshTokenExpiration = DateTime.UtcNow.AddDays(_refreshTokenExpirationDays);
+        var refreshTokenExpiration = DateTime.UtcNow.AddDays(RefreshTokenExpirationDays);
 
         var refreshTokenEntity = new RefreshToken
         {
@@ -48,7 +48,6 @@ public class AdminLoginCommandHandler(UserManager<ApplicationUser> userManager, 
         };
 
         await unitOfWork.Repository<RefreshToken, Guid>().Create(refreshTokenEntity);
-
         await unitOfWork.CompleteAsync();
 
         attemptGuard.ResetAccount(request.Email);

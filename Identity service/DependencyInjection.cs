@@ -1,6 +1,4 @@
 ﻿using Identity_service.Exceptions;
-using Identity_service.Infrastructure.Implementations.Services;
-using Identity_service.Infrastructure.Interfaces.Services;
 using System.Reflection;
 
 namespace Identity_service;
@@ -36,6 +34,7 @@ public static class DependencyInjection
         {
             options.AddPolicy(AuthorizationPolicies.AdminOnly, policy => policy.RequireRole(DefaultRoles.Admin.Name));
         });
+
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, AdminAuthorizationMiddlewareResultHandler>();
         services.AddProblemDetails();
 
