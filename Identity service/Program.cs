@@ -19,12 +19,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerDocumentation();
 }
 
-//app.UseHttpsRedirection();
+app.UseStatusCodePages();
+
+app.UseHttpsRedirection();
 
 app.UseRateLimiter();
 
 app.UseAuthentication();
-
 app.UseAuthorization();
 
 app.MapCarter();
