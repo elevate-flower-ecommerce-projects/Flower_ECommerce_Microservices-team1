@@ -9,9 +9,7 @@ public class AdminLoginEndpoint : ICarterModule
     {
         app.MapPost("api/admin/login", async (HttpContext httpContext, [FromBody] LoginRequest request, ISender sender, CancellationToken cancellationToken) =>
         {
-            var command = new AdminLoginCommand(
-                request.Email,
-                request.Password,
+            var command = new AdminLoginCommand(request.Email, request.Password,
                 httpContext.Connection.RemoteIpAddress?.ToString(),
                 httpContext.Request.Headers.UserAgent.ToString());
 
@@ -34,9 +32,9 @@ public class AdminLoginEndpoint : ICarterModule
         .WithTags("Admins");
 
         app.MapGet("api/admin/session", () => Results.NoContent())
-            .RequireAuthorization(AuthorizationPolicies.AdminOnly)
+            .RequireAuthorization(policy =>
+                policy.RequireRole(DefaultRoles.Admin.Name))
             .WithName("AdminSession")
             .WithTags("Admins");
-
     }
 }

@@ -16,6 +16,18 @@ public static class DependencyInjection
         services.Configure<DriverDocumentStorageOptions>(
             configuration.GetSection(DriverDocumentStorageOptions.SectionName));
 
+        services.AddProblemDetails(options =>
+        {
+            options.CustomizeProblemDetails = context =>
+            {
+                context.ProblemDetails.Instance =
+                    context.HttpContext.Request.Path;
+
+                context.ProblemDetails.Extensions["traceId"] =
+                    context.HttpContext.TraceIdentifier;
+            };
+        });
+
         services.AddScoped(typeof(IUnitOfWork<ApplicationDbContext>), typeof(UnitOfWork<ApplicationDbContext>));
         services.AddScoped<IDriverDocumentStorage, LocalDriverDocumentStorage>();
         services.AddScoped<IDriverApplicationValidator, DriverApplicationValidator>();
@@ -30,10 +42,7 @@ public static class DependencyInjection
         services.AddOpenApi();
         services.AddCarter();
         services.AddAuthenticationConfig(configuration);
-        services.AddAuthorization(options =>
-        {
-            options.AddPolicy(AuthorizationPolicies.AdminOnly, policy => policy.RequireRole(DefaultRoles.Admin.Name));
-        });
+        services.AddAuthorization();
 
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, AdminAuthorizationMiddlewareResultHandler>();
         services.AddProblemDetails();
