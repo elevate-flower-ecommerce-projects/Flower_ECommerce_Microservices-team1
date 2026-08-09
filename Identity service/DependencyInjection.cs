@@ -1,26 +1,6 @@
-﻿using Carter;
-using Flower.Common.StandardizedResponse;
-using Identity_service.Abstractions;
-using Identity_service.Entities;
+﻿using Flower.Common.StandardizedResponse;
 using Identity_service.Exceptions;
-using Identity_service.Features.Drivers.Applications.Submit;
-using Identity_service.Features.Users.Login;
-using Identity_service.Infrastructure;
-using Identity_service.Infrastructure.Implementations.Services;
-using Identity_service.Infrastructure.Interfaces.Services;
-using Identity_service.Persistence;
-using Identity_service.Services;
-using Identity_service.Settings;
-using Mapster;
-using MapsterMapper;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Repository.Layer;
-using Repository.Layer.Interfaces;
 using System.Reflection;
-using System.Text;
 using System.Threading.RateLimiting;
 
 namespace Identity_service;
