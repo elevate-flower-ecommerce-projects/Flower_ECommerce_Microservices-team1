@@ -82,7 +82,9 @@ public sealed class LoginHandler(
             tokens.RefreshToken,
             Math.Max(0, (int)Math.Ceiling((tokens.AccessTokenExpiresOn - DateTime.UtcNow).TotalSeconds)),
             role,
-            driverAccess.Status));
+            driverAccess.Status,
+            driverAccess.CanAccessDriverHome,
+            driverAccess.RejectionReason));
     }
 
     private static Result<LoginResponseDto> InvalidCredentials()

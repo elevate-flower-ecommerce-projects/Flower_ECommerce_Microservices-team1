@@ -53,6 +53,14 @@ public sealed class SubmitDriverApplicationHandler(
             return OperationResultFactory.Validation<object>(identityErrors, message, message);
         }
 
+        var addedToRole = await userManager.AddToRoleAsync(user, ApplicationRoleNames.Driver);
+        if (!addedToRole.Succeeded)
+        {
+            var identityErrors = ToIdentityErrors(addedToRole);
+            var message = string.Join(" ", identityErrors.SelectMany(error => error.Value));
+            return OperationResultFactory.Validation<object>(identityErrors, message, message);
+        }
+
         #endregion
 
         #region Create driver profile and application

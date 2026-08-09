@@ -14,4 +14,10 @@ public class DefaultRoles
         public const string Name = "Customer";
         public const string ConcurrencyStamp = "ffc2d9b2-b2f9-4bcc-af93-eec61e521c87";
     }
+    public partial class Driver
+    {
+        public const string Id = "1b28d7d5-6146-4c31-8b4f-725f8fdb33d2";
+        public const string Name = "Driver";
+        public const string ConcurrencyStamp = "d20f2f58-24ab-40a1-94db-5a189040063d";
+    }
 }

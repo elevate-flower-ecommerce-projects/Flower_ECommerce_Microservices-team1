@@ -13,7 +13,8 @@ public sealed class IdentityDataSeeder(
 {
     public async Task SeedAsync(CancellationToken cancellationToken)
     {
-        await SeedCustomerRoleAsync(cancellationToken);
+        await SeedRoleAsync(ApplicationRoleNames.Customer, isDefault: true, cancellationToken);
+        await SeedRoleAsync(ApplicationRoleNames.Driver, isDefault: false, cancellationToken);
 
         var applicants = configuration
             .GetSection("Seed:DriverApplicants")
@@ -25,24 +26,27 @@ public sealed class IdentityDataSeeder(
         }
     }
 
-    private async Task SeedCustomerRoleAsync(CancellationToken cancellationToken)
+    private async Task SeedRoleAsync(
+        string roleName,
+        bool isDefault,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (await roleManager.RoleExistsAsync(ApplicationRoleNames.Customer))
+        if (await roleManager.RoleExistsAsync(roleName))
             return;
 
         var result = await roleManager.CreateAsync(new ApplicationRole
         {
-            Name = ApplicationRoleNames.Customer,
-            IsDefault = true,
+            Name = roleName,
+            IsDefault = isDefault,
             IsDeleted = false
         });
 
         if (!result.Succeeded)
         {
             throw new InvalidOperationException(
-                $"Unable to seed the Customer role: {string.Join(" ", result.Errors.Select(error => error.Description))}");
+                $"Unable to seed the {roleName} role: {string.Join(" ", result.Errors.Select(error => error.Description))}");
         }
     }
 
@@ -74,6 +78,13 @@ public sealed class IdentityDataSeeder(
             var created = await userManager.CreateAsync(user, applicant.Password);
             if (!created.Succeeded)
                 throw new InvalidOperationException(string.Join(" ", created.Errors.Select(error => error.Description)));
+        }
+
+        if (!await userManager.IsInRoleAsync(user, ApplicationRoleNames.Driver))
+        {
+            var roleResult = await userManager.AddToRoleAsync(user, ApplicationRoleNames.Driver);
+            if (!roleResult.Succeeded)
+                throw new InvalidOperationException(string.Join(" ", roleResult.Errors.Select(error => error.Description)));
         }
 
         if (!await dbContext.DriverProfiles.AnyAsync(profile => profile.UserId == user.Id, cancellationToken))
