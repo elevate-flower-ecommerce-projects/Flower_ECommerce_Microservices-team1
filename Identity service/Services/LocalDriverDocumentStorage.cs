@@ -45,4 +45,31 @@ public sealed class LocalDriverDocumentStorage(
 
         #endregion
     }
+
+    public Task<Stream?> OpenReadAsync(
+        string storageKey,
+        CancellationToken cancellationToken)
+    {
+        #region Resolve private storage path
+
+        var storageOptions = options.Value;
+        var rootPath = Path.IsPathRooted(storageOptions.RootPath)
+            ? storageOptions.RootPath
+            : Path.Combine(environment.ContentRootPath, storageOptions.RootPath);
+
+        var fullPath = Path.GetFullPath(Path.Combine(rootPath, storageKey));
+        var fullRootPath = Path.GetFullPath(rootPath);
+
+        #endregion
+
+        #region Open document stream
+
+        if (!fullPath.StartsWith(fullRootPath, StringComparison.OrdinalIgnoreCase) || !File.Exists(fullPath))
+            return Task.FromResult<Stream?>(null);
+
+        Stream stream = File.OpenRead(fullPath);
+        return Task.FromResult<Stream?>(stream);
+
+        #endregion
+    }
 }

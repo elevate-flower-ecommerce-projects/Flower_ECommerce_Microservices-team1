@@ -23,10 +23,13 @@ app.UseStatusCodePages();
 
 app.UseHttpsRedirection();
 
+app.UseRateLimiter();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapCarter();
+app.MapControllers();
 
 app.UseExceptionHandler();
 
