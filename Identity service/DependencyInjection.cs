@@ -6,6 +6,8 @@ using Identity_service.Exceptions;
 using Identity_service.Features.Drivers.Applications.Submit;
 using Identity_service.Features.Users.Login;
 using Identity_service.Infrastructure;
+using Identity_service.Infrastructure.Implementations.Services;
+using Identity_service.Infrastructure.Interfaces.Services;
 using Identity_service.Persistence;
 using Identity_service.Services;
 using Identity_service.Settings;
