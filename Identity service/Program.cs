@@ -1,4 +1,3 @@
-using Carter;
 using Identity_service;
 using Identity_service.Extensions;
 
@@ -12,7 +11,7 @@ builder.Services.AddSwaggerDocumentation();
 
 var app = builder.Build();
 
-await app.MigrateAndSeedIdentityDatabaseAsync();
+//await app.MigrateAndSeedIdentityDatabaseAsync();
 
 if (app.Environment.IsDevelopment())
 {
@@ -31,8 +30,6 @@ app.UseAuthorization();
 app.MapCarter();
 app.MapControllers();
 
+app.UseExceptionHandler();
 
-app.MapGet("/", () => "Identity service is running...");
-
-//app.UseExceptionHandler();
 app.Run();
