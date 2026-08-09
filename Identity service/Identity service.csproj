@@ -34,7 +34,6 @@
 
   <ItemGroup>
     <Folder Include="Contracts\Auth\" />
-    <Folder Include="Features\Users\Register\" />
   </ItemGroup>
 
   <ItemGroup>

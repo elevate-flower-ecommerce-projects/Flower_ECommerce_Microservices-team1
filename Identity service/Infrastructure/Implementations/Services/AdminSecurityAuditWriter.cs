@@ -1,8 +1,6 @@
-using Identity_service.Infrastructure.Interfaces.Services;
-
 namespace Identity_service.Infrastructure.Implementations.Services;
 
-public sealed class AdminSecurityAuditWriter(ApplicationDbContext dbContext) : IAdminSecurityAudit
+public sealed class AdminSecurityAuditWriter(IUnitOfWork<ApplicationDbContext> unitOfWork) : IAdminSecurityAudit
 {
     public Task LoginAttemptAsync(string email, string? ipAddress, string? userAgent, string outcome, CancellationToken cancellationToken) =>
         WriteAsync("Login", outcome, email, ipAddress, userAgent, null, cancellationToken);
@@ -19,7 +17,7 @@ public sealed class AdminSecurityAuditWriter(ApplicationDbContext dbContext) : I
 
     private async Task WriteAsync(string eventType, string outcome, string? email, string? ipAddress, string? userAgent, string? path, CancellationToken cancellationToken)
     {
-        dbContext.AdminSecurityAudits.Add(new AdminSecurityAudit
+        await unitOfWork.Repository<AdminSecurityAudit, Guid>().Create(new AdminSecurityAudit
         {
             EventType = eventType,
             Outcome = outcome,
@@ -29,7 +27,7 @@ public sealed class AdminSecurityAuditWriter(ApplicationDbContext dbContext) : I
             Path = Trim(path, 512)
         });
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await unitOfWork.CompleteAsync();
     }
 
     private static string? Trim(string? value, int length) =>
