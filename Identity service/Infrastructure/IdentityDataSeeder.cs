@@ -16,6 +16,8 @@ public sealed class IdentityDataSeeder(
         await SeedRoleAsync(ApplicationRoleNames.Customer, isDefault: true, cancellationToken);
         await SeedRoleAsync(ApplicationRoleNames.Driver, isDefault: false, cancellationToken);
 
+        await SeedCustomersAsync(cancellationToken);
+
         var applicants = configuration
             .GetSection("Seed:DriverApplicants")
             .Get<List<SeedDriverApplicant>>() ?? [];
@@ -23,6 +25,36 @@ public sealed class IdentityDataSeeder(
         foreach (var applicant in applicants)
         {
             await SeedDriverApplicantAsync(applicant, cancellationToken);
+        }
+    }
+
+    private async Task SeedCustomersAsync(CancellationToken cancellationToken)
+    {
+        var customers = new[]
+        {
+            new SeedCustomer
+            {
+                Email = "customer@flower.local",
+                Password = "CustomerFL@123",
+                Phone = "01010000001",
+                FirstName = "Seed",
+                LastName = "Customer",
+                Gender = Gender.Female
+            },
+            new SeedCustomer
+            {
+                Email = "customer2@flower.local",
+                Password = "CustomerFL@123",
+                Phone = "01010000002",
+                FirstName = "Test",
+                LastName = "Customer",
+                Gender = Gender.Male
+            }
+        };
+
+        foreach (var customer in customers)
+        {
+            await SeedCustomerAsync(customer, cancellationToken);
         }
     }
 
@@ -110,6 +142,51 @@ public sealed class IdentityDataSeeder(
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    private async Task SeedCustomerAsync(
+        SeedCustomer customer,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var email = customer.Email.Trim().ToLowerInvariant();
+        var user = await userManager.FindByEmailAsync(email);
+        if (user is null)
+        {
+            user = new ApplicationUser
+            {
+                UserName = email,
+                Email = email,
+                EmailConfirmed = true,
+                PhoneNumber = customer.Phone,
+                FirstName = customer.FirstName,
+                LastName = customer.LastName,
+                Gender = customer.Gender,
+                IsDisabled = false
+            };
+
+            var created = await userManager.CreateAsync(user, customer.Password);
+            if (!created.Succeeded)
+                throw new InvalidOperationException(string.Join(" ", created.Errors.Select(error => error.Description)));
+        }
+
+        if (!await userManager.IsInRoleAsync(user, ApplicationRoleNames.Customer))
+        {
+            var roleResult = await userManager.AddToRoleAsync(user, ApplicationRoleNames.Customer);
+            if (!roleResult.Succeeded)
+                throw new InvalidOperationException(string.Join(" ", roleResult.Errors.Select(error => error.Description)));
+        }
+
+        if (!await dbContext.CustomerProfiles.AnyAsync(profile => profile.UserId == user.Id, cancellationToken))
+        {
+            dbContext.CustomerProfiles.Add(new CustomerProfile
+            {
+                UserId = user.Id
+            });
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+    }
+
     private sealed class SeedDriverApplicant
     {
         public string Email { get; set; } = string.Empty;
@@ -121,5 +198,15 @@ public sealed class IdentityDataSeeder(
         public string PlateNumber { get; set; } = string.Empty;
         public VehicleType VehicleType { get; set; } = VehicleType.Motorcycle;
         public DriverApplicationStatus Status { get; set; } = DriverApplicationStatus.PendingReview;
+    }
+
+    private sealed class SeedCustomer
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public Gender Gender { get; set; }
     }
 }

@@ -1,4 +1,5 @@
 using System.Text;
+using System.Security.Claims;
 using Catalog_Service.Features.Home;
 using Catalog_Service.Persistence;
 using Catalog_Service.Services;
@@ -35,7 +36,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key)),
             ValidIssuer = jwtOptions.Issuer,
-            ValidAudience = jwtOptions.Audience
+            ValidAudience = jwtOptions.Audience,
+            RoleClaimType = ClaimTypes.Role,
+            NameClaimType = ClaimTypes.NameIdentifier
         };
     });
 

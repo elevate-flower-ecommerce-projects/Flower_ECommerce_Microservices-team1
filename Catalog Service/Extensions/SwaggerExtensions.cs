@@ -16,7 +16,7 @@ public static class SwaggerExtensions
                 Scheme = "bearer",
                 BearerFormat = "JWT",
                 In = ParameterLocation.Header,
-                Description = "Enter your JWT token."
+                Description = "Paste the raw JWT only. Do not include the 'Bearer' prefix; Swagger adds it automatically."
             });
 
             options.AddSecurityRequirement(new OpenApiSecurityRequirement
