@@ -1,42 +1,44 @@
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 
-namespace Identity_service.Extensions;
+namespace Catalog_Service.Persistence;
 
 public static class DatabaseInitializationExtensions
 {
-    public static async Task MigrateAndSeedIdentityDatabaseAsync(this WebApplication app)
+    public static async Task MigrateAndSeedCatalogDatabaseAsync(this WebApplication app)
     {
         await using var scope = app.Services.CreateAsyncScope();
-        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>()
-            .CreateLogger("IdentityDatabaseInitialization");
+        var logger = scope.ServiceProvider
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("CatalogDatabaseInitialization");
 
         try
         {
-            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var context = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
             await EnsureDatabaseExistsAsync(context, logger);
             await MigrateAsync(context, logger);
-            await scope.ServiceProvider.GetRequiredService<IIdentityDataSeeder>()
-                .SeedAsync(CancellationToken.None);
+            await scope.ServiceProvider.GetRequiredService<ICatalogDataSeeder>().SeedAsync();
         }
         catch (Exception exception)
         {
-            logger.LogError(exception, "Identity database migration or seeding failed. Verify SQL Server is running.");
+            logger.LogError(exception, "Catalog database migration or seeding failed. Verify SQL Server is running.");
+            throw;
         }
     }
 
     private static async Task EnsureDatabaseExistsAsync(
-        ApplicationDbContext context,
+        CatalogDbContext context,
         ILogger logger)
     {
         var connectionString = context.Database.GetConnectionString()
-            ?? throw new InvalidOperationException("Identity database connection string was not found.");
+            ?? throw new InvalidOperationException("Catalog database connection string was not found.");
 
         var builder = new SqlConnectionStringBuilder(connectionString);
         var databaseName = builder.InitialCatalog;
 
         if (string.IsNullOrWhiteSpace(databaseName))
         {
-            throw new InvalidOperationException("Identity database name was not found in the connection string.");
+            throw new InvalidOperationException("Catalog database name was not found in the connection string.");
         }
 
         builder.InitialCatalog = "master";
@@ -62,12 +64,12 @@ public static class DatabaseInitializationExtensions
         {
             logger.LogWarning(
                 exception,
-                "Identity database already exists while ensuring it exists. Continuing with migrations.");
+                "Catalog database already exists while ensuring it exists. Continuing with migrations.");
         }
     }
 
     private static async Task MigrateAsync(
-        ApplicationDbContext context,
+        CatalogDbContext context,
         ILogger logger)
     {
         try
@@ -78,7 +80,7 @@ public static class DatabaseInitializationExtensions
         {
             logger.LogWarning(
                 exception,
-                "Identity database already exists during migration startup. Retrying migrations against the existing database.");
+                "Catalog database already exists during migration startup. Retrying migrations against the existing database.");
 
             await Task.Delay(TimeSpan.FromSeconds(1));
             await context.Database.MigrateAsync();
