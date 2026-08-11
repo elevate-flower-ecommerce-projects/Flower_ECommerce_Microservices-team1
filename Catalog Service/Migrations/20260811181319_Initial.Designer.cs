@@ -9,11 +9,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Catalog_Service.Persistence.Migrations
+namespace Catalog_Service.Migrations
 {
     [DbContext(typeof(CatalogDbContext))]
-    [Migration("20260810133205_InitialCatalogHomeLayout")]
-    partial class InitialCatalogHomeLayout
+    [Migration("20260811181319_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
