@@ -1,12 +1,13 @@
 using Catalog_Service.Contracts.Products;
 using Catalog_Service.Entities;
+using Catalog_Service.Features.Products;
 using Catalog_Service.Persistence;
 using Flower.Common.StandardizedResponse;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Repository.Layer.Interfaces;
 
-namespace Catalog_Service.Features.Products;
+namespace Catalog_Service.Features.Products.List;
 
 public sealed class GetProductsHandler(IUnitOfWork<CatalogDbContext> unitOfWork)
     : IRequestHandler<GetProductsQuery, OperationResult<PagedResponse<ProductListItemResponse>>>
@@ -15,6 +16,8 @@ public sealed class GetProductsHandler(IUnitOfWork<CatalogDbContext> unitOfWork)
     {
         var page = request.Page <= 0 ? 1 : request.Page;
         var pageSize = request.PageSize is <= 0 or > 100 ? 20 : request.PageSize;
+        var hasStoreId = request.StoreId.HasValue;
+        var storeId = request.StoreId.GetValueOrDefault();
 
         var query = unitOfWork.Repository<Product, Guid>()
             .Query()
@@ -27,10 +30,23 @@ public sealed class GetProductsHandler(IUnitOfWork<CatalogDbContext> unitOfWork)
             query = query.Where(product => product.OccasionId == request.OccasionId);
 
         if (request.StoreId is not null)
-            query = query.Where(product => product.StoreId == null || product.StoreId == request.StoreId);
+        {
+            query = query.Where(product => product.StoreInventories
+                .Any(inventory => inventory.StoreId == request.StoreId));
+        }
 
         if (request.InStock is not null)
-            query = query.Where(product => product.IsAvailable == request.InStock);
+        {
+            query = request.InStock.Value
+                ? query.Where(product => product.StoreInventories.Any(inventory =>
+                    inventory.IsEnabled
+                    && inventory.AvailableQuantity > 0
+                    && (!hasStoreId || inventory.StoreId == storeId)))
+                : query.Where(product => !product.StoreInventories.Any(inventory =>
+                    inventory.IsEnabled
+                    && inventory.AvailableQuantity > 0
+                    && (!hasStoreId || inventory.StoreId == storeId)));
+        }
 
         var totalCount = await query.CountAsync(cancellationToken);
         var products = await query
@@ -46,14 +62,17 @@ public sealed class GetProductsHandler(IUnitOfWork<CatalogDbContext> unitOfWork)
                 product.DiscountPercent,
                 product.DiscountStartsAtUtc,
                 product.DiscountEndsAtUtc,
-                product.IsAvailable))
+                product.StoreInventories.Any(inventory =>
+                    inventory.IsEnabled
+                    && inventory.AvailableQuantity > 0
+                    && (!hasStoreId || inventory.StoreId == storeId))))
             .ToListAsync(cancellationToken);
 
         var utcNow = DateTime.UtcNow;
         var items = products
             .Select(product =>
             {
-                var price = Calculate(
+                var price = ProductPriceCalculator.Calculate(
                     product.Price,
                     product.DiscountPercent,
                     product.DiscountStartsAtUtc,
@@ -67,7 +86,7 @@ public sealed class GetProductsHandler(IUnitOfWork<CatalogDbContext> unitOfWork)
                     price.Price,
                     price.DiscountedPrice,
                     price.DiscountPercent,
-                    product.IsAvailable);
+                    product.InStock);
             })
             .ToList();
 
@@ -75,45 +94,13 @@ public sealed class GetProductsHandler(IUnitOfWork<CatalogDbContext> unitOfWork)
             new PagedResponse<ProductListItemResponse>(page, pageSize, totalCount, items));
     }
 
-    #region Helpers
-
-
-    private static ProductPrice Calculate(decimal price, decimal? discountPercent, DateTime? discountStartsAtUtc, DateTime? discountEndsAtUtc, DateTime utcNow)
-    {
-        var isActive = discountPercent is > 0 and <= 100
-            && (discountStartsAtUtc is null || discountStartsAtUtc <= utcNow)
-            && (discountEndsAtUtc is null || discountEndsAtUtc >= utcNow);
-
-        if (!isActive)
-            return new ProductPrice(price, null, null);
-
-        var discountedPrice = Math.Round(
-            price * (1 - discountPercent!.Value / 100),
-            2,
-            MidpointRounding.AwayFromZero);
-
-        return new ProductPrice(price, discountedPrice, discountPercent);
-    }
-
-
     private sealed record ProductListProjection(
-    Guid Id,
-    string Name,
-    string? ImageUrl,
-    decimal Price,
-    decimal? DiscountPercent,
-    DateTime? DiscountStartsAtUtc,
-    DateTime? DiscountEndsAtUtc,
-    bool IsAvailable);
-
-
-    private sealed record ProductPrice(
-    decimal Price,
-    decimal? DiscountedPrice,
-    decimal? DiscountPercent);
-
-
-    #endregion
-
+        Guid Id,
+        string Name,
+        string? ImageUrl,
+        decimal Price,
+        decimal? DiscountPercent,
+        DateTime? DiscountStartsAtUtc,
+        DateTime? DiscountEndsAtUtc,
+        bool InStock);
 }
-

@@ -17,6 +17,10 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(product => product.ImageUrl)
             .HasMaxLength(512);
 
+        builder.Property(product => product.Description)
+            .HasMaxLength(2000)
+            .IsRequired();
+
         builder.Property(product => product.Price)
             .HasColumnType("decimal(18,2)");
 
@@ -29,7 +33,6 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(product => product.DiscountEndsAtUtc)
             .IsRequired(false);
 
-        builder.HasIndex(product => product.StoreId);
         builder.HasIndex(product => product.SoldCount);
     }
 }

@@ -4,9 +4,9 @@ using Flower.Common.StandardizedResponse;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 
-namespace Catalog_Service.Features.Products;
+namespace Catalog_Service.Features.Products.List;
 
-public sealed class ProductsEndpoint : ICarterModule
+public sealed class GetProductsEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
@@ -20,7 +20,9 @@ public sealed class ProductsEndpoint : ICarterModule
             ISender sender,
             CancellationToken cancellationToken) =>
         {
-            var result = await sender.Send(new GetProductsQuery(page ?? 1, pageSize ?? 20, categoryId, occasionId, storeId, inStock), cancellationToken);
+            var result = await sender.Send(
+                new GetProductsQuery(page ?? 1, pageSize ?? 20, categoryId, occasionId, storeId, inStock),
+                cancellationToken);
 
             return result.ToHttpResult();
         })

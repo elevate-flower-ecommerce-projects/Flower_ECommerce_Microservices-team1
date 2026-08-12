@@ -35,7 +35,20 @@ public sealed class CatalogDataSeeder(CatalogDbContext dbContext) : ICatalogData
                 new Occasion { Id = BirthdayOccasionId, Name = "Birthday", ImageUrl = "/images/occasions/birthday.jpg", SortOrder = 2 });
         }
 
-        await SeedProductsAsync();
+        if (!await dbContext.Products.AnyAsync())
+        {
+            var products = ProductSeedData.Create(
+                BirthdayCategoryId,
+                RosesCategoryId,
+                PlantsCategoryId,
+                WeddingOccasionId,
+                BirthdayOccasionId);
+
+            dbContext.Products.AddRange(products);
+            dbContext.ProductImages.AddRange(ProductSeedData.CreateImages(products));
+            dbContext.ProductIncludedItems.AddRange(ProductSeedData.CreateIncludedItems(products));
+            dbContext.ProductStoreInventories.AddRange(ProductSeedData.CreateStoreInventories(products));
+        }
 
         if (!await dbContext.Banners.AnyAsync())
         {
@@ -92,26 +105,4 @@ public sealed class CatalogDataSeeder(CatalogDbContext dbContext) : ICatalogData
         await dbContext.SaveChangesAsync();
     }
 
-    private async Task SeedProductsAsync()
-    {
-        var products = ProductSeedData.Create(
-            BirthdayCategoryId,
-            RosesCategoryId,
-            PlantsCategoryId,
-            WeddingOccasionId,
-            BirthdayOccasionId);
-
-        var productIds = products.Select(product => product.Id).ToArray();
-        var existingProductIds = await dbContext.Products
-            .Where(product => productIds.Contains(product.Id))
-            .Select(product => product.Id)
-            .ToListAsync();
-
-        var missingProducts = products
-            .Where(product => !existingProductIds.Contains(product.Id))
-            .ToArray();
-
-        if (missingProducts.Length > 0)
-            dbContext.Products.AddRange(missingProducts);
-    }
 }

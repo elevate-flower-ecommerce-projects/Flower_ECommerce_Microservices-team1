@@ -6,6 +6,7 @@ internal static class ProductSeedData
 {
     private static readonly Guid NasrCityStoreId = Guid.Parse("60000000-0000-0000-0000-000000000001");
     private static readonly Guid MaadiStoreId = Guid.Parse("60000000-0000-0000-0000-000000000002");
+    private static readonly HashSet<int> UnavailableProductNumbers = [5, 18, 29, 40];
 
     public static IReadOnlyList<Product> Create(
         Guid birthdayCategoryId,
@@ -21,43 +22,43 @@ internal static class ProductSeedData
             Product("001", "Classic Red Roses", "red-roses", 499, rosesCategoryId, birthdayOccasionId, 180, discountPercent: 15, activeFrom: utcNow.AddDays(-7), activeTo: utcNow.AddDays(21)),
             Product("002", "Sunrise Birthday Bouquet", "sunrise-bouquet", 650, birthdayCategoryId, birthdayOccasionId, 132),
             Product("003", "Peace Lily Plant", "peace-lily", 720, plantsCategoryId, null, 96, discountPercent: 20, activeFrom: utcNow.AddDays(-30), activeTo: utcNow.AddDays(-1)),
-            Product("004", "Blush Wedding Bouquet", "blush-wedding-bouquet", 950, rosesCategoryId, weddingOccasionId, 77, storeId: NasrCityStoreId, discountPercent: 10, activeFrom: utcNow.AddDays(3), activeTo: utcNow.AddDays(20)),
-            Product("005", "Gardenia Gift Box", "gardenia-gift-box", 840, birthdayCategoryId, birthdayOccasionId, 44, isAvailable: false),
-            Product("006", "Maadi Orchid Arrangement", "maadi-orchid-arrangement", 1100, plantsCategoryId, weddingOccasionId, 63, storeId: MaadiStoreId, discountPercent: 12.5m, activeFrom: utcNow.AddDays(-2), activeTo: utcNow.AddDays(14)),
+            Product("004", "Blush Wedding Bouquet", "blush-wedding-bouquet", 950, rosesCategoryId, weddingOccasionId, 77, discountPercent: 10, activeFrom: utcNow.AddDays(3), activeTo: utcNow.AddDays(20)),
+            Product("005", "Gardenia Gift Box", "gardenia-gift-box", 840, birthdayCategoryId, birthdayOccasionId, 44),
+            Product("006", "Maadi Orchid Arrangement", "maadi-orchid-arrangement", 1100, plantsCategoryId, weddingOccasionId, 63, discountPercent: 12.5m, activeFrom: utcNow.AddDays(-2), activeTo: utcNow.AddDays(14)),
             Product("007", "Pastel Peony Basket", "pastel-peony-basket", 780, birthdayCategoryId, birthdayOccasionId, 51, discountPercent: 25, activeFrom: utcNow.AddDays(-21), activeTo: utcNow.AddDays(-2)),
             Product("008", "Amber Rose Bouquet", "amber-rose-bouquet", 560, rosesCategoryId, birthdayOccasionId, 118),
             Product("009", "Apricot Tulip Bundle", "apricot-tulip-bundle", 610, birthdayCategoryId, birthdayOccasionId, 87, discountPercent: 10, activeFrom: utcNow.AddDays(-1), activeTo: utcNow.AddDays(10)),
             Product("010", "Baby Breath Cloud", "baby-breath-cloud", 430, rosesCategoryId, weddingOccasionId, 39),
-            Product("011", "Blooming Anthurium", "blooming-anthurium", 890, plantsCategoryId, null, 72, storeId: NasrCityStoreId),
+            Product("011", "Blooming Anthurium", "blooming-anthurium", 890, plantsCategoryId, null, 72),
             Product("012", "Blue Hydrangea Box", "blue-hydrangea-box", 760, birthdayCategoryId, birthdayOccasionId, 91, discountPercent: 18, activeFrom: utcNow.AddDays(-4), activeTo: utcNow.AddDays(16)),
-            Product("013", "Bridal White Roses", "bridal-white-roses", 1200, rosesCategoryId, weddingOccasionId, 105, storeId: MaadiStoreId),
+            Product("013", "Bridal White Roses", "bridal-white-roses", 1200, rosesCategoryId, weddingOccasionId, 105),
             Product("014", "Candlelight Carnations", "candlelight-carnations", 470, birthdayCategoryId, birthdayOccasionId, 48),
             Product("015", "Champagne Rose Vase", "champagne-rose-vase", 990, rosesCategoryId, weddingOccasionId, 66, discountPercent: 8, activeFrom: utcNow.AddDays(-2), activeTo: utcNow.AddDays(8)),
             Product("016", "Cherry Blossom Branches", "cherry-blossom-branches", 680, birthdayCategoryId, birthdayOccasionId, 43),
-            Product("017", "Coral Peony Bouquet", "coral-peony-bouquet", 860, rosesCategoryId, birthdayOccasionId, 83, storeId: NasrCityStoreId),
-            Product("018", "Desert Rose Plant", "desert-rose-plant", 540, plantsCategoryId, null, 29, isAvailable: false),
+            Product("017", "Coral Peony Bouquet", "coral-peony-bouquet", 860, rosesCategoryId, birthdayOccasionId, 83),
+            Product("018", "Desert Rose Plant", "desert-rose-plant", 540, plantsCategoryId, null, 29),
             Product("019", "Elegant Eucalyptus Vase", "elegant-eucalyptus-vase", 690, plantsCategoryId, weddingOccasionId, 57),
             Product("020", "Forever Pink Roses", "forever-pink-roses", 1040, rosesCategoryId, birthdayOccasionId, 124, discountPercent: 20, activeFrom: utcNow.AddDays(-5), activeTo: utcNow.AddDays(25)),
             Product("021", "Golden Sunflower Basket", "golden-sunflower-basket", 630, birthdayCategoryId, birthdayOccasionId, 74),
-            Product("022", "Graceful Lily Bouquet", "graceful-lily-bouquet", 820, rosesCategoryId, weddingOccasionId, 68, storeId: MaadiStoreId),
+            Product("022", "Graceful Lily Bouquet", "graceful-lily-bouquet", 820, rosesCategoryId, weddingOccasionId, 68),
             Product("023", "Hanging Ivy Plant", "hanging-ivy-plant", 460, plantsCategoryId, null, 35),
             Product("024", "Ivory Wedding Centerpiece", "ivory-wedding-centerpiece", 1450, rosesCategoryId, weddingOccasionId, 112, discountPercent: 15, activeFrom: utcNow.AddDays(-10), activeTo: utcNow.AddDays(18)),
-            Product("025", "Jasmine Garden Basket", "jasmine-garden-basket", 730, plantsCategoryId, birthdayOccasionId, 46, storeId: NasrCityStoreId),
+            Product("025", "Jasmine Garden Basket", "jasmine-garden-basket", 730, plantsCategoryId, birthdayOccasionId, 46),
             Product("026", "Lavender Love Bouquet", "lavender-love-bouquet", 700, birthdayCategoryId, birthdayOccasionId, 89, discountPercent: 5, activeFrom: utcNow.AddDays(-1), activeTo: utcNow.AddDays(5)),
             Product("027", "Lemon Lime Dracaena", "lemon-lime-dracaena", 590, plantsCategoryId, null, 31),
             Product("028", "Midnight Blue Iris", "midnight-blue-iris", 775, rosesCategoryId, weddingOccasionId, 58, discountPercent: 30, activeFrom: utcNow.AddDays(2), activeTo: utcNow.AddDays(20)),
-            Product("029", "Mint Garden Planter", "mint-garden-planter", 510, plantsCategoryId, birthdayOccasionId, 41, isAvailable: false),
-            Product("030", "Moonlight Orchid Duo", "moonlight-orchid-duo", 1320, plantsCategoryId, weddingOccasionId, 97, storeId: MaadiStoreId, discountPercent: 12, activeFrom: utcNow.AddDays(-3), activeTo: utcNow.AddDays(12)),
+            Product("029", "Mint Garden Planter", "mint-garden-planter", 510, plantsCategoryId, birthdayOccasionId, 41),
+            Product("030", "Moonlight Orchid Duo", "moonlight-orchid-duo", 1320, plantsCategoryId, weddingOccasionId, 97, discountPercent: 12, activeFrom: utcNow.AddDays(-3), activeTo: utcNow.AddDays(12)),
             Product("031", "Nile Lotus Arrangement", "nile-lotus-arrangement", 920, birthdayCategoryId, birthdayOccasionId, 62),
             Product("032", "Olive Tree Gift", "olive-tree-gift", 1150, plantsCategoryId, weddingOccasionId, 54),
             Product("033", "Peach Gerbera Basket", "peach-gerbera-basket", 580, birthdayCategoryId, birthdayOccasionId, 70, discountPercent: 10, activeFrom: utcNow.AddDays(-12), activeTo: utcNow.AddDays(-3)),
-            Product("034", "Pearl Rose Heart", "pearl-rose-heart", 980, rosesCategoryId, weddingOccasionId, 103, storeId: NasrCityStoreId),
+            Product("034", "Pearl Rose Heart", "pearl-rose-heart", 980, rosesCategoryId, weddingOccasionId, 103),
             Product("035", "Pink Tulip Melody", "pink-tulip-melody", 640, birthdayCategoryId, birthdayOccasionId, 79),
             Product("036", "Royal Purple Orchid", "royal-purple-orchid", 1280, plantsCategoryId, weddingOccasionId, 85, discountPercent: 17.5m, activeFrom: utcNow.AddDays(-6), activeTo: utcNow.AddDays(19)),
-            Product("037", "Ruby Red Bouquet", "ruby-red-bouquet", 720, rosesCategoryId, birthdayOccasionId, 110, storeId: MaadiStoreId),
+            Product("037", "Ruby Red Bouquet", "ruby-red-bouquet", 720, rosesCategoryId, birthdayOccasionId, 110),
             Product("038", "Silver Leaf Plant", "silver-leaf-plant", 490, plantsCategoryId, null, 37),
             Product("039", "Summer Meadow Bouquet", "summer-meadow-bouquet", 760, birthdayCategoryId, birthdayOccasionId, 93, discountPercent: 22, activeFrom: utcNow.AddDays(-2), activeTo: utcNow.AddDays(15)),
-            Product("040", "White Lily Wedding Vase", "white-lily-wedding-vase", 1180, rosesCategoryId, weddingOccasionId, 101, isAvailable: false)
+            Product("040", "White Lily Wedding Vase", "white-lily-wedding-vase", 1180, rosesCategoryId, weddingOccasionId, 101)
         ];
     }
 
@@ -69,8 +70,6 @@ internal static class ProductSeedData
         Guid categoryId,
         Guid? occasionId,
         int soldCount,
-        Guid? storeId = null,
-        bool isAvailable = true,
         decimal? discountPercent = null,
         DateTime? activeFrom = null,
         DateTime? activeTo = null)
@@ -85,8 +84,88 @@ internal static class ProductSeedData
             DiscountEndsAtUtc = activeTo,
             CategoryId = categoryId,
             OccasionId = occasionId,
-            StoreId = storeId,
-            IsAvailable = isAvailable,
-            SoldCount = soldCount
+            SoldCount = soldCount,
+            Description = $"A carefully arranged {name} prepared with fresh flowers and gift-ready presentation."
         };
+
+    public static IReadOnlyList<ProductImage> CreateImages(IReadOnlyList<Product> products)
+        => products.SelectMany(product =>
+        {
+            var number = GetProductNumber(product.Id);
+            var cover = product.ImageUrl ?? $"/images/products/{product.Id:N}.jpg";
+            var detail = cover.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
+                ? cover[..^4] + "-detail.jpg"
+                : cover + "-detail";
+
+            return new[]
+            {
+                new ProductImage
+                {
+                    Id = SeedId("70000000", number * 10 + 1),
+                    ProductId = product.Id,
+                    ImageUrl = cover,
+                    SortOrder = 1
+                },
+                new ProductImage
+                {
+                    Id = SeedId("70000000", number * 10 + 2),
+                    ProductId = product.Id,
+                    ImageUrl = detail,
+                    SortOrder = 2
+                }
+            };
+        }).ToArray();
+
+    public static IReadOnlyList<ProductIncludedItem> CreateIncludedItems(IReadOnlyList<Product> products)
+        => products.SelectMany(product =>
+        {
+            var number = GetProductNumber(product.Id);
+
+            return new[]
+            {
+                new ProductIncludedItem
+                {
+                    Id = SeedId("80000000", number * 10 + 1),
+                    ProductId = product.Id,
+                    Name = "Fresh seasonal flowers",
+                    Quantity = 1,
+                    SortOrder = 1
+                },
+                new ProductIncludedItem
+                {
+                    Id = SeedId("80000000", number * 10 + 2),
+                    ProductId = product.Id,
+                    Name = "Gift wrapping",
+                    Quantity = 1,
+                    SortOrder = 2
+                }
+            };
+        }).ToArray();
+
+    public static IReadOnlyList<ProductStoreInventory> CreateStoreInventories(IReadOnlyList<Product> products)
+        => products.SelectMany(product =>
+        {
+            var number = GetProductNumber(product.Id);
+            return new[]
+            {
+                Inventory(number, product, NasrCityStoreId, !UnavailableProductNumbers.Contains(number) && number % 9 != 0),
+                Inventory(number, product, MaadiStoreId, !UnavailableProductNumbers.Contains(number) && number % 7 != 0)
+            };
+        }).ToArray();
+
+    private static ProductStoreInventory Inventory(int productNumber, Product product, Guid storeId, bool isEnabled)
+        => new()
+        {
+            Id = SeedId("90000000", productNumber * 10 + (storeId == NasrCityStoreId ? 1 : 2)),
+            ProductId = product.Id,
+            StoreId = storeId,
+            AvailableQuantity = isEnabled ? 10 : 0,
+            IsEnabled = isEnabled
+        };
+
+    private static int GetProductNumber(Guid productId)
+        => int.Parse(productId.ToString("N")[^12..]);
+
+    private static Guid SeedId(string prefix, int sequence)
+        => Guid.Parse($"{prefix}-0000-0000-0000-{sequence:D12}");
 }
