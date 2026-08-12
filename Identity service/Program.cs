@@ -32,4 +32,6 @@ app.MapControllers();
 
 app.UseExceptionHandler();
 
+app.MapGet("/health", () => Results.Ok(new { status = "Healthy", service = "Identity Service", timestamp = DateTime.UtcNow }));
+
 app.Run();

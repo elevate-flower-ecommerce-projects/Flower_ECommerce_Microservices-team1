@@ -14,7 +14,7 @@ app.UseSwaggerDocumentation();
 
 app.UseAuthorization();
 
-app.MapGet("/health", () => Results.Ok(new { status = "Healthy", service = "Flower E-Commerce API Gateway" }));
+app.MapGet("/health", () => Results.Ok(new { status = "Healthy", service = "Flower E-Commerce API Gateway", timestamp = DateTime.UtcNow }));
 
 app.MapControllers();
 app.MapGatewayReverseProxy();
