@@ -1,5 +1,6 @@
 using Catalog_Service.Contracts.Home;
 using Carter;
+using Flower.Common.StandardizedResponse;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 
@@ -15,11 +16,11 @@ public sealed class HomeLayoutEndpoint : ICarterModule
             CancellationToken cancellationToken) =>
         {
             var layout = await sender.Send(new GetHomeLayoutQuery(storeId), cancellationToken);
-            return Results.Ok(layout);
+            return layout.ToHttpResult();
         })
         .RequireAuthorization(new AuthorizeAttribute { Roles = "Customer" })
         .WithName("GetHomeLayout")
         .WithTags("Home")
-        .Produces<IReadOnlyList<HomeSectionResponse>>();
+        .Produces<OperationResult<IReadOnlyList<HomeSectionResponse>>>();
     }
 }

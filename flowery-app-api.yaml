@@ -401,35 +401,38 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/HomeSection'
+                $ref: '#/components/schemas/HomeLayoutOperationResult'
               examples:
                 sample:
                   summary: Sample home layout
                   value:
-                    - type: banner
-                      id: "50000000-0000-0000-0000-000000000001"
-                      title: "Summer Picks"
-                      order: 1
-                      enabled: true
-                      payload:
-                        imageUrl: "/images/banners/home-hero.jpg"
-                        deepLink: "/products?collection=summer"
-                    - type: category_rail
-                      id: "50000000-0000-0000-0000-000000000002"
-                      title: "Shop by Category"
-                      order: 2
-                      enabled: true
-                      payload:
-                        items:
-                          - id: "10000000-0000-0000-0000-000000000001"
-                            name: "Birthday Flowers"
-                            imageUrl: "/images/categories/birthday.jpg"
-                            deepLink: "/categories/10000000-0000-0000-0000-000000000001"
-                        viewAll:
-                          label: "View All"
-                          deepLink: "/categories"
+                    success: true
+                    statusCode: 200
+                    message: "Success"
+                    messageLocalized: "Success"
+                    data:
+                      - type: banner
+                        id: "50000000-0000-0000-0000-000000000001"
+                        title: "Summer Picks"
+                        order: 1
+                        enabled: true
+                        payload:
+                          imageUrl: "/images/banners/home-hero.jpg"
+                          deepLink: "/products?collection=summer"
+                      - type: category_rail
+                        id: "50000000-0000-0000-0000-000000000002"
+                        title: "Shop by Category"
+                        order: 2
+                        enabled: true
+                        payload:
+                          items:
+                            - id: "10000000-0000-0000-0000-000000000001"
+                              name: "Birthday Flowers"
+                              imageUrl: "/images/categories/birthday.jpg"
+                              deepLink: "/categories/10000000-0000-0000-0000-000000000001"
+                          viewAll:
+                            label: "View All"
+                            deepLink: "/categories"
         '401':
           description: Missing, expired, or invalid JWT.
           content:
@@ -839,6 +842,26 @@ components:
             - $ref: '#/components/schemas/CategoryRailPayload'
             - $ref: '#/components/schemas/ProductRailPayload'
             - $ref: '#/components/schemas/OccasionRailPayload'
+
+    HomeLayoutOperationResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "Success"
+        messageLocalized:
+          type: string
+          example: "Success"
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/HomeSection'
 
     BannerPayload:
       type: object

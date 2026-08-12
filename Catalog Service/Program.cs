@@ -8,6 +8,8 @@ using Catalog_Service.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Repository.Layer;
+using Repository.Layer.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +21,7 @@ builder.Services.AddDbContext<CatalogDbContext>(options =>
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.AddScoped<ICatalogDataSeeder, CatalogDataSeeder>();
+builder.Services.AddScoped(typeof(IUnitOfWork<CatalogDbContext>), typeof(UnitOfWork<CatalogDbContext>));
 builder.Services.AddCarter();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 

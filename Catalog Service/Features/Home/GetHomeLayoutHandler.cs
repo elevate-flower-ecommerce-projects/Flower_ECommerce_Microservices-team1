@@ -1,13 +1,16 @@
 using System.Text.Json;
 using Catalog_Service.Contracts.Home;
+using Catalog_Service.Entities;
 using Catalog_Service.Persistence;
+using Flower.Common.StandardizedResponse;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Repository.Layer.Interfaces;
 
 namespace Catalog_Service.Features.Home;
 
-public sealed class GetHomeLayoutHandler(CatalogDbContext dbContext)
-    : IRequestHandler<GetHomeLayoutQuery, IReadOnlyList<HomeSectionResponse>>
+public sealed class GetHomeLayoutHandler(IUnitOfWork<CatalogDbContext> unitOfWork)
+    : IRequestHandler<GetHomeLayoutQuery, OperationResult<IReadOnlyList<HomeSectionResponse>>>
 {
     private const string CategoryRail = "category_rail";
     private const string ProductRail = "product_rail";
@@ -16,12 +19,12 @@ public sealed class GetHomeLayoutHandler(CatalogDbContext dbContext)
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public async Task<IReadOnlyList<HomeSectionResponse>> Handle(
+    public async Task<OperationResult<IReadOnlyList<HomeSectionResponse>>> Handle(
         GetHomeLayoutQuery request,
         CancellationToken cancellationToken)
     {
-        var sections = await dbContext.HomeSections
-            .AsNoTracking()
+        var sections = await unitOfWork.Repository<HomeSection, Guid>()
+            .Query()
             .OrderBy(section => section.Order)
             .ThenBy(section => section.Id)
             .ToListAsync(cancellationToken);
@@ -56,7 +59,7 @@ public sealed class GetHomeLayoutHandler(CatalogDbContext dbContext)
                 payload));
         }
 
-        return response;
+        return OperationResultFactory.Success<IReadOnlyList<HomeSectionResponse>>(response);
     }
 
     private async Task<RailPayload<CategorySummary>> BuildCategoryRailAsync(
@@ -64,8 +67,8 @@ public sealed class GetHomeLayoutHandler(CatalogDbContext dbContext)
         CancellationToken cancellationToken)
     {
         var config = ReadConfig<RailConfig>(contentRefJson);
-        var query = dbContext.Categories
-            .AsNoTracking()
+        var query = unitOfWork.Repository<Category, Guid>()
+            .Query()
             .Where(category => category.IsActive);
 
         if (config.Ids.Count > 0)
@@ -95,8 +98,8 @@ public sealed class GetHomeLayoutHandler(CatalogDbContext dbContext)
         CancellationToken cancellationToken)
     {
         var config = ReadConfig<ProductRailConfig>(contentRefJson);
-        var query = dbContext.Products
-            .AsNoTracking()
+        var query = unitOfWork.Repository<Product, Guid>()
+            .Query()
             .Where(product => product.IsActive && product.IsAvailable);
 
         if (storeId is not null)
@@ -135,8 +138,8 @@ public sealed class GetHomeLayoutHandler(CatalogDbContext dbContext)
         CancellationToken cancellationToken)
     {
         var config = ReadConfig<RailConfig>(contentRefJson);
-        var query = dbContext.Occasions
-            .AsNoTracking()
+        var query = unitOfWork.Repository<Occasion, Guid>()
+            .Query()
             .Where(occasion => occasion.IsActive);
 
         if (config.Ids.Count > 0)
@@ -171,8 +174,8 @@ public sealed class GetHomeLayoutHandler(CatalogDbContext dbContext)
             return new BannerPayload(config.ImageUrl, config.DeepLink ?? string.Empty);
         }
 
-        var query = dbContext.Banners
-            .AsNoTracking()
+        var query = unitOfWork.Repository<Banner, Guid>()
+            .Query()
             .Where(banner => banner.IsActive);
 
         if (storeId is not null)
