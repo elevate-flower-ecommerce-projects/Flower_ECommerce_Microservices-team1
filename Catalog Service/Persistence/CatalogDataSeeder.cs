@@ -35,13 +35,7 @@ public sealed class CatalogDataSeeder(CatalogDbContext dbContext) : ICatalogData
                 new Occasion { Id = BirthdayOccasionId, Name = "Birthday", ImageUrl = "/images/occasions/birthday.jpg", SortOrder = 2 });
         }
 
-        if (!await dbContext.Products.AnyAsync())
-        {
-            dbContext.Products.AddRange(
-                new Product { Id = Guid.Parse("40000000-0000-0000-0000-000000000001"), Name = "Classic Red Roses", ImageUrl = "/images/products/red-roses.jpg", Price = 499, CategoryId = RosesCategoryId, OccasionId = BirthdayOccasionId, SoldCount = 180 },
-                new Product { Id = Guid.Parse("40000000-0000-0000-0000-000000000002"), Name = "Sunrise Birthday Bouquet", ImageUrl = "/images/products/sunrise-bouquet.jpg", Price = 650, CategoryId = BirthdayCategoryId, OccasionId = BirthdayOccasionId, SoldCount = 132 },
-                new Product { Id = Guid.Parse("40000000-0000-0000-0000-000000000003"), Name = "Peace Lily Plant", ImageUrl = "/images/products/peace-lily.jpg", Price = 720, CategoryId = PlantsCategoryId, SoldCount = 96 });
-        }
+        await SeedProductsAsync();
 
         if (!await dbContext.Banners.AnyAsync())
         {
@@ -96,5 +90,28 @@ public sealed class CatalogDataSeeder(CatalogDbContext dbContext) : ICatalogData
         }
 
         await dbContext.SaveChangesAsync();
+    }
+
+    private async Task SeedProductsAsync()
+    {
+        var products = ProductSeedData.Create(
+            BirthdayCategoryId,
+            RosesCategoryId,
+            PlantsCategoryId,
+            WeddingOccasionId,
+            BirthdayOccasionId);
+
+        var productIds = products.Select(product => product.Id).ToArray();
+        var existingProductIds = await dbContext.Products
+            .Where(product => productIds.Contains(product.Id))
+            .Select(product => product.Id)
+            .ToListAsync();
+
+        var missingProducts = products
+            .Where(product => !existingProductIds.Contains(product.Id))
+            .ToArray();
+
+        if (missingProducts.Length > 0)
+            dbContext.Products.AddRange(missingProducts);
     }
 }

@@ -6,6 +6,9 @@ public sealed class Product
     public string Name { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
     public decimal Price { get; set; }
+    public decimal? DiscountPercent { get; set; }
+    public DateTime? DiscountStartsAtUtc { get; set; }
+    public DateTime? DiscountEndsAtUtc { get; set; }
     public Guid? CategoryId { get; set; }
     public Guid? OccasionId { get; set; }
     public Guid? StoreId { get; set; }
