@@ -13,10 +13,27 @@ public sealed class IdentityDataSeeder(
 {
     public async Task SeedAsync(CancellationToken cancellationToken)
     {
+        await SeedRoleAsync(DefaultRoles.Admin.Name, isDefault: false, cancellationToken);
         await SeedRoleAsync(ApplicationRoleNames.Customer, isDefault: true, cancellationToken);
         await SeedRoleAsync(ApplicationRoleNames.Driver, isDefault: false, cancellationToken);
 
-        await SeedCustomersAsync(cancellationToken);
+        var admins = configuration
+            .GetSection("Seed:Admins")
+            .Get<List<SeedUser>>() ?? [];
+
+        foreach (var admin in admins)
+        {
+            await SeedUserAsync(admin, DefaultRoles.Admin.Name, createCustomerProfile: false, cancellationToken);
+        }
+
+        var customers = configuration
+            .GetSection("Seed:Customers")
+            .Get<List<SeedUser>>() ?? [];
+
+        foreach (var customer in customers)
+        {
+            await SeedUserAsync(customer, ApplicationRoleNames.Customer, createCustomerProfile: true, cancellationToken);
+        }
 
         var applicants = configuration
             .GetSection("Seed:DriverApplicants")
@@ -25,36 +42,6 @@ public sealed class IdentityDataSeeder(
         foreach (var applicant in applicants)
         {
             await SeedDriverApplicantAsync(applicant, cancellationToken);
-        }
-    }
-
-    private async Task SeedCustomersAsync(CancellationToken cancellationToken)
-    {
-        var customers = new[]
-        {
-            new SeedCustomer
-            {
-                Email = "customer@flower.local",
-                Password = "CustomerFL@123",
-                Phone = "01010000001",
-                FirstName = "Seed",
-                LastName = "Customer",
-                Gender = Gender.Female
-            },
-            new SeedCustomer
-            {
-                Email = "customer2@flower.local",
-                Password = "CustomerFL@123",
-                Phone = "01010000002",
-                FirstName = "Test",
-                LastName = "Customer",
-                Gender = Gender.Male
-            }
-        };
-
-        foreach (var customer in customers)
-        {
-            await SeedCustomerAsync(customer, cancellationToken);
         }
     }
 
@@ -142,13 +129,21 @@ public sealed class IdentityDataSeeder(
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task SeedCustomerAsync(
-        SeedCustomer customer,
+    private async Task SeedUserAsync(
+        SeedUser seedUser,
+        string roleName,
+        bool createCustomerProfile,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var email = customer.Email.Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(seedUser.Email)
+            || string.IsNullOrWhiteSpace(seedUser.Password))
+        {
+            return;
+        }
+
+        var email = seedUser.Email.Trim().ToLowerInvariant();
         var user = await userManager.FindByEmailAsync(email);
         if (user is null)
         {
@@ -157,26 +152,27 @@ public sealed class IdentityDataSeeder(
                 UserName = email,
                 Email = email,
                 EmailConfirmed = true,
-                PhoneNumber = customer.Phone,
-                FirstName = customer.FirstName,
-                LastName = customer.LastName,
-                Gender = customer.Gender,
+                PhoneNumber = seedUser.Phone,
+                FirstName = seedUser.FirstName,
+                LastName = seedUser.LastName,
+                Gender = seedUser.Gender,
                 IsDisabled = false
             };
 
-            var created = await userManager.CreateAsync(user, customer.Password);
+            var created = await userManager.CreateAsync(user, seedUser.Password);
             if (!created.Succeeded)
                 throw new InvalidOperationException(string.Join(" ", created.Errors.Select(error => error.Description)));
         }
 
-        if (!await userManager.IsInRoleAsync(user, ApplicationRoleNames.Customer))
+        if (!await userManager.IsInRoleAsync(user, roleName))
         {
-            var roleResult = await userManager.AddToRoleAsync(user, ApplicationRoleNames.Customer);
+            var roleResult = await userManager.AddToRoleAsync(user, roleName);
             if (!roleResult.Succeeded)
                 throw new InvalidOperationException(string.Join(" ", roleResult.Errors.Select(error => error.Description)));
         }
 
-        if (!await dbContext.CustomerProfiles.AnyAsync(profile => profile.UserId == user.Id, cancellationToken))
+        if (createCustomerProfile
+            && !await dbContext.CustomerProfiles.AnyAsync(profile => profile.UserId == user.Id, cancellationToken))
         {
             dbContext.CustomerProfiles.Add(new CustomerProfile
             {
@@ -200,13 +196,13 @@ public sealed class IdentityDataSeeder(
         public DriverApplicationStatus Status { get; set; } = DriverApplicationStatus.PendingReview;
     }
 
-    private sealed class SeedCustomer
+    private sealed class SeedUser
     {
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
-        public Gender Gender { get; set; }
+        public Gender? Gender { get; set; }
     }
 }

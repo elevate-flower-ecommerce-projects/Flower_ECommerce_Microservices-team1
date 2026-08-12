@@ -1,17 +1,13 @@
 using System.Text.Json;
 using Catalog_Service.Contracts.Home;
-using Catalog_Service.Entities;
 using Catalog_Service.Persistence;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Catalog_Service.Services;
+namespace Catalog_Service.Features.Home;
 
-public interface IHomeLayoutService
-{
-    Task<IReadOnlyList<HomeSectionResponse>> GetLayoutAsync(Guid? storeId, CancellationToken cancellationToken);
-}
-
-public sealed class HomeLayoutService(CatalogDbContext dbContext) : IHomeLayoutService
+public sealed class GetHomeLayoutHandler(CatalogDbContext dbContext)
+    : IRequestHandler<GetHomeLayoutQuery, IReadOnlyList<HomeSectionResponse>>
 {
     private const string CategoryRail = "category_rail";
     private const string ProductRail = "product_rail";
@@ -20,8 +16,8 @@ public sealed class HomeLayoutService(CatalogDbContext dbContext) : IHomeLayoutS
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public async Task<IReadOnlyList<HomeSectionResponse>> GetLayoutAsync(
-        Guid? storeId,
+    public async Task<IReadOnlyList<HomeSectionResponse>> Handle(
+        GetHomeLayoutQuery request,
         CancellationToken cancellationToken)
     {
         var sections = await dbContext.HomeSections
@@ -40,13 +36,13 @@ public sealed class HomeLayoutService(CatalogDbContext dbContext) : IHomeLayoutS
                     ? await BuildCategoryRailAsync(section.ContentRefJson, cancellationToken)
                     : null,
                 ProductRail => section.Enabled
-                    ? await BuildProductRailAsync(section.ContentRefJson, storeId, cancellationToken)
+                    ? await BuildProductRailAsync(section.ContentRefJson, request.StoreId, cancellationToken)
                     : null,
                 OccasionRail => section.Enabled
                     ? await BuildOccasionRailAsync(section.ContentRefJson, cancellationToken)
                     : null,
                 Banner => section.Enabled
-                    ? await BuildBannerAsync(section.ContentRefJson, storeId, cancellationToken)
+                    ? await BuildBannerAsync(section.ContentRefJson, request.StoreId, cancellationToken)
                     : null,
                 _ => null
             };

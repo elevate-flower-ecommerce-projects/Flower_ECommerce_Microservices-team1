@@ -1,8 +1,8 @@
 using System.Text;
 using System.Security.Claims;
-using Catalog_Service.Features.Home;
+using System.Reflection;
+using Carter;
 using Catalog_Service.Persistence;
-using Catalog_Service.Services;
 using Catalog_Service.Settings;
 using Catalog_Service.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -18,8 +18,9 @@ builder.Services.AddDbContext<CatalogDbContext>(options =>
     options.UseSqlServer(connectionString, sqlOptions => sqlOptions.EnableRetryOnFailure()));
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
-builder.Services.AddScoped<IHomeLayoutService, HomeLayoutService>();
 builder.Services.AddScoped<ICatalogDataSeeder, CatalogDataSeeder>();
+builder.Services.AddCarter();
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -54,6 +55,6 @@ app.UseSwaggerDocumentation();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapHomeLayoutEndpoint();
+app.MapCarter();
 
 app.Run();
