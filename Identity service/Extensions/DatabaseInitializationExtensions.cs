@@ -13,6 +13,14 @@ public static class DatabaseInitializationExtensions
         try
         {
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            if (app.Environment.IsDevelopment()
+                && app.Configuration.GetValue<bool>("DatabaseInitialization:ResetOnStartup"))
+            {
+                logger.LogWarning("Resetting Identity database because DatabaseInitialization:ResetOnStartup is enabled.");
+                await context.Database.EnsureDeletedAsync();
+            }
+
             await EnsureDatabaseExistsAsync(context, logger);
             await MigrateAsync(context, logger);
             await scope.ServiceProvider.GetRequiredService<IIdentityDataSeeder>()

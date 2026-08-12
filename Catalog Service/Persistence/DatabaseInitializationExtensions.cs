@@ -15,6 +15,14 @@ public static class DatabaseInitializationExtensions
         try
         {
             var context = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
+
+            if (app.Environment.IsDevelopment()
+                && app.Configuration.GetValue<bool>("DatabaseInitialization:ResetOnStartup"))
+            {
+                logger.LogWarning("Resetting Catalog database because DatabaseInitialization:ResetOnStartup is enabled.");
+                await context.Database.EnsureDeletedAsync();
+            }
+
             await EnsureDatabaseExistsAsync(context, logger);
             await MigrateAsync(context, logger);
             await scope.ServiceProvider.GetRequiredService<ICatalogDataSeeder>().SeedAsync();
