@@ -1,27 +1,6 @@
-using Carter;
-using Flower.Common.StandardizedResponse;
-using Identity_service.Abstractions;
-using Identity_service.Entities;
+﻿using Flower.Common.StandardizedResponse;
 using Identity_service.Exceptions;
-using Identity_service.Features.Drivers.Applications.Submit;
-using Identity_service.Features.Users.Login;
-using Identity_service.Infrastructure;
-using Identity_service.Infrastructure.Implementations.Services;
-using Identity_service.Infrastructure.Interfaces.Services;
-using Identity_service.Persistence;
-using Identity_service.Services;
-using Identity_service.Settings;
-using Mapster;
-using MapsterMapper;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization.Policy;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Repository.Layer;
-using Repository.Layer.Interfaces;
 using System.Reflection;
-using System.Text;
 using System.Threading.RateLimiting;
 
 namespace Identity_service;
@@ -41,6 +20,18 @@ public static class DependencyInjection
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<PasswordResetOptions>(configuration.GetSection(PasswordResetOptions.SectionName));
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
+
+        services.AddProblemDetails(options =>
+        {
+            options.CustomizeProblemDetails = context =>
+            {
+                context.ProblemDetails.Instance =
+                    context.HttpContext.Request.Path;
+
+                context.ProblemDetails.Extensions["traceId"] =
+                    context.HttpContext.TraceIdentifier;
+            };
+        });
 
         services.AddScoped(typeof(IUnitOfWork<ApplicationDbContext>), typeof(UnitOfWork<ApplicationDbContext>));
         services.AddScoped<IDriverDocumentStorage, LocalDriverDocumentStorage>();
@@ -62,10 +53,7 @@ public static class DependencyInjection
         services.AddControllers();
         services.AddLoginRateLimiting();
         services.AddAuthenticationConfig(configuration);
-        services.AddAuthorization(options =>
-        {
-            options.AddPolicy(AuthorizationPolicies.AdminOnly, policy => policy.RequireRole(DefaultRoles.Admin.Name));
-        });
+        services.AddAuthorization();
 
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, AdminAuthorizationMiddlewareResultHandler>();
         services.AddProblemDetails();

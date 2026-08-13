@@ -33,6 +33,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Contracts\Auth\" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="Base.Repository">
       <HintPath>libs\Base.Repository.dll</HintPath>
       <Private>true</Private>

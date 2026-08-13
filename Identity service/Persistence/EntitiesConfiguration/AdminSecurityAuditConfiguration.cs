@@ -8,7 +8,7 @@ public class AdminSecurityAuditConfiguration : IEntityTypeConfiguration<AdminSec
     {
         builder.ToTable("AdminSecurityAudits");
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.EventType).HasMaxLength(64).IsRequired();
+        builder.Property(x => x.EventType).HasMaxLength(64).IsRequired(); 
         builder.Property(x => x.Outcome).HasMaxLength(64).IsRequired();
         builder.Property(x => x.Email).HasMaxLength(256);
         builder.Property(x => x.IpAddress).HasMaxLength(64);

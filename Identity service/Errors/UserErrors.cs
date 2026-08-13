@@ -27,8 +27,11 @@ public static class UserErrors
         new("User.NotAdmin", "The provided user is not an administrator.", StatusCodes.Status403Forbidden);
 
     public static readonly Error EmailIsNotConfirmed =
-        new("User.EmailIsNotConfirmed", "The provided email is not confirmed.", StatusCodes.Status403Forbidden);
+        new("User.EmailIsNotConfirmed", "The provided email is not confirmed.", StatusCodes.Status400BadRequest);
 
     public static readonly Error LockedUser =
         new("User.LockedUser", "The provided user is locked.", StatusCodes.Status403Forbidden);
+
+    public static readonly Error InvalidToken =
+        new("User.InvalidToken", "The provided token is invalid.", StatusCodes.Status401Unauthorized);
 }
