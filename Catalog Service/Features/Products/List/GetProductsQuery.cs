@@ -1,0 +1,14 @@
+using Catalog_Service.Contracts.Products;
+using Flower.Common.StandardizedResponse;
+using MediatR;
+
+namespace Catalog_Service.Features.Products.List;
+
+public sealed record GetProductsQuery(
+    int Page,
+    int PageSize,
+    Guid? CategoryId,
+    Guid? OccasionId,
+    Guid? StoreId,
+    bool? InStock,
+    string? Search) : IRequest<OperationResult<PagedResponse<ProductListItemResponse>>>;

@@ -86,10 +86,40 @@ public static class DatabaseInitializationExtensions
         {
             logger.LogWarning(
                 exception,
-                "Identity database already exists during migration startup. Retrying migrations against the existing database.");
+                "Identity database already exists during migration startup. Waiting until the existing database is available.");
 
-            await Task.Delay(TimeSpan.FromSeconds(1));
+            await WaitUntilDatabaseCanConnectAsync(context, logger);
+            var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
+            if (!pendingMigrations.Any())
+            {
+                logger.LogInformation("Identity database already exists and has no pending migrations.");
+                return;
+            }
+
             await context.Database.MigrateAsync();
         }
+    }
+
+    private static async Task WaitUntilDatabaseCanConnectAsync(
+        ApplicationDbContext context,
+        ILogger logger)
+    {
+        const int maxRetries = 5;
+        for (var attempt = 1; attempt <= maxRetries; attempt++)
+        {
+            if (await context.Database.CanConnectAsync())
+            {
+                return;
+            }
+
+            logger.LogWarning(
+                "Identity database exists but is not connectable yet (Attempt {Attempt}/{MaxRetries}). Retrying in 3 seconds...",
+                attempt,
+                maxRetries);
+
+            await Task.Delay(TimeSpan.FromSeconds(3));
+        }
+
+        throw new InvalidOperationException("Identity database exists but could not be reached for migrations.");
     }
 }
