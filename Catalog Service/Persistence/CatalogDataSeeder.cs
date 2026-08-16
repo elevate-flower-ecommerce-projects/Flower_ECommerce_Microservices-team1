@@ -37,10 +37,17 @@ public sealed class CatalogDataSeeder(CatalogDbContext dbContext) : ICatalogData
 
         if (!await dbContext.Products.AnyAsync())
         {
-            dbContext.Products.AddRange(
-                new Product { Id = Guid.Parse("40000000-0000-0000-0000-000000000001"), Name = "Classic Red Roses", ImageUrl = "/images/products/red-roses.jpg", Price = 499, CategoryId = RosesCategoryId, OccasionId = BirthdayOccasionId, SoldCount = 180 },
-                new Product { Id = Guid.Parse("40000000-0000-0000-0000-000000000002"), Name = "Sunrise Birthday Bouquet", ImageUrl = "/images/products/sunrise-bouquet.jpg", Price = 650, CategoryId = BirthdayCategoryId, OccasionId = BirthdayOccasionId, SoldCount = 132 },
-                new Product { Id = Guid.Parse("40000000-0000-0000-0000-000000000003"), Name = "Peace Lily Plant", ImageUrl = "/images/products/peace-lily.jpg", Price = 720, CategoryId = PlantsCategoryId, SoldCount = 96 });
+            var products = ProductSeedData.Create(
+                BirthdayCategoryId,
+                RosesCategoryId,
+                PlantsCategoryId,
+                WeddingOccasionId,
+                BirthdayOccasionId);
+
+            dbContext.Products.AddRange(products);
+            dbContext.ProductImages.AddRange(ProductSeedData.CreateImages(products));
+            dbContext.ProductIncludedItems.AddRange(ProductSeedData.CreateIncludedItems(products));
+            dbContext.ProductStoreInventories.AddRange(ProductSeedData.CreateStoreInventories(products));
         }
 
         if (!await dbContext.Banners.AnyAsync())
@@ -97,4 +104,5 @@ public sealed class CatalogDataSeeder(CatalogDbContext dbContext) : ICatalogData
 
         await dbContext.SaveChangesAsync();
     }
+
 }
