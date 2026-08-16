@@ -26,6 +26,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=FlowerAddressStoreCoverageDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Flower_Dev_2026!};TrustServerCertificate=True;Encrypt=False;MultipleActiveResultSets=True
+      - DatabaseInitialization__ResetOnStartup=${ADDRESS_RESET_DATABASE_ON_STARTUP:-false}
     ports:
       - "5272:8080"
     volumes:
@@ -36,6 +37,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=FlowerCartDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Flower_Dev_2026!};TrustServerCertificate=True;Encrypt=False;MultipleActiveResultSets=True
+      - DatabaseInitialization__ResetOnStartup=${CART_RESET_DATABASE_ON_STARTUP:-false}
     ports:
       - "5292:8080"
     volumes:
@@ -46,6 +48,10 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=FlowerCatalogDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Flower_Dev_2026!};TrustServerCertificate=True;Encrypt=False;MultipleActiveResultSets=True
+      - DatabaseInitialization__ResetOnStartup=${CATALOG_RESET_DATABASE_ON_STARTUP:-false}
+      - Jwt__Key=${JWT_SIGNING_KEY:-FlowerIdentityService_Development_JwtSigningKey_ChangeMe_2026_AtLeast32Chars}
+      - Jwt__Issuer=${JWT_ISSUER:-FlowerIdentityService}
+      - Jwt__Audience=${JWT_AUDIENCE:-FlowerClients}
     ports:
       - "5129:8080"
     volumes:
@@ -56,6 +62,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=FlowerIdentityDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Flower_Dev_2026!};TrustServerCertificate=True;Encrypt=False;MultipleActiveResultSets=True
+      - DatabaseInitialization__ResetOnStartup=${IDENTITY_RESET_DATABASE_ON_STARTUP:-false}
       - Jwt__Key=${JWT_SIGNING_KEY:-FlowerIdentityService_Development_JwtSigningKey_ChangeMe_2026_AtLeast32Chars}
       - Jwt__Issuer=${JWT_ISSUER:-FlowerIdentityService}
       - Jwt__Audience=${JWT_AUDIENCE:-FlowerClients}
@@ -79,6 +86,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=FlowerOrderDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Flower_Dev_2026!};TrustServerCertificate=True;Encrypt=False;MultipleActiveResultSets=True
+      - DatabaseInitialization__ResetOnStartup=${ORDER_RESET_DATABASE_ON_STARTUP:-false}
     ports:
       - "5109:8080"
     volumes:
@@ -89,6 +97,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=FlowerPaymentDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Flower_Dev_2026!};TrustServerCertificate=True;Encrypt=False;MultipleActiveResultSets=True
+      - DatabaseInitialization__ResetOnStartup=${PAYMENT_RESET_DATABASE_ON_STARTUP:-false}
     ports:
       - "5260:8080"
     volumes:

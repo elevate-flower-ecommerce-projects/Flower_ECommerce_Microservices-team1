@@ -13,6 +13,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["Catalog Service/Catalog Service.csproj", "Catalog Service/"]
+COPY ["Identity service/libs/Base.Repository.dll", "Identity service/libs/"]
 RUN dotnet restore "./Catalog Service/Catalog Service.csproj"
 COPY . .
 WORKDIR "/src/Catalog Service"

@@ -1,0 +1,1330 @@
+openapi: 3.0.3
+info:
+  title: Elevate Flower E-Commerce Microservices API
+  version: 1.0.0
+  description: |
+    Official OpenAPI 3.0.3 specification for the **Elevate Flower E-Commerce Microservices** platform on `Development` branch.
+    
+    ### Available Modules & APIs:
+    - **Customer Registration**: Customer account registration (`/identity/users/register`) with Egyptian mobile validation, password rules, and field-mapped duplicate checks.
+    - **Authentication & Login**: Unified customer/driver login (`/identity/auth/login`) issuing JWT tokens with role claims and driver application status.
+    - **OTP Password Reset**: Password reset flow via email OTP (`/identity/auth/forgot-password`, `/identity/auth/verify-otp`, `/identity/auth/reset-password`).
+    - **Driver Application Onboarding**: Prospective driver application submission (`/identity/drivers/applications`) with multipart document uploads and status tracking.
+    - **Admin Operations**: Security audits, rate-limiting, and driver application review endpoints (`/identity/admin/drivers/applications`).
+    - **Server-Driven Home Screen**: Customer-authenticated SDUI layout endpoint (`/catalog/home/layout`) returning ordered backend-defined sections.
+    - **E-Commerce Microservices**: Product Catalog, Shopping Cart, Orders & Fulfillment, Payment Processing, and Store Address Coverage.
+
+    ### Seeded test customer accounts:
+    - `customer@flower.local` / `CustomerFL@123`
+    - `customer2@flower.local` / `CustomerFL@123`
+  contact:
+    name: Elevate E-Commerce Team
+    email: support@flower.local
+servers:
+  - url: http://localhost:5086/api/v1
+    description: Local API Gateway (HTTP)
+  - url: https://localhost:7284/api/v1
+    description: Local API Gateway (HTTPS)
+
+tags:
+  - name: Users
+    description: Customer registration and profile management
+  - name: Authentication
+    description: User authentication, JWT tokens, and OTP password reset
+  - name: Driver Applications
+    description: Prospective driver onboarding and document submissions
+  - name: Admins
+    description: Admin driver review, approvals, rejections, and security audits
+  - name: Catalog
+    description: Flower catalog, categories, and inventory management
+  - name: Home
+    description: Server-driven customer home screen layout
+  - name: Cart
+    description: Customer shopping cart operations
+  - name: Orders
+    description: Order placement, tracking, and fulfillment
+  - name: Payments
+    description: Payment gateway integration and transaction charges
+  - name: Address & Coverage
+    description: Address validation and store delivery zone coverage
+
+paths:
+  /identity/users/register:
+    post:
+      tags:
+        - Users
+      summary: Register a customer account
+      description: Anonymous minimal API endpoint for customer account registration. Creates Identity account, customer profile, and assigns Role=Customer atomically.
+      operationId: RegisterCustomer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterCustomerRequest'
+      responses:
+        '201':
+          description: Account registered successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterCustomerOperationResult'
+        '422':
+          description: Customer registration validation or duplicate field failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResult'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
+
+  /identity/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User Login (Customer & Driver)
+      description: Verifies user credentials. Returns signed JWT access token, refresh token, role, and driver application status.
+      operationId: UserLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLoginRequest'
+      responses:
+        '200':
+          description: Login successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserLoginResponse'
+        '401':
+          description: Invalid email or password.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
+        '429':
+          description: Too many login attempts. Rate limited.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
+
+  /identity/auth/forgot-password:
+    post:
+      tags:
+        - Authentication
+      summary: Request Password Reset OTP
+      description: Generates a 6-digit numeric OTP valid for 10 minutes and dispatches it via email. Always returns a neutral 200 message.
+      operationId: ForgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '200':
+          description: Neutral response confirming code dispatch.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForgotPasswordResponse'
+        '400':
+          description: Invalid email format.
+
+  /identity/auth/verify-otp:
+    post:
+      tags:
+        - Authentication
+      summary: Verify Password Reset OTP
+      description: Verifies the 6-digit OTP code and issues a password reset authorization token.
+      operationId: VerifyResetOtp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyOtpRequest'
+      responses:
+        '200':
+          description: Reset code verified. Returns password reset token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyOtpResponse'
+        '400':
+          description: Invalid OTP code or validation failure.
+        '410':
+          description: OTP code expired.
+        '423':
+          description: Maximum attempts exceeded.
+
+  /identity/auth/reset-password:
+    post:
+      tags:
+        - Authentication
+      summary: Reset Password
+      description: Updates the account password using the verified reset token and revokes all active refresh tokens.
+      operationId: ResetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Password reset successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
+        '400':
+          description: Password policy violation or password mismatch.
+        '401':
+          description: Invalid or expired password reset authorization.
+
+  /identity/drivers/applications:
+    post:
+      tags:
+        - Driver Applications
+      summary: Submit Driver Application
+      description: Submits a prospective driver application with vehicle info, national ID, and uploaded license/ID documents (PDF, PNG, JPG max 5MB).
+      operationId: SubmitDriverApplication
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SubmitDriverApplicationRequest'
+      responses:
+        '201':
+          description: Application submitted successfully. Status set to PendingReview.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitDriverApplicationOperationResult'
+        '400':
+          description: Validation error or missing documents.
+        '409':
+          description: Field-mapped duplicate error (Email, Phone, or National ID already registered).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FieldConflictResult'
+
+  /identity/admin/drivers/applications:
+    get:
+      tags:
+        - Admins
+      summary: List Driver Applications (Admin)
+      description: Paginated query of prospective driver applications with optional status filter.
+      operationId: ListAdminDriverApplications
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/DriverApplicationStatus'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of applications.
+
+  /identity/admin/drivers/applications/{id}:
+    get:
+      tags:
+        - Admins
+      summary: Get Driver Application Detail (Admin)
+      description: Retrieves complete applicant details, vehicle info, national ID, and document links for review.
+      operationId: GetAdminDriverApplicationDetail
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detailed application profile.
+
+  /identity/admin/drivers/applications/{id}/approve:
+    post:
+      tags:
+        - Admins
+      summary: Approve Driver Application (Admin)
+      description: Approves a pending driver application, allowing driver access.
+      operationId: ApproveDriverApplication
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Application approved successfully.
+
+  /identity/admin/drivers/applications/{id}/reject:
+    post:
+      tags:
+        - Admins
+      summary: Reject Driver Application (Admin)
+      description: Rejects a pending driver application with a mandatory rejection reason.
+      operationId: RejectDriverApplication
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - rejectionReason
+              properties:
+                rejectionReason:
+                  type: string
+                  example: "National ID copy is unreadable."
+      responses:
+        '200':
+          description: Application rejected successfully.
+
+  /identity/admin/drivers/applications/{id}/documents/{documentId}/download:
+    get:
+      tags:
+        - Admins
+      summary: Download Driver Document (Admin)
+      description: Securely downloads an uploaded driver verification document (PDF, PNG, JPEG). Only accessible to Admin users.
+      operationId: DownloadDriverDocument
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Document binary stream.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+
+  /catalog/products:
+    get:
+      tags:
+        - Catalog
+      summary: List Products
+      description: Fetch available flowers and arrangements catalog.
+      operationId: ListProducts
+      responses:
+        '200':
+          description: Catalog items.
+
+  /catalog/categories:
+    get:
+      tags:
+        - Categories
+      summary: List active categories
+      description: |
+        Powers the home category rail and the Categories screen.
+        Returns only active categories, ordered by `sortOrder` then name.
+        The client renders the "All" entry itself; it is not returned here.
+      operationId: GetCategories
+      security: []
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Case-insensitive match on the category name.
+      responses:
+        '200':
+          description: Active categories.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CategorySummary'
+
+  /catalog/categories/{categoryId}:
+    get:
+      tags:
+        - Categories
+      summary: Get a category by id
+      description: |
+        Resolves a category deep link.
+        An archived category answers `410 Gone` so an existing link can render a
+        "no longer available" state instead of failing. `404` means the id never existed.
+      operationId: GetCategoryById
+      security: []
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The category.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CategorySummary'
+        '404':
+          description: No category with this id.
+        '410':
+          description: The category exists but has been archived.
+
+  /catalog/admin/categories:
+    get:
+      tags:
+        - Admin Categories
+      summary: List categories for administration
+      description: Includes archived categories by default so they can be restored.
+      operationId: ListAdminCategories
+      parameters:
+        - name: includeArchived
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Categories with administrative fields.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/AdminCategory'
+        '401':
+          description: Missing or invalid token.
+        '403':
+          description: Caller is not an Admin.
+    post:
+      tags:
+        - Admin Categories
+      summary: Create a category
+      description: A new active category appears on the customer bar immediately.
+      operationId: CreateCategory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  maxLength: 120
+                  example: "Tulips"
+                imageUrl:
+                  type: string
+                  nullable: true
+                  maxLength: 512
+                sortOrder:
+                  type: integer
+                  minimum: 0
+                  default: 0
+                isActive:
+                  type: boolean
+                  default: true
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AdminCategory'
+        '409':
+          description: A category with this name already exists.
+        '422':
+          description: Validation failed; `data` maps field names to messages.
+
+  /catalog/admin/categories/{categoryId}:
+    put:
+      tags:
+        - Admin Categories
+      summary: Rename or restyle a category
+      description: Renaming never changes the archived state; use the archive endpoints for that.
+      operationId: UpdateCategory
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  maxLength: 120
+                imageUrl:
+                  type: string
+                  nullable: true
+                  maxLength: 512
+                sortOrder:
+                  type: integer
+                  minimum: 0
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AdminCategory'
+        '404':
+          description: No category with this id.
+        '409':
+          description: Another category already uses this name.
+        '422':
+          description: Validation failed.
+
+  /catalog/admin/categories/{categoryId}/archive:
+    patch:
+      tags:
+        - Admin Categories
+      summary: Archive a category
+      description: |
+        Hides the category from customers. The row is kept so existing deep links
+        answer `410 Gone` rather than `404`.
+      operationId: ArchiveCategory
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Archived.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AdminCategory'
+        '404':
+          description: No category with this id.
+        '409':
+          description: Category is already archived.
+
+  /catalog/admin/categories/{categoryId}/restore:
+    patch:
+      tags:
+        - Admin Categories
+      summary: Restore an archived category
+      operationId: RestoreCategory
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Restored.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AdminCategory'
+        '404':
+          description: No category with this id.
+        '409':
+          description: Category is already active.
+
+  /catalog/home/layout:
+    get:
+      tags:
+        - Home
+      summary: Get server-driven home layout
+      description: |
+        Returns an ordered backend-defined home screen layout for the authenticated Customer.
+
+        The response contains section descriptors with a common envelope:
+        `{ type, id, title, order, enabled, payload }`.
+
+        Supported section types:
+        - `banner`
+        - `category_rail`
+        - `product_rail`
+        - `occasion_rail`
+
+        `storeId` is optional. When supplied, store-specific banners and product availability are scoped to that store. Global content has `storeId = null` and remains visible for all stores.
+      operationId: GetHomeLayout
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: storeId
+          in: query
+          required: false
+          description: Optional resolved store ID used to scope product/banner availability.
+          schema:
+            type: string
+            format: uuid
+          example: "00000000-0000-0000-0000-000000000001"
+      responses:
+        '200':
+          description: Ordered list of enabled/disabled server-driven home sections.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeLayoutOperationResult'
+              examples:
+                sample:
+                  summary: Sample home layout
+                  value:
+                    success: true
+                    statusCode: 200
+                    message: "Success"
+                    messageLocalized: "Success"
+                    data:
+                      - type: banner
+                        id: "50000000-0000-0000-0000-000000000001"
+                        title: "Summer Picks"
+                        order: 1
+                        enabled: true
+                        payload:
+                          imageUrl: "/images/banners/home-hero.jpg"
+                          deepLink: "/products?collection=summer"
+                      - type: category_rail
+                        id: "50000000-0000-0000-0000-000000000002"
+                        title: "Shop by Category"
+                        order: 2
+                        enabled: true
+                        payload:
+                          items:
+                            - id: "10000000-0000-0000-0000-000000000001"
+                              name: "Birthday Flowers"
+                              imageUrl: "/images/categories/birthday.jpg"
+                              deepLink: "/categories/10000000-0000-0000-0000-000000000001"
+                          viewAll:
+                            label: "View All"
+                            deepLink: "/categories"
+        '401':
+          description: Missing, expired, or invalid JWT.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
+        '403':
+          description: Authenticated user is not in the Customer role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
+
+  /cart:
+    get:
+      tags:
+        - Cart
+      summary: Get User Cart
+      description: Retrieve current user active shopping cart.
+      operationId: GetCart
+      responses:
+        '200':
+          description: User cart items.
+
+  /orders:
+    post:
+      tags:
+        - Orders
+      summary: Place Order
+      description: Submits a new flower order for fulfillment.
+      operationId: PlaceOrder
+      security:
+        - BearerAuth: []
+      responses:
+        '201':
+          description: Order placed successfully.
+
+  /payments/charge:
+    post:
+      tags:
+        - Payments
+      summary: Process Payment
+      description: Charges payment for an active order.
+      operationId: ProcessPayment
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Payment successful.
+
+  /address-store-coverage/check:
+    get:
+      tags:
+        - Address & Coverage
+      summary: Check Delivery Coverage
+      description: Validates whether a delivery address is within store coverage zones.
+      operationId: CheckCoverage
+      responses:
+        '200':
+          description: Coverage result.
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Provide JWT Bearer token obtained from `/identity/auth/login`.
+
+  schemas:
+    RegisterCustomerRequest:
+      type: object
+      required:
+        - fullName
+        - email
+        - phoneNumber
+        - gender
+        - password
+        - confirmPassword
+      properties:
+        fullName:
+          type: string
+          example: "Mariam Ahmed"
+          description: Full name of the customer.
+        email:
+          type: string
+          format: email
+          example: "mariam.ahmed@example.com"
+          description: Unique case-insensitive email address.
+        phoneNumber:
+          type: string
+          pattern: '^01[0125]\d{8}$'
+          example: "01001112222"
+          description: Egyptian mobile number format (01[0-2,5]XXXXXXXX, 11 digits).
+        gender:
+          type: string
+          enum:
+            - Male
+            - Female
+          example: "Female"
+        password:
+          type: string
+          format: password
+          minLength: 6
+          pattern: '^(?=.*[A-Z])(?=.*\d).{6,}$'
+          example: "Pass1234"
+          description: Minimum 6 characters, at least 1 uppercase letter and 1 digit.
+        confirmPassword:
+          type: string
+          format: password
+          example: "Pass1234"
+          description: Must exactly match password.
+
+    RegisterCustomerResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          example: "Customer"
+        status:
+          type: string
+          example: "Active"
+
+    RegisterCustomerOperationResult:
+      type: object
+      properties:
+        isSuccess:
+          type: boolean
+          example: true
+        statusCode:
+          type: integer
+          example: 201
+        message:
+          type: string
+          example: "Account registered successfully."
+        data:
+          $ref: '#/components/schemas/RegisterCustomerResponse'
+
+    UserLoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        password:
+          type: string
+          format: password
+          example: "Pass1234"
+
+    UserLoginResponse:
+      type: object
+      properties:
+        isSuccess:
+          type: boolean
+          example: true
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "Login successful."
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+              description: JWT access token containing role and optional driver application status claims.
+            refreshToken:
+              type: string
+            expiresIn:
+              type: integer
+              example: 900
+            role:
+              type: string
+              example: "Customer"
+            driverApplicationStatus:
+              $ref: '#/components/schemas/DriverApplicationStatus'
+              nullable: true
+            canAccessDriverHome:
+              type: boolean
+              example: true
+            driverApplicationRejectionReason:
+              type: string
+              nullable: true
+              example: null
+
+    ForgotPasswordRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+
+    ForgotPasswordResponse:
+      type: object
+      properties:
+        isSuccess:
+          type: boolean
+          example: true
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "If this email is registered, a code has been sent."
+        data:
+          type: object
+          properties:
+            cooldownRemainingSeconds:
+              type: integer
+              example: 30
+
+    VerifyOtpRequest:
+      type: object
+      required:
+        - email
+        - otp
+      properties:
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        otp:
+          type: string
+          minLength: 6
+          maxLength: 6
+          pattern: '^\d{6}$'
+          example: "123456"
+
+    VerifyOtpResponse:
+      type: object
+      properties:
+        isSuccess:
+          type: boolean
+          example: true
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "Reset code verified."
+        data:
+          type: object
+          properties:
+            status:
+              type: string
+              example: "Valid"
+            resetToken:
+              type: string
+              example: "CfDJ8N..."
+            expiresAtUtc:
+              type: string
+              format: date-time
+
+    ResetPasswordRequest:
+      type: object
+      required:
+        - resetToken
+        - newPassword
+        - confirmPassword
+      properties:
+        resetToken:
+          type: string
+          example: "CfDJ8N..."
+        newPassword:
+          type: string
+          format: password
+          minLength: 6
+          pattern: '^(?=.*[A-Z])(?=.*\d).{6,}$'
+          example: "NewPass123"
+        confirmPassword:
+          type: string
+          format: password
+          example: "NewPass123"
+
+    SubmitDriverApplicationRequest:
+      type: object
+      required:
+        - fullName
+        - phone
+        - email
+        - nationalId
+        - vehicleType
+        - vehiclePlateNumber
+        - password
+        - confirmPassword
+        - documents
+      properties:
+        fullName:
+          type: string
+          example: "Ahmed Hassan"
+        phone:
+          type: string
+          example: "+201001112222"
+        email:
+          type: string
+          format: email
+          example: "ahmed.driver@flower.local"
+        nationalId:
+          type: string
+          example: "29901011234567"
+        vehicleType:
+          $ref: '#/components/schemas/VehicleType'
+        vehiclePlateNumber:
+          type: string
+          example: "ABC-1234"
+        password:
+          type: string
+          format: password
+          example: "Driver_123!"
+        confirmPassword:
+          type: string
+          format: password
+          example: "Driver_123!"
+        documents:
+          type: array
+          items:
+            type: string
+            format: binary
+
+    SubmitDriverApplicationResponse:
+      type: object
+      properties:
+        applicationId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/DriverApplicationStatus'
+
+    SubmitDriverApplicationOperationResult:
+      type: object
+      properties:
+        isSuccess:
+          type: boolean
+          example: true
+        statusCode:
+          type: integer
+          example: 201
+        message:
+          type: string
+          example: "Driver application submitted successfully."
+        data:
+          $ref: '#/components/schemas/SubmitDriverApplicationResponse'
+
+    DriverApplicationStatus:
+      type: string
+      enum:
+        - PendingReview
+        - Approved
+        - Rejected
+
+    VehicleType:
+      type: string
+      enum:
+        - Motorcycle
+        - Car
+        - Van
+
+    HomeSection:
+      type: object
+      required:
+        - type
+        - id
+        - order
+        - enabled
+      properties:
+        type:
+          type: string
+          description: Section renderer key. Unknown types should be skipped by the client.
+          enum:
+            - banner
+            - category_rail
+            - product_rail
+            - occasion_rail
+          example: "product_rail"
+        id:
+          type: string
+          format: uuid
+          example: "50000000-0000-0000-0000-000000000003"
+        title:
+          type: string
+          nullable: true
+          example: "Best Sellers"
+        order:
+          type: integer
+          example: 3
+        enabled:
+          type: boolean
+          example: true
+        payload:
+          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/BannerPayload'
+            - $ref: '#/components/schemas/CategoryRailPayload'
+            - $ref: '#/components/schemas/ProductRailPayload'
+            - $ref: '#/components/schemas/OccasionRailPayload'
+
+    HomeLayoutOperationResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "Success"
+        messageLocalized:
+          type: string
+          example: "Success"
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/HomeSection'
+
+    BannerPayload:
+      type: object
+      required:
+        - imageUrl
+        - deepLink
+      properties:
+        imageUrl:
+          type: string
+          example: "/images/banners/home-hero.jpg"
+        deepLink:
+          type: string
+          example: "/products?collection=summer"
+
+    CategoryRailPayload:
+      type: object
+      required:
+        - items
+        - viewAll
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategorySummary'
+        viewAll:
+          $ref: '#/components/schemas/ViewAllAction'
+
+    ProductRailPayload:
+      type: object
+      required:
+        - items
+        - viewAll
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductSummary'
+        viewAll:
+          $ref: '#/components/schemas/ViewAllAction'
+
+    OccasionRailPayload:
+      type: object
+      required:
+        - items
+        - viewAll
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OccasionSummary'
+        viewAll:
+          $ref: '#/components/schemas/ViewAllAction'
+
+    CategorySummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Birthday Flowers"
+        imageUrl:
+          type: string
+          nullable: true
+        deepLink:
+          type: string
+          example: "/categories/10000000-0000-0000-0000-000000000001"
+
+    AdminCategory:
+      type: object
+      description: Category as seen by an administrator, including archived ones.
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Birthday Flowers"
+        imageUrl:
+          type: string
+          nullable: true
+        sortOrder:
+          type: integer
+          example: 1
+        isActive:
+          type: boolean
+          description: false means archived; hidden from customers but deep links answer 410.
+          example: true
+
+    ProductSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Classic Red Roses"
+        imageUrl:
+          type: string
+          nullable: true
+        price:
+          type: number
+          format: decimal
+          example: 499
+        categoryId:
+          type: string
+          format: uuid
+          nullable: true
+        occasionId:
+          type: string
+          format: uuid
+          nullable: true
+        deepLink:
+          type: string
+          example: "/products/40000000-0000-0000-0000-000000000001"
+
+    OccasionSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Wedding"
+        imageUrl:
+          type: string
+          nullable: true
+        deepLink:
+          type: string
+          example: "/occasions/20000000-0000-0000-0000-000000000001"
+
+    ViewAllAction:
+      type: object
+      required:
+        - label
+        - deepLink
+      properties:
+        label:
+          type: string
+          example: "View All"
+        deepLink:
+          type: string
+          example: "/products?sort=best_sellers"
+
+    FieldConflictResult:
+      type: object
+      properties:
+        isSuccess:
+          type: boolean
+          example: false
+        statusCode:
+          type: integer
+          example: 409
+        message:
+          type: string
+          example: "Email already registered"
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    ValidationErrorResult:
+      type: object
+      properties:
+        isSuccess:
+          type: boolean
+          example: false
+        statusCode:
+          type: integer
+          example: 422
+        message:
+          type: string
+          example: "Customer registration validation failed."
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            Email: ["Email already registered"]
+            PhoneNumber: ["Phone number already registered"]
+
+    OperationResult:
+      type: object
+      properties:
+        isSuccess:
+          type: boolean
+        statusCode:
+          type: integer
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: string

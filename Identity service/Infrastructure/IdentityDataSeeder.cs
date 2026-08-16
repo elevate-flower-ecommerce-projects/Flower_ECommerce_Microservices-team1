@@ -13,8 +13,27 @@ public sealed class IdentityDataSeeder(
 {
     public async Task SeedAsync(CancellationToken cancellationToken)
     {
+        await SeedRoleAsync(DefaultRoles.Admin.Name, isDefault: false, cancellationToken);
         await SeedRoleAsync(ApplicationRoleNames.Customer, isDefault: true, cancellationToken);
         await SeedRoleAsync(ApplicationRoleNames.Driver, isDefault: false, cancellationToken);
+
+        var admins = configuration
+            .GetSection("Seed:Admins")
+            .Get<List<SeedUser>>() ?? [];
+
+        foreach (var admin in admins)
+        {
+            await SeedUserAsync(admin, DefaultRoles.Admin.Name, createCustomerProfile: false, cancellationToken);
+        }
+
+        var customers = configuration
+            .GetSection("Seed:Customers")
+            .Get<List<SeedUser>>() ?? [];
+
+        foreach (var customer in customers)
+        {
+            await SeedUserAsync(customer, ApplicationRoleNames.Customer, createCustomerProfile: true, cancellationToken);
+        }
 
         var applicants = configuration
             .GetSection("Seed:DriverApplicants")
@@ -110,6 +129,60 @@ public sealed class IdentityDataSeeder(
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    private async Task SeedUserAsync(
+        SeedUser seedUser,
+        string roleName,
+        bool createCustomerProfile,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (string.IsNullOrWhiteSpace(seedUser.Email)
+            || string.IsNullOrWhiteSpace(seedUser.Password))
+        {
+            return;
+        }
+
+        var email = seedUser.Email.Trim().ToLowerInvariant();
+        var user = await userManager.FindByEmailAsync(email);
+        if (user is null)
+        {
+            user = new ApplicationUser
+            {
+                UserName = email,
+                Email = email,
+                EmailConfirmed = true,
+                PhoneNumber = seedUser.Phone,
+                FirstName = seedUser.FirstName,
+                LastName = seedUser.LastName,
+                Gender = seedUser.Gender,
+                IsDisabled = false
+            };
+
+            var created = await userManager.CreateAsync(user, seedUser.Password);
+            if (!created.Succeeded)
+                throw new InvalidOperationException(string.Join(" ", created.Errors.Select(error => error.Description)));
+        }
+
+        if (!await userManager.IsInRoleAsync(user, roleName))
+        {
+            var roleResult = await userManager.AddToRoleAsync(user, roleName);
+            if (!roleResult.Succeeded)
+                throw new InvalidOperationException(string.Join(" ", roleResult.Errors.Select(error => error.Description)));
+        }
+
+        if (createCustomerProfile
+            && !await dbContext.CustomerProfiles.AnyAsync(profile => profile.UserId == user.Id, cancellationToken))
+        {
+            dbContext.CustomerProfiles.Add(new CustomerProfile
+            {
+                UserId = user.Id
+            });
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+    }
+
     private sealed class SeedDriverApplicant
     {
         public string Email { get; set; } = string.Empty;
@@ -121,5 +194,16 @@ public sealed class IdentityDataSeeder(
         public string PlateNumber { get; set; } = string.Empty;
         public VehicleType VehicleType { get; set; } = VehicleType.Motorcycle;
         public DriverApplicationStatus Status { get; set; } = DriverApplicationStatus.PendingReview;
+    }
+}
+
+    private sealed class SeedUser
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public Gender? Gender { get; set; }
     }
 }

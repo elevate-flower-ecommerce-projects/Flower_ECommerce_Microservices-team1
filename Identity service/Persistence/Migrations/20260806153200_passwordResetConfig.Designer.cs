@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Identity_service.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260806084457_passwordResetConfig")]
+    [Migration("20260806153200_passwordResetConfig")]
     partial class passwordResetConfig
     {
         /// <inheritdoc />
