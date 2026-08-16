@@ -195,6 +195,7 @@ public sealed class IdentityDataSeeder(
         public VehicleType VehicleType { get; set; } = VehicleType.Motorcycle;
         public DriverApplicationStatus Status { get; set; } = DriverApplicationStatus.PendingReview;
     }
+}
 
     private sealed class SeedUser
     {

@@ -5,6 +5,11 @@ using Carter;
 using Catalog_Service.Persistence;
 using Catalog_Service.Settings;
 using Catalog_Service.Extensions;
+using Catalog_Service;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDependencies(builder.Configuration);
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -54,6 +59,8 @@ var app = builder.Build();
 await app.MigrateAndSeedCatalogDatabaseAsync();
 
 app.UseSwaggerDocumentation();
+
+app.MapControllers();
 
 app.UseAuthentication();
 app.UseAuthorization();

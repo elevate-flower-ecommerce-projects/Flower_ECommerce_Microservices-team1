@@ -1,4 +1,3 @@
-using Identity_service.Abstractions.Seeding;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Identity_service.Persistence.EntitiesConfiguration;
