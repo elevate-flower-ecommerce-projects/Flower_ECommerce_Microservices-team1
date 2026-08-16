@@ -1,4 +1,4 @@
-﻿using Flower.Common.StandardizedResponse;
+using Flower.Common.StandardizedResponse;
 using Identity_service.Exceptions;
 using System.Reflection;
 using System.Threading.RateLimiting;
@@ -37,6 +37,7 @@ public static class DependencyInjection
         services.AddScoped<IDriverDocumentStorage, LocalDriverDocumentStorage>();
         services.AddScoped<IApplicantNotificationService, SmtpApplicantNotificationService>();
         services.AddScoped<IDriverApplicationValidator, DriverApplicationValidator>();
+        services.AddScoped<IRegisterCustomerValidator, RegisterCustomerValidator>();
         services.AddScoped<IDriverLoginStatusGuard, DriverLoginStatusGuard>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IIdentityDataSeeder, IdentityDataSeeder>();
@@ -157,6 +158,9 @@ public static class DependencyInjection
         })
         .AddJwtBearer(o =>
         {
+            var keyBytes = Encoding.UTF8.GetBytes(jwtSettings!.Key);
+            var signingKey = new SymmetricSecurityKey(keyBytes);
+
             o.SaveToken = true;
             o.TokenValidationParameters = new TokenValidationParameters
             {
@@ -164,9 +168,35 @@ public static class DependencyInjection
                 ValidateIssuer = true,
                 ValidateAudience = true,
                 ValidateLifetime = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings!.Key)),
+                IssuerSigningKey = signingKey,
+                IssuerSigningKeys = new[] { signingKey },
                 ValidIssuer = jwtSettings.Issuer,
                 ValidAudience = jwtSettings.Audience,
+                RoleClaimType = ClaimTypes.Role,
+                NameClaimType = ClaimTypes.NameIdentifier,
+                ClockSkew = TimeSpan.FromMinutes(5)
+            };
+
+            o.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    var authorization = context.Request.Headers.Authorization.ToString();
+                    if (!string.IsNullOrWhiteSpace(authorization))
+                    {
+                        var token = authorization.Trim();
+                        if (token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                        {
+                            token = token["Bearer ".Length..].Trim();
+                        }
+                        var match = System.Text.RegularExpressions.Regex.Match(token, @"[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+");
+                        if (match.Success)
+                        {
+                            context.Token = match.Value;
+                        }
+                    }
+                    return Task.CompletedTask;
+                }
             };
         });
 

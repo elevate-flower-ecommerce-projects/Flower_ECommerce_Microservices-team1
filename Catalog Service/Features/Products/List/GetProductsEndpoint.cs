@@ -26,7 +26,7 @@ public sealed class GetProductsEndpoint : ICarterModule
 
             return result.ToHttpResult();
         })
-        .RequireAuthorization(new AuthorizeAttribute { Roles = "Customer" })
+        .RequireAuthorization(new AuthorizeAttribute { Roles = "Customer,Admin" })
         .WithName("GetProducts")
         .WithTags("Products")
         .Produces<OperationResult<PagedResponse<ProductListItemResponse>>>();

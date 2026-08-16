@@ -1,9 +1,10 @@
-﻿global using Carter;
+global using Carter;
 global using FluentValidation;
 global using Identity_service.Abstractions;
 global using Identity_service.Abstractions.Seeding;
 global using Identity_service.Entities;
 global using Identity_service.Features.Drivers.Applications.Submit;
+global using Identity_service.Features.Users.Register;
 global using Identity_service.Infrastructure;
 global using Identity_service.Infrastructure.Implementations.Services;
 global using Identity_service.Infrastructure.Interfaces.Services;
@@ -22,4 +23,5 @@ global using Microsoft.EntityFrameworkCore;
 global using Microsoft.IdentityModel.Tokens;
 global using Repository.Layer;
 global using Repository.Layer.Interfaces;
+global using System.Security.Claims;
 global using System.Text;

@@ -16,14 +16,14 @@ public sealed class GetOccasionsQueryHandler(CatalogDbContext dbContext)
     {
         var occasions = await dbContext.Occasions
             .AsNoTracking()
-            .Where(occasion => !occasion.IsArchived)
-            .OrderBy(occasion => occasion.DisplayOrder)
+            .Where(occasion => occasion.IsActive)
+            .OrderBy(occasion => occasion.SortOrder)
             .ThenBy(occasion => occasion.Name)
             .Select(occasion => new OccasionResponse(
                 occasion.Id,
                 occasion.Name,
                 occasion.ImageUrl,
-                occasion.DisplayOrder))
+                occasion.SortOrder))
             .ToListAsync(cancellationToken);
 
         return OperationResultFactory.Success<IReadOnlyList<OccasionResponse>>(occasions);

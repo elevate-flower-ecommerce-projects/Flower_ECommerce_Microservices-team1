@@ -19,7 +19,7 @@ public sealed class GetProductDetailsEndpoint : ICarterModule
             var result = await sender.Send(new GetProductDetailsQuery(id, storeId), cancellationToken);
             return result.ToHttpResult();
         })
-        .RequireAuthorization(new AuthorizeAttribute { Roles = "Customer" })
+        .RequireAuthorization(new AuthorizeAttribute { Roles = "Customer,Admin" })
         .WithName("GetProductDetails")
         .WithTags("Products")
         .Produces<OperationResult<ProductDetailResponse>>()

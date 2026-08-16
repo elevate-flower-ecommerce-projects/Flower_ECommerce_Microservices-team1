@@ -18,7 +18,7 @@ public sealed class HomeLayoutEndpoint : ICarterModule
             var layout = await sender.Send(new GetHomeLayoutQuery(storeId), cancellationToken);
             return layout.ToHttpResult();
         })
-        .RequireAuthorization(new AuthorizeAttribute { Roles = "Customer" })
+        .RequireAuthorization(new AuthorizeAttribute { Roles = "Customer,Admin" })
         .WithName("GetHomeLayout")
         .WithTags("Home")
         .Produces<OperationResult<IReadOnlyList<HomeSectionResponse>>>();
