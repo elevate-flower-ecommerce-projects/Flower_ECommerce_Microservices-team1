@@ -57,7 +57,6 @@ public static class DependencyInjection
 
         services.AddIdentityConfig();
 
-        services.AddOpenApi();
         services.AddCarter();
         services.AddControllers();
         services.AddLoginRateLimiting();
