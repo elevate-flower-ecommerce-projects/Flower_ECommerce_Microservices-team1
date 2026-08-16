@@ -1,4 +1,4 @@
-using Catalog_Service.Contracts.Products;
+﻿using Catalog_Service.Contracts.Products;
 using Flower.Common.StandardizedResponse;
 using MediatR;
 

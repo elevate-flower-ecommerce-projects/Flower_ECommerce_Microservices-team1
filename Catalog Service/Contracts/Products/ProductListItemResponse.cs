@@ -1,10 +1,10 @@
-namespace Catalog_Service.Contracts.Products;
+﻿namespace Catalog_Service.Contracts.Products;
 
 public sealed record ProductListItemResponse(
     Guid Id,
     string Name,
     string? ImageUrl,
     decimal Price,
-    Guid? CategoryId,
-    Guid? OccasionId,
-    bool IsAvailable);
+    decimal? DiscountedPrice,
+    decimal? DiscountPercent,
+    bool InStock);

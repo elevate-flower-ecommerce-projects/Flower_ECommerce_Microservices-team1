@@ -1,4 +1,4 @@
-﻿using Catalog_Service.Contracts.Products;
+using Catalog_Service.Contracts.Products;
 using Catalog_Service.Entities;
 using Catalog_Service.Persistence;
 using Flower.Common.StandardizedResponse;
@@ -37,8 +37,8 @@ public sealed class GetProductsHandler(IUnitOfWork<CatalogDbContext> unitOfWork)
                     product.Name,
                     product.ImageUrl,
                     product.Price,
-                    product.CategoryId,
-                    product.OccasionId,
+                    null,
+                    null,
                     product.IsAvailable),
                 query => query.OrderBy(product => product.Name).ThenBy(product => product.Id));
 

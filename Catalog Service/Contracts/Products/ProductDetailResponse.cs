@@ -1,12 +1,18 @@
-namespace Catalog_Service.Contracts.Products;
+﻿namespace Catalog_Service.Contracts.Products;
 
 public sealed record ProductDetailResponse(
     Guid Id,
     string Name,
-    string? ImageUrl,
+    string Description,
+    IReadOnlyList<string> ImageUrls,
+    IReadOnlyList<ProductIncludedItemResponse> IncludedItems,
     decimal Price,
-    Guid? CategoryId,
-    Guid? OccasionId,
-    Guid? StoreId,
-    bool IsAvailable,
-    int SoldCount);
+    decimal? DiscountedPrice,
+    decimal? DiscountPercent,
+    bool RequiresStoreSelection,
+    bool InStock,
+    int AvailableQuantity);
+
+public sealed record ProductIncludedItemResponse(
+    string Name,
+    int Quantity);

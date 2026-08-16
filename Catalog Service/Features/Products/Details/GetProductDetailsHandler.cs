@@ -24,21 +24,26 @@ public sealed class GetProductDetailsHandler(IUnitOfWork<CatalogDbContext> unitO
             query = query.Where(product => product.StoreId == null || product.StoreId == request.StoreId);
         }
 
-        var product = await query
-            .Select(product => new ProductDetailResponse(
-                product.Id,
-                product.Name,
-                product.ImageUrl,
-                product.Price,
-                product.CategoryId,
-                product.OccasionId,
-                product.StoreId,
-                product.IsAvailable,
-                product.SoldCount))
-            .SingleOrDefaultAsync(cancellationToken);
+        var product = await query.SingleOrDefaultAsync(cancellationToken);
 
-        return product is null
-            ? OperationResultFactory.NotFound<ProductDetailResponse>(message: "Product was not found.")
-            : OperationResultFactory.Success(product);
+        if (product is null)
+            return OperationResultFactory.NotFound<ProductDetailResponse>(message: "Product was not found.");
+
+        var imageUrls = string.IsNullOrWhiteSpace(product.ImageUrl)
+            ? Array.Empty<string>()
+            : new[] { product.ImageUrl };
+
+        return OperationResultFactory.Success(new ProductDetailResponse(
+            product.Id,
+            product.Name,
+            string.Empty,
+            imageUrls,
+            Array.Empty<ProductIncludedItemResponse>(),
+            product.Price,
+            null,
+            null,
+            request.StoreId is null,
+            product.IsAvailable,
+            product.IsAvailable ? 1 : 0));
     }
 }

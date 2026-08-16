@@ -411,6 +411,271 @@ paths:
         '200':
           description: Catalog items.
 
+  /catalog/categories:
+    get:
+      tags:
+        - Categories
+      summary: List active categories
+      description: |
+        Powers the home category rail and the Categories screen.
+        Returns only active categories, ordered by `sortOrder` then name.
+        The client renders the "All" entry itself; it is not returned here.
+      operationId: GetCategories
+      security: []
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Case-insensitive match on the category name.
+      responses:
+        '200':
+          description: Active categories.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CategorySummary'
+
+  /catalog/categories/{categoryId}:
+    get:
+      tags:
+        - Categories
+      summary: Get a category by id
+      description: |
+        Resolves a category deep link.
+        An archived category answers `410 Gone` so an existing link can render a
+        "no longer available" state instead of failing. `404` means the id never existed.
+      operationId: GetCategoryById
+      security: []
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The category.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CategorySummary'
+        '404':
+          description: No category with this id.
+        '410':
+          description: The category exists but has been archived.
+
+  /catalog/admin/categories:
+    get:
+      tags:
+        - Admin Categories
+      summary: List categories for administration
+      description: Includes archived categories by default so they can be restored.
+      operationId: ListAdminCategories
+      parameters:
+        - name: includeArchived
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Categories with administrative fields.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/AdminCategory'
+        '401':
+          description: Missing or invalid token.
+        '403':
+          description: Caller is not an Admin.
+    post:
+      tags:
+        - Admin Categories
+      summary: Create a category
+      description: A new active category appears on the customer bar immediately.
+      operationId: CreateCategory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  maxLength: 120
+                  example: "Tulips"
+                imageUrl:
+                  type: string
+                  nullable: true
+                  maxLength: 512
+                sortOrder:
+                  type: integer
+                  minimum: 0
+                  default: 0
+                isActive:
+                  type: boolean
+                  default: true
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AdminCategory'
+        '409':
+          description: A category with this name already exists.
+        '422':
+          description: Validation failed; `data` maps field names to messages.
+
+  /catalog/admin/categories/{categoryId}:
+    put:
+      tags:
+        - Admin Categories
+      summary: Rename or restyle a category
+      description: Renaming never changes the archived state; use the archive endpoints for that.
+      operationId: UpdateCategory
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  maxLength: 120
+                imageUrl:
+                  type: string
+                  nullable: true
+                  maxLength: 512
+                sortOrder:
+                  type: integer
+                  minimum: 0
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AdminCategory'
+        '404':
+          description: No category with this id.
+        '409':
+          description: Another category already uses this name.
+        '422':
+          description: Validation failed.
+
+  /catalog/admin/categories/{categoryId}/archive:
+    patch:
+      tags:
+        - Admin Categories
+      summary: Archive a category
+      description: |
+        Hides the category from customers. The row is kept so existing deep links
+        answer `410 Gone` rather than `404`.
+      operationId: ArchiveCategory
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Archived.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AdminCategory'
+        '404':
+          description: No category with this id.
+        '409':
+          description: Category is already archived.
+
+  /catalog/admin/categories/{categoryId}/restore:
+    patch:
+      tags:
+        - Admin Categories
+      summary: Restore an archived category
+      operationId: RestoreCategory
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Restored.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AdminCategory'
+        '404':
+          description: No category with this id.
+        '409':
+          description: Category is already active.
+
   /catalog/home/layout:
     get:
       tags:
@@ -968,6 +1233,27 @@ components:
         deepLink:
           type: string
           example: "/categories/10000000-0000-0000-0000-000000000001"
+
+    AdminCategory:
+      type: object
+      description: Category as seen by an administrator, including archived ones.
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Birthday Flowers"
+        imageUrl:
+          type: string
+          nullable: true
+        sortOrder:
+          type: integer
+          example: 1
+        isActive:
+          type: boolean
+          description: false means archived; hidden from customers but deep links answer 410.
+          example: true
 
     ProductSummary:
       type: object
