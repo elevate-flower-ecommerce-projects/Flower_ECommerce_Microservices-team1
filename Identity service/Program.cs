@@ -13,9 +13,10 @@ var app = builder.Build();
 
 await app.MigrateAndSeedIdentityDatabaseAsync();
 
-app.UseSwaggerDocumentation();
-
-app.UseStatusCodePages();
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwaggerDocumentation();
+}
 
 app.UseHttpsRedirection();
 
