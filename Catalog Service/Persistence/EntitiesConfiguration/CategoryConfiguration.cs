@@ -18,5 +18,11 @@ public sealed class CategoryConfiguration : IEntityTypeConfiguration<Category>
             .HasMaxLength(512);
 
         builder.HasIndex(category => category.SortOrder);
+
+        // Names are what administrators and customers recognise a category by,
+        // so the database — not just the handler check — keeps them unique.
+        builder.HasIndex(category => category.Name)
+            .IsUnique()
+            .HasDatabaseName("UX_Category_Name");
     }
 }
