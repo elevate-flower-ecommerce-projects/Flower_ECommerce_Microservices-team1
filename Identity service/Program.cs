@@ -11,7 +11,7 @@ builder.Services.AddSwaggerDocumentation();
 
 var app = builder.Build();
 
-//await app.MigrateAndSeedIdentityDatabaseAsync();
+await app.MigrateAndSeedIdentityDatabaseAsync();
 
 if (app.Environment.IsDevelopment())
 {

@@ -56,6 +56,16 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=FlowerIdentityDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Flower_Dev_2026!};TrustServerCertificate=True;Encrypt=False;MultipleActiveResultSets=True
+      - Jwt__Key=${JWT_SIGNING_KEY:-FlowerIdentityService_Development_JwtSigningKey_ChangeMe_2026_AtLeast32Chars}
+      - Jwt__Issuer=${JWT_ISSUER:-FlowerIdentityService}
+      - Jwt__Audience=${JWT_AUDIENCE:-FlowerClients}
+      - Jwt__ExpiryMinutes=${JWT_EXPIRY_MINUTES:-15}
+      - Jwt__RefreshTokenExpiryDays=${JWT_REFRESH_TOKEN_EXPIRY_DAYS:-7}
+      - PasswordReset__OtpHashKey=${PASSWORD_RESET_OTP_HASH_KEY:-FlowerIdentityService_Development_OtpHashKey_ChangeMe_2026}
+      - PasswordReset__OtpLifetimeMinutes=${PASSWORD_RESET_OTP_LIFETIME_MINUTES:-10}
+      - PasswordReset__MaxAttempts=${PASSWORD_RESET_MAX_ATTEMPTS:-5}
+      - PasswordReset__ResendCooldownSeconds=${PASSWORD_RESET_RESEND_COOLDOWN_SECONDS:-30}
+      - PasswordReset__ResetTokenLifetimeMinutes=${PASSWORD_RESET_TOKEN_LIFETIME_MINUTES:-5}
     ports:
       - "5022:8080"
     depends_on:

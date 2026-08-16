@@ -20,9 +20,9 @@ public sealed class AdminDriverApplicationsEndpoint : ICarterModule
     public void AddRoutes(IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/admin/drivers/applications")
-            .WithTags("Admin Driver Applications");
+            .WithTags("Admin Driver Applications")
+            .RequireAuthorization(AuthorizationPolicies.AdminOnly);
 
-        // TODO AUTH-10: add .RequireAuthorization("AdminOnly") after auth policies are implemented.
         group.MapGet("/", ListAsync)
             .Produces<OperationResult<PagedResponse<AdminDriverApplicationSummaryResponse>>>();
 

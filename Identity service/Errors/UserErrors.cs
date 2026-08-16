@@ -1,4 +1,4 @@
-﻿namespace Identity_service.Errors;
+namespace Identity_service.Errors;
 
 public static class UserErrors
 {
@@ -16,6 +16,7 @@ public static class UserErrors
 
     public static readonly Error PasswordTooWeak =
         new("User.PasswordTooWeak", "The provided password does not meet the strength requirements.", StatusCodes.Status400BadRequest);
+
     public static readonly Error AccountLocked =
         new("User.AccountLocked", "Too many failed login attempts. Your account is temporarily locked.", StatusCodes.Status423Locked);
 

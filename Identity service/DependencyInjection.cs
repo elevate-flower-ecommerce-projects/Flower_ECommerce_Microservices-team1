@@ -17,8 +17,9 @@ public static class DependencyInjection
 
         services.Configure<DriverDocumentStorageOptions>(
             configuration.GetSection(DriverDocumentStorageOptions.SectionName));
-        services.Configure<EmailOptions>(
-            configuration.GetSection(EmailOptions.SectionName));
+        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.Configure<PasswordResetOptions>(configuration.GetSection(PasswordResetOptions.SectionName));
+        services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
 
         services.AddProblemDetails(options =>
         {
@@ -39,6 +40,8 @@ public static class DependencyInjection
         services.AddScoped<IDriverLoginStatusGuard, DriverLoginStatusGuard>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IIdentityDataSeeder, IdentityDataSeeder>();
+        services.AddScoped<PasswordResetOtpService>();
+        services.AddScoped<PasswordResetEmailService>();
         services.AddScoped<IJwtProvider, JwtProvider>();
         services.AddScoped<IAdminSecurityAudit, AdminSecurityAuditWriter>();
         services.AddSingleton<IAdminLoginAttemptGuard, AdminLoginAttemptGuard>();

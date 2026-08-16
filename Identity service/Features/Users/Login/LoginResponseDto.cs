@@ -7,4 +7,6 @@ public sealed record LoginResponseDto(
     string RefreshToken,
     int ExpiresIn,
     string Role,
-    DriverApplicationStatus? DriverApplicationStatus);
+    DriverApplicationStatus? DriverApplicationStatus,
+    bool CanAccessDriverHome,
+    string? DriverApplicationRejectionReason);
