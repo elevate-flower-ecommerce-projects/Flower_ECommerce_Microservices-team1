@@ -49,28 +49,46 @@ public static class DatabaseInitializationExtensions
 
         builder.InitialCatalog = "master";
 
-        await using var connection = new SqlConnection(builder.ConnectionString);
-        await connection.OpenAsync();
-
-        await using var command = connection.CreateCommand();
-        command.CommandText = $"""
-            IF DB_ID(@databaseName) IS NULL
-            BEGIN
-                DECLARE @sql nvarchar(max) = N'CREATE DATABASE ' + QUOTENAME(@databaseName);
-                EXEC(@sql);
-            END
-            """;
-        command.Parameters.AddWithValue("@databaseName", databaseName);
-
-        try
+        const int maxRetries = 5;
+        for (var attempt = 1; attempt <= maxRetries; attempt++)
         {
-            await command.ExecuteNonQueryAsync();
-        }
-        catch (SqlException exception) when (exception.Number == 1801)
-        {
-            logger.LogWarning(
-                exception,
-                "Identity database already exists while ensuring it exists. Continuing with migrations.");
+            try
+            {
+                await using var connection = new SqlConnection(builder.ConnectionString);
+                await connection.OpenAsync();
+
+                await using var command = connection.CreateCommand();
+                command.CommandText = $"""
+                    IF DB_ID(@databaseName) IS NULL
+                    BEGIN
+                        DECLARE @sql nvarchar(max) = N'CREATE DATABASE ' + QUOTENAME(@databaseName);
+                        EXEC(@sql);
+                    END
+                    """;
+                command.Parameters.AddWithValue("@databaseName", databaseName);
+
+                try
+                {
+                    await command.ExecuteNonQueryAsync();
+                }
+                catch (SqlException exception) when (exception.Number == 1801)
+                {
+                    logger.LogWarning(
+                        exception,
+                        "Identity database already exists while ensuring it exists. Continuing with migrations.");
+                }
+
+                break;
+            }
+            catch (SqlException ex) when (attempt < maxRetries)
+            {
+                logger.LogWarning(
+                    ex,
+                    "Failed to connect to SQL Server (Attempt {Attempt}/{MaxRetries}). Retrying in 3 seconds...",
+                    attempt,
+                    maxRetries);
+                await Task.Delay(TimeSpan.FromSeconds(3));
+            }
         }
     }
 
