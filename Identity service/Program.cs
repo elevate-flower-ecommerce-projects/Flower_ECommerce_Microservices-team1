@@ -15,7 +15,6 @@ await app.MigrateAndSeedIdentityDatabaseAsync();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
     app.UseSwaggerDocumentation();
 }
 
