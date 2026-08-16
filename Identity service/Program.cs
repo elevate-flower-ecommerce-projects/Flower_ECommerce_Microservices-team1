@@ -13,11 +13,7 @@ var app = builder.Build();
 
 await app.MigrateAndSeedIdentityDatabaseAsync();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    app.UseSwaggerDocumentation();
-}
+app.UseSwaggerDocumentation();
 
 app.UseStatusCodePages();
 
