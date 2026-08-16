@@ -1,4 +1,4 @@
-namespace Catalog_Service.Contracts.Products;
+﻿namespace Catalog_Service.Contracts.Products;
 
 public sealed record ProductDetailResponse(
     Guid Id,

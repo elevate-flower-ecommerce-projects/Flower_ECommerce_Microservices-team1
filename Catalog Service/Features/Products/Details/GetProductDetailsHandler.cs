@@ -1,4 +1,4 @@
-using Catalog_Service.Contracts.Products;
+﻿using Catalog_Service.Contracts.Products;
 using Catalog_Service.Entities;
 using Catalog_Service.Features.Products;
 using Catalog_Service.Persistence;
