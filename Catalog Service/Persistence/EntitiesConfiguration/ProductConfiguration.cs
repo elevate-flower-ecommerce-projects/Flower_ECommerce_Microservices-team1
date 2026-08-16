@@ -17,10 +17,22 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(product => product.ImageUrl)
             .HasMaxLength(512);
 
+        builder.Property(product => product.Description)
+            .HasMaxLength(2000)
+            .IsRequired();
+
         builder.Property(product => product.Price)
             .HasColumnType("decimal(18,2)");
 
-        builder.HasIndex(product => product.StoreId);
+        builder.Property(product => product.DiscountPercent)
+            .HasPrecision(5, 2);
+
+        builder.Property(product => product.DiscountStartsAtUtc)
+            .IsRequired(false);
+
+        builder.Property(product => product.DiscountEndsAtUtc)
+            .IsRequired(false);
+
         builder.HasIndex(product => product.SoldCount);
     }
 }

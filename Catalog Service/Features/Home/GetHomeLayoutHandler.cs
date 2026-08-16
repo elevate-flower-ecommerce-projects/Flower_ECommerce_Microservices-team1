@@ -100,11 +100,14 @@ public sealed class GetHomeLayoutHandler(IUnitOfWork<CatalogDbContext> unitOfWor
         var config = ReadConfig<ProductRailConfig>(contentRefJson);
         var query = unitOfWork.Repository<Product, Guid>()
             .Query()
-            .Where(product => product.IsActive && product.IsAvailable);
+            .Where(product => product.IsActive);
 
         if (storeId is not null)
         {
-            query = query.Where(product => product.StoreId == null || product.StoreId == storeId);
+            query = query.Where(product => product.StoreInventories.Any(inventory =>
+                inventory.StoreId == storeId
+                && inventory.IsEnabled
+                && inventory.AvailableQuantity > 0));
         }
 
         if (config.Ids.Count > 0)
