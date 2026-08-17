@@ -91,4 +91,6 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapCarter();
 
+app.MapGet("/health", () => Results.Ok(new { status = "Healthy", service = "Catalog Service", timestamp = DateTime.UtcNow }));
+
 app.Run();
