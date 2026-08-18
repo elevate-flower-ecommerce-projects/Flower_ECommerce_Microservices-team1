@@ -76,6 +76,17 @@ Important contract decisions:
 - Disabled or unknown section types should be safe for clients to skip.
 - Keep `flowery-app-api.yaml` aligned with this contract.
 
+
+## Saved Delivery Addresses
+
+Address & Store Coverage owns customer saved addresses.
+
+- `POST /users/me/addresses` creates an authenticated Customer address with `recipientName`, `phone`, `addressLine`, `city`, `area`, optional `lat`/`lng`, and optional `label`.
+- Required field validation returns field-mapped errors; phone uses the same Egyptian mobile regex as registration: `^01[0125]\d{8}$`.
+- The first address for a user is automatically marked as default.
+- Creation resolves coverage through the geo lookup service and persists nullable `ServingStoreId`. Unresolved addresses are still saved with `IsServiceable = false` so checkout/catalog can show a not-serviceable state later instead of blocking creation.
+- The service uses `IUnitOfWork<AddressDbContext>` from `Base.Repository.dll`, matching the Catalog/Identity repository pattern.
+- Gateway route: `/api/v1/users/me/addresses` maps to Address & Store Coverage `/users/me/addresses`.
 ## Database Initialization And Seeding
 
 Services run migrations/seeding at startup through their database initialization extensions.

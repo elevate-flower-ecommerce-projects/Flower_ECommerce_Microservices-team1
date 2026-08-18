@@ -748,6 +748,70 @@ paths:
         '200':
           description: Payment successful.
 
+  /users/me/addresses:
+    post:
+      tags:
+        - Address & Coverage
+      summary: Add my delivery address
+      description: |
+        Creates a saved delivery address for the authenticated Customer.
+        The first address for a user is automatically marked as default.
+        Address creation does not fail when coverage cannot be resolved; unresolved addresses are saved with `isServiceable=false` and `servingStoreId=null` so checkout/catalog flows can show the not-serviceable state later.
+      operationId: CreateMyAddress
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAddressRequest'
+            examples:
+              manual:
+                summary: Manual address
+                value:
+                  recipientName: "Mariam Ahmed"
+                  phone: "01001112222"
+                  addressLine: "12 Abbas El Akkad Street, building 4"
+                  city: "Cairo"
+                  area: "Nasr City"
+                  label: "Home"
+              withPin:
+                summary: Address with map pin
+                value:
+                  recipientName: "Mariam Ahmed"
+                  phone: "01001112222"
+                  addressLine: "Road 9, near Metro Station"
+                  city: "Cairo"
+                  area: "Maadi"
+                  lat: 29.9602
+                  lng: 31.2569
+                  label: "Work"
+      responses:
+        '201':
+          description: Address saved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateAddressOperationResult'
+        '401':
+          description: Missing, expired, or invalid JWT.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
+        '403':
+          description: Authenticated user is not in the Customer role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
+        '422':
+          description: Required field or Egyptian mobile validation failed. `data` maps field names to inline error messages.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResult'
   /address-store-coverage/check:
     get:
       tags:
@@ -842,6 +906,113 @@ components:
         data:
           $ref: '#/components/schemas/RegisterCustomerResponse'
 
+    CreateAddressRequest:
+      type: object
+      required:
+        - recipientName
+        - phone
+        - addressLine
+        - city
+        - area
+      properties:
+        recipientName:
+          type: string
+          maxLength: 120
+          example: "Mariam Ahmed"
+        phone:
+          type: string
+          pattern: '^01[0125]\d{8}$'
+          example: "01001112222"
+          description: Egyptian mobile number format (01[0-2,5]XXXXXXXX, 11 digits).
+        addressLine:
+          type: string
+          maxLength: 500
+          example: "12 Abbas El Akkad Street, building 4"
+        city:
+          type: string
+          maxLength: 120
+          example: "Cairo"
+        area:
+          type: string
+          maxLength: 120
+          example: "Nasr City"
+        lat:
+          type: number
+          format: double
+          nullable: true
+          minimum: -90
+          maximum: 90
+          example: 30.0561
+        lng:
+          type: number
+          format: double
+          nullable: true
+          minimum: -180
+          maximum: 180
+          example: 31.3300
+        label:
+          type: string
+          nullable: true
+          maxLength: 50
+          example: "Home"
+
+    AddressResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        recipientName:
+          type: string
+        phone:
+          type: string
+        addressLine:
+          type: string
+        city:
+          type: string
+        area:
+          type: string
+        lat:
+          type: number
+          format: double
+          nullable: true
+        lng:
+          type: number
+          format: double
+          nullable: true
+        label:
+          type: string
+          nullable: true
+        servingStoreId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Resolved serving store. Null means the address was saved but is not currently serviceable.
+        isServiceable:
+          type: boolean
+        isDefault:
+          type: boolean
+        createdAtUtc:
+          type: string
+          format: date-time
+
+    CreateAddressOperationResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        statusCode:
+          type: integer
+          example: 201
+        message:
+          type: string
+          example: "Address created successfully."
+        messageLocalized:
+          type: string
+          example: "Address created successfully."
+        data:
+          $ref: '#/components/schemas/AddressResponse'
     UserLoginRequest:
       type: object
       required:
