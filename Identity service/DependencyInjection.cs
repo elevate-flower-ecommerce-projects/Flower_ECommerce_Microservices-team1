@@ -145,10 +145,36 @@ public static class DependencyInjection
 
     private static IServiceCollection AddAuthenticationConfig(this IServiceCollection services, IConfiguration configuration)
     {
-        var jwtSettings = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
-            ?? throw new InvalidOperationException("JWT settings are not configured properly.");
+        var jwtSettings = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 
-        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        if (string.IsNullOrWhiteSpace(jwtSettings.Key))
+        {
+            jwtSettings.Key = configuration["Jwt:Key"] 
+                           ?? configuration["JwtSettings:Secret"] 
+                           ?? configuration["Jwt:Secret"] 
+                           ?? "YOUR_SUPER_SECRET_KEY_CHANGE_IN_PRODUCTION_MIN_32_CHARS";
+        }
+        if (string.IsNullOrWhiteSpace(jwtSettings.Issuer))
+        {
+            jwtSettings.Issuer = configuration["Jwt:Issuer"] 
+                            ?? configuration["JwtSettings:Issuer"] 
+                            ?? "FlowersAuth";
+        }
+        if (string.IsNullOrWhiteSpace(jwtSettings.Audience))
+        {
+            jwtSettings.Audience = configuration["Jwt:Audience"] 
+                              ?? configuration["JwtSettings:Audience"] 
+                              ?? "FlowersApp";
+        }
+
+        services.Configure<JwtOptions>(options =>
+        {
+            options.Key = jwtSettings.Key;
+            options.Issuer = jwtSettings.Issuer;
+            options.Audience = jwtSettings.Audience;
+            options.ExpiryMinutes = jwtSettings.ExpiryMinutes > 0 ? jwtSettings.ExpiryMinutes : 60;
+            options.RefreshTokenExpiryDays = jwtSettings.RefreshTokenExpiryDays > 0 ? jwtSettings.RefreshTokenExpiryDays : 7;
+        });
 
         services.AddAuthentication(options =>
         {
@@ -157,7 +183,7 @@ public static class DependencyInjection
         })
         .AddJwtBearer(o =>
         {
-            var keyBytes = Encoding.UTF8.GetBytes(jwtSettings!.Key);
+            var keyBytes = Encoding.UTF8.GetBytes(jwtSettings.Key);
             var signingKey = new SymmetricSecurityKey(keyBytes);
 
             o.SaveToken = true;
