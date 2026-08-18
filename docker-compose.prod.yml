@@ -59,7 +59,7 @@ services:
       - flower_net_team1
 
   apigateway:
-    image: ${DOCKER_USERNAME:-hossammokhtar}/flower-apigateway-team1:latest
+    image: ${DOCKER_USERNAME:-amr0110}/flower-apigateway-team1:latest
     container_name: flower_apigateway_team1
     restart: unless-stopped
     depends_on:
@@ -84,7 +84,7 @@ services:
       - flower_net_team1
 
   identityservice:
-    image: ${DOCKER_USERNAME:-hossammokhtar}/flower-identity-service-team1:latest
+    image: ${DOCKER_USERNAME:-amr0110}/flower-identity-service-team1:latest
     container_name: flower_identity_service_team1
     restart: unless-stopped
     depends_on:
@@ -99,6 +99,9 @@ services:
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Username: ${RABBITMQ_USER:-guest}
       RabbitMQ__Password: ${RABBITMQ_PASS:-guest}
+      Jwt__Key: ${JWT_SECRET:-YOUR_SUPER_SECRET_KEY_CHANGE_IN_PRODUCTION_MIN_32_CHARS}
+      Jwt__Issuer: ${JWT_ISSUER:-FlowersAuth}
+      Jwt__Audience: ${JWT_AUDIENCE:-FlowersApp}
       JwtSettings__Secret: ${JWT_SECRET:-YOUR_SUPER_SECRET_KEY_CHANGE_IN_PRODUCTION_MIN_32_CHARS}
       JwtSettings__Issuer: ${JWT_ISSUER:-FlowersAuth}
       JwtSettings__Audience: ${JWT_AUDIENCE:-FlowersApp}
@@ -108,7 +111,7 @@ services:
       - flower_net_team1
 
   catalogservice:
-    image: ${DOCKER_USERNAME:-hossammokhtar}/flower-catalog-service-team1:latest
+    image: ${DOCKER_USERNAME:-amr0110}/flower-catalog-service-team1:latest
     container_name: flower_catalog_service_team1
     restart: unless-stopped
     environment:
@@ -120,7 +123,7 @@ services:
       - flower_net_team1
 
   cartservice:
-    image: ${DOCKER_USERNAME:-hossammokhtar}/flower-cart-service-team1:latest
+    image: ${DOCKER_USERNAME:-amr0110}/flower-cart-service-team1:latest
     container_name: flower_cart_service_team1
     restart: unless-stopped
     environment:
@@ -132,7 +135,7 @@ services:
       - flower_net_team1
 
   orderfulfillmentservice:
-    image: ${DOCKER_USERNAME:-hossammokhtar}/flower-order-service-team1:latest
+    image: ${DOCKER_USERNAME:-amr0110}/flower-order-service-team1:latest
     container_name: flower_order_service_team1
     restart: unless-stopped
     environment:
@@ -144,7 +147,7 @@ services:
       - flower_net_team1
 
   paymentservice:
-    image: ${DOCKER_USERNAME:-hossammokhtar}/flower-payment-service-team1:latest
+    image: ${DOCKER_USERNAME:-amr0110}/flower-payment-service-team1:latest
     container_name: flower_payment_service_team1
     restart: unless-stopped
     environment:
@@ -156,7 +159,7 @@ services:
       - flower_net_team1
 
   addressstorecoverageservice:
-    image: ${DOCKER_USERNAME:-hossammokhtar}/flower-address-service-team1:latest
+    image: ${DOCKER_USERNAME:-amr0110}/flower-address-service-team1:latest
     container_name: flower_address_service_team1
     restart: unless-stopped
     environment:

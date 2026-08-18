@@ -16,7 +16,7 @@ Welcome to the official **CI/CD Pipeline Guidebook** for Team 1's Flower E-Comme
 ### Purpose
 The CI/CD pipeline automates code quality checks, container image compilation, and artifact publishing for Team 1's platform. Every time code is pushed to `main`, `master`, or `Development`, GitHub Actions automatically:
 - Builds container images for all Team 1 microservices in parallel using Buildx.
-- Pushes Docker images to **Docker Hub** using matrix tag names.
+- Pushes Docker images to **Docker Hub** (`amr0110`) using matrix tag names.
 
 ### Team 1 Microservices Map
 
@@ -37,8 +37,8 @@ The CI/CD pipeline automates code quality checks, container image compilation, a
 1. Sign up on [hub.docker.com](https://hub.docker.com).
 2. Generate a Personal Access Token (PAT) under **Account Settings > Personal Access Tokens**.
 3. Add repository secrets in GitHub (**Settings > Secrets and variables > Actions**):
-   - `DOCKER_USERNAME`: Your Docker Hub username.
-   - `DOCKER_PASSWORD`: The Personal Access Token (PAT).
+   - `DOCKER_USERNAME`: `amr0110`
+   - `DOCKER_PASSWORD`: `<YOUR_DOCKER_HUB_PERSONAL_ACCESS_TOKEN>`
 
 ---
 
