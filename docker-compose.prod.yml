@@ -114,9 +114,14 @@ services:
     image: ${DOCKER_USERNAME:-amr0110}/flower-catalog-service-team1:latest
     container_name: flower_catalog_service_team1
     restart: unless-stopped
+    depends_on:
+      sqlserver:
+        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_HTTP_PORTS: 8080
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=FlowerCatalogDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Password123!};TrustServerCertificate=True;MultipleActiveResultSets=true;"
+      DatabaseInitialization__ResetOnStartup: "false"
     ports:
       - "5129:8080"
     networks:
@@ -126,9 +131,13 @@ services:
     image: ${DOCKER_USERNAME:-amr0110}/flower-cart-service-team1:latest
     container_name: flower_cart_service_team1
     restart: unless-stopped
+    depends_on:
+      sqlserver:
+        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_HTTP_PORTS: 8080
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=FlowerCartDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Password123!};TrustServerCertificate=True;MultipleActiveResultSets=true;"
     ports:
       - "5292:8080"
     networks:
@@ -138,9 +147,18 @@ services:
     image: ${DOCKER_USERNAME:-amr0110}/flower-order-service-team1:latest
     container_name: flower_order_service_team1
     restart: unless-stopped
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_HTTP_PORTS: 8080
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=FlowerOrderDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Password123!};TrustServerCertificate=True;MultipleActiveResultSets=true;"
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_USER:-guest}
+      RabbitMQ__Password: ${RABBITMQ_PASS:-guest}
     ports:
       - "5109:8080"
     networks:
@@ -150,9 +168,13 @@ services:
     image: ${DOCKER_USERNAME:-amr0110}/flower-payment-service-team1:latest
     container_name: flower_payment_service_team1
     restart: unless-stopped
+    depends_on:
+      sqlserver:
+        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_HTTP_PORTS: 8080
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=FlowerPaymentDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Password123!};TrustServerCertificate=True;MultipleActiveResultSets=true;"
     ports:
       - "5260:8080"
     networks:
@@ -162,9 +184,13 @@ services:
     image: ${DOCKER_USERNAME:-amr0110}/flower-address-service-team1:latest
     container_name: flower_address_service_team1
     restart: unless-stopped
+    depends_on:
+      sqlserver:
+        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_HTTP_PORTS: 8080
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=FlowerAddressDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Password123!};TrustServerCertificate=True;MultipleActiveResultSets=true;"
     ports:
       - "5272:8080"
     networks:

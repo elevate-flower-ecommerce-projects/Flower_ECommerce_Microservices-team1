@@ -18,11 +18,6 @@ public static class SwaggerExtensions
 
             options.CustomSchemaIds(type => type.FullName?.Replace('+', '.') ?? type.Name);
             options.OperationFilter<DriverApplicationUploadOperationFilter>();
-            options.SwaggerDoc("v1", new OpenApiInfo
-            {
-                Title = "Identity Service API",
-                Version = "v1"
-            });
 
             options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
