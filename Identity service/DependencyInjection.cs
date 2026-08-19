@@ -1,27 +1,6 @@
-using Carter;
 using Flower.Common.StandardizedResponse;
-using Identity_service.Abstractions;
-using Identity_service.Entities;
 using Identity_service.Exceptions;
-using Identity_service.Features.Drivers.Applications.Submit;
-using Identity_service.Features.Users.Login;
-using Identity_service.Infrastructure;
-using Identity_service.Infrastructure.Implementations.Services;
-using Identity_service.Infrastructure.Interfaces.Services;
-using Identity_service.Persistence;
-using Identity_service.Services;
-using Identity_service.Settings;
-using Mapster;
-using MapsterMapper;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization.Policy;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Repository.Layer;
-using Repository.Layer.Interfaces;
 using System.Reflection;
-using System.Text;
 using System.Threading.RateLimiting;
 
 namespace Identity_service;
@@ -42,10 +21,23 @@ public static class DependencyInjection
         services.Configure<PasswordResetOptions>(configuration.GetSection(PasswordResetOptions.SectionName));
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
 
+        services.AddProblemDetails(options =>
+        {
+            options.CustomizeProblemDetails = context =>
+            {
+                context.ProblemDetails.Instance =
+                    context.HttpContext.Request.Path;
+
+                context.ProblemDetails.Extensions["traceId"] =
+                    context.HttpContext.TraceIdentifier;
+            };
+        });
+
         services.AddScoped(typeof(IUnitOfWork<ApplicationDbContext>), typeof(UnitOfWork<ApplicationDbContext>));
         services.AddScoped<IDriverDocumentStorage, LocalDriverDocumentStorage>();
         services.AddScoped<IApplicantNotificationService, SmtpApplicantNotificationService>();
         services.AddScoped<IDriverApplicationValidator, DriverApplicationValidator>();
+        services.AddScoped<IRegisterCustomerValidator, RegisterCustomerValidator>();
         services.AddScoped<IDriverLoginStatusGuard, DriverLoginStatusGuard>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IIdentityDataSeeder, IdentityDataSeeder>();
@@ -61,10 +53,7 @@ public static class DependencyInjection
         services.AddControllers();
         services.AddLoginRateLimiting();
         services.AddAuthenticationConfig(configuration);
-        services.AddAuthorization(options =>
-        {
-            options.AddPolicy(AuthorizationPolicies.AdminOnly, policy => policy.RequireRole(DefaultRoles.Admin.Name));
-        });
+        services.AddAuthorization();
 
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, AdminAuthorizationMiddlewareResultHandler>();
         services.AddProblemDetails();
@@ -156,10 +145,36 @@ public static class DependencyInjection
 
     private static IServiceCollection AddAuthenticationConfig(this IServiceCollection services, IConfiguration configuration)
     {
-        var jwtSettings = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
-            ?? throw new InvalidOperationException("JWT settings are not configured properly.");
+        var jwtSettings = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 
-        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        if (string.IsNullOrWhiteSpace(jwtSettings.Key))
+        {
+            jwtSettings.Key = configuration["Jwt:Key"] 
+                           ?? configuration["JwtSettings:Secret"] 
+                           ?? configuration["Jwt:Secret"] 
+                           ?? "YOUR_SUPER_SECRET_KEY_CHANGE_IN_PRODUCTION_MIN_32_CHARS";
+        }
+        if (string.IsNullOrWhiteSpace(jwtSettings.Issuer))
+        {
+            jwtSettings.Issuer = configuration["Jwt:Issuer"] 
+                            ?? configuration["JwtSettings:Issuer"] 
+                            ?? "FlowersAuth";
+        }
+        if (string.IsNullOrWhiteSpace(jwtSettings.Audience))
+        {
+            jwtSettings.Audience = configuration["Jwt:Audience"] 
+                              ?? configuration["JwtSettings:Audience"] 
+                              ?? "FlowersApp";
+        }
+
+        services.Configure<JwtOptions>(options =>
+        {
+            options.Key = jwtSettings.Key;
+            options.Issuer = jwtSettings.Issuer;
+            options.Audience = jwtSettings.Audience;
+            options.ExpiryMinutes = jwtSettings.ExpiryMinutes > 0 ? jwtSettings.ExpiryMinutes : 60;
+            options.RefreshTokenExpiryDays = jwtSettings.RefreshTokenExpiryDays > 0 ? jwtSettings.RefreshTokenExpiryDays : 7;
+        });
 
         services.AddAuthentication(options =>
         {
@@ -168,6 +183,9 @@ public static class DependencyInjection
         })
         .AddJwtBearer(o =>
         {
+            var keyBytes = Encoding.UTF8.GetBytes(jwtSettings.Key);
+            var signingKey = new SymmetricSecurityKey(keyBytes);
+
             o.SaveToken = true;
             o.TokenValidationParameters = new TokenValidationParameters
             {
@@ -175,9 +193,35 @@ public static class DependencyInjection
                 ValidateIssuer = true,
                 ValidateAudience = true,
                 ValidateLifetime = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings!.Key)),
+                IssuerSigningKey = signingKey,
+                IssuerSigningKeys = new[] { signingKey },
                 ValidIssuer = jwtSettings.Issuer,
                 ValidAudience = jwtSettings.Audience,
+                RoleClaimType = ClaimTypes.Role,
+                NameClaimType = ClaimTypes.NameIdentifier,
+                ClockSkew = TimeSpan.FromMinutes(5)
+            };
+
+            o.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    var authorization = context.Request.Headers.Authorization.ToString();
+                    if (!string.IsNullOrWhiteSpace(authorization))
+                    {
+                        var token = authorization.Trim();
+                        if (token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                        {
+                            token = token["Bearer ".Length..].Trim();
+                        }
+                        var match = System.Text.RegularExpressions.Regex.Match(token, @"[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+");
+                        if (match.Success)
+                        {
+                            context.Token = match.Value;
+                        }
+                    }
+                    return Task.CompletedTask;
+                }
             };
         });
 

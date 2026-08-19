@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Carter;
 using Flower.Common.StandardizedResponse;
 using Identity_service.Abstractions;
+using Identity_service.Abstractions.Seeding;
 using Identity_service.Entities;
 using Identity_service.Persistence;
 using MediatR;
@@ -21,7 +22,7 @@ public sealed class AdminDriverApplicationsEndpoint : ICarterModule
     {
         var group = app.MapGroup("/admin/drivers/applications")
             .WithTags("Admin Driver Applications")
-            .RequireAuthorization(AuthorizationPolicies.AdminOnly);
+            .RequireAuthorization(policy => policy.RequireRole(DefaultRoles.Admin.Name));
 
         group.MapGet("/", ListAsync)
             .Produces<OperationResult<PagedResponse<AdminDriverApplicationSummaryResponse>>>();
