@@ -82,11 +82,23 @@ Important contract decisions:
 Address & Store Coverage owns customer saved addresses.
 
 - `POST /users/me/addresses` creates an authenticated Customer address with `recipientName`, `phone`, `addressLine`, `city`, `area`, optional `lat`/`lng`, and optional `label`.
+- `GET /users/me/addresses` lists the authenticated Customer saved addresses, ordered by default first, then most recently used/created.
+- `GET /users/me/addresses/{addressId}` returns details for one address owned by the authenticated Customer.
 - Required field validation returns field-mapped errors; phone uses the same Egyptian mobile regex as registration: `^01[0125]\d{8}$`.
 - The first address for a user is automatically marked as default.
 - Creation resolves coverage through the geo lookup service and persists nullable `ServingStoreId`. Unresolved addresses are still saved with `IsServiceable = false` so checkout/catalog can show a not-serviceable state later instead of blocking creation.
 - The service uses `IUnitOfWork<AddressDbContext>` from `Base.Repository.dll`, matching the Catalog/Identity repository pattern.
-- Gateway route: `/api/v1/users/me/addresses` maps to Address & Store Coverage `/users/me/addresses`.
+- Gateway routes: `/api/v1/users/me/addresses` and `/api/v1/users/me/addresses/{addressId}` map to Address & Store Coverage saved-address endpoints.
+
+## Store Coverage Management
+
+Address & Store Coverage also owns admin-managed stores and coverage definitions.
+
+- Admin-only endpoints live under `/admin/stores` for create, list, detail, update, and deactivate.
+- Store coverage uses explicit `City`/`Area` rows with optional bounding boxes (`MinLat`, `MaxLat`, `MinLng`, `MaxLng`) for point-in-area checks.
+- `POST /stores/resolve` uses active coverage first, then falls back to nearest active store when only a map pin can be resolved.
+- Deactivating a store marks its coverage inactive and flags saved addresses that depended on it by clearing `ServingStoreId` and setting `IsServiceable = false`.
+- Coverage diagnostics are exposed through `/admin/stores/coverage-diagnostics`; overlaps are active city/area rows served by multiple stores, and gaps are known city/area rows with no active serving store.
 ## Database Initialization And Seeding
 
 Services run migrations/seeding at startup through their database initialization extensions.

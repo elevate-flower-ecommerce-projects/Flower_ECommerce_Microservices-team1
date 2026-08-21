@@ -13,4 +13,18 @@ public sealed record AddressResponse(
     Guid? ServingStoreId,
     bool IsServiceable,
     bool IsDefault,
-    DateTime CreatedAtUtc);
+    DateTime CreatedAtUtc,
+    DateTime? LastUsedAtUtc);
+
+public sealed record AddressListItemResponse(
+    Guid Id,
+    string ShortLabel,
+    string RecipientName,
+    string City,
+    string Area,
+    string? Label,
+    bool IsDefault,
+    bool IsServiceable,
+    Guid? ServingStoreId,
+    DateTime CreatedAtUtc,
+    DateTime? LastUsedAtUtc);

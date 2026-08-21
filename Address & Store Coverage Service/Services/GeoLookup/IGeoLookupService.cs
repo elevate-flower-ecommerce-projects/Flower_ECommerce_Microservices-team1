@@ -1,12 +1,15 @@
 namespace Address___Store_Coverage_Service.Services.GeoLookup;
 
 public sealed record GeoLookupRequest(
-    string City,
-    string Area,
+    string? City,
+    string? Area,
     decimal? Lat,
     decimal? Lng);
 
-public sealed record GeoLookupResult(Guid? ServingStoreId)
+public sealed record GeoLookupResult(
+    Guid? ServingStoreId,
+    string ResolutionType,
+    IReadOnlyList<Guid> MatchingStoreIds)
 {
     public bool IsServiceable => ServingStoreId is not null;
 }

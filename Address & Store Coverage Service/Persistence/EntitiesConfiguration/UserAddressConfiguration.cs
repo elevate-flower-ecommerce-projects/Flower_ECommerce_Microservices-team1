@@ -23,5 +23,6 @@ public sealed class UserAddressConfiguration : IEntityTypeConfiguration<UserAddr
         builder.HasIndex(address => address.UserId);
         builder.HasIndex(address => address.ServingStoreId);
         builder.HasIndex(address => new { address.UserId, address.IsDefault });
+        builder.HasIndex(address => new { address.UserId, address.LastUsedAtUtc, address.CreatedAtUtc });
     }
 }
