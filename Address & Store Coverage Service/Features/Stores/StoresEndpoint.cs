@@ -21,7 +21,7 @@ public sealed class StoresEndpoint : ICarterModule
             .RequireAuthorization(new AuthorizeAttribute { Roles = "Admin" })
             .WithTags("Admin Stores");
 
-        admin.MapGet("/", async (bool? includeInactive, ISender sender, CancellationToken cancellationToken) =>
+        admin.MapGet("", async (bool? includeInactive, ISender sender, CancellationToken cancellationToken) =>
         {
             var result = await sender.Send(new ListStoresQuery(includeInactive ?? false), cancellationToken);
             return result.ToHttpResult();
@@ -46,7 +46,7 @@ public sealed class StoresEndpoint : ICarterModule
         .Produces<OperationResult<StoreResponse>>()
         .Produces<OperationResult>(StatusCodes.Status404NotFound);
 
-        admin.MapPost("/", async (StoreRequest request, ISender sender, CancellationToken cancellationToken) =>
+        admin.MapPost("", async (StoreRequest request, ISender sender, CancellationToken cancellationToken) =>
         {
             var result = await sender.Send(new CreateStoreCommand(
                 request.Name,
