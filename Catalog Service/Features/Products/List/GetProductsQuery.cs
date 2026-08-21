@@ -1,4 +1,4 @@
-using Catalog_Service.Contracts.Products;
+﻿using Catalog_Service.Contracts.Products;
 using Flower.Common.StandardizedResponse;
 using MediatR;
 
@@ -10,4 +10,5 @@ public sealed record GetProductsQuery(
     Guid? CategoryId,
     Guid? OccasionId,
     Guid? StoreId,
-    bool? InStock) : IRequest<OperationResult<PagedResponse<ProductListItemResponse>>>;
+    bool? InStock,
+    string? Search) : IRequest<OperationResult<PagedResponse<ProductListItemResponse>>>;

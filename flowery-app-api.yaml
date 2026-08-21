@@ -11,7 +11,7 @@ info:
     - **OTP Password Reset**: Password reset flow via email OTP (`/identity/auth/forgot-password`, `/identity/auth/verify-otp`, `/identity/auth/reset-password`).
     - **Driver Application Onboarding**: Prospective driver application submission (`/identity/drivers/applications`) with multipart document uploads and status tracking.
     - **Admin Operations**: Security audits, rate-limiting, and driver application review endpoints (`/identity/admin/drivers/applications`).
-    - **Server-Driven Home Screen**: Customer-authenticated SDUI layout endpoint (`/catalog/home/layout`) returning ordered backend-defined sections.
+    - **Server-Driven Home Screen**: Anonymous SDUI layout endpoint (`/catalog/home/layout`) returning ordered backend-defined sections and fetch configuration.
     - **E-Commerce Microservices**: Product Catalog, Shopping Cart, Orders & Fulfillment, Payment Processing, and Store Address Coverage.
 
     ### Seeded test customer accounts:
@@ -361,8 +361,54 @@ paths:
       tags:
         - Catalog
       summary: List Products
-      description: Fetch available flowers and arrangements catalog.
+      description: Fetch available flowers and arrangements catalog. Supports filtering and search by product name.
       operationId: ListProducts
+      security: []
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: categoryId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: occasionId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: storeId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: inStock
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: search
+          in: query
+          required: false
+          description: Case-insensitive match on product name.
+          schema:
+            type: string
       responses:
         '200':
           description: Catalog items.
@@ -638,10 +684,15 @@ paths:
         - Home
       summary: Get server-driven home layout
       description: |
-        Returns an ordered backend-defined home screen layout for the authenticated Customer.
+        Returns an ordered backend-defined home screen layout.
 
         The response contains section descriptors with a common envelope:
         `{ type, id, title, order, enabled, payload }`.
+
+        `payload` is section configuration only. It does not embed products,
+        categories, or occasions. The Flutter client should use the section
+        `type` and payload filters/links to call the dedicated endpoints such as
+        `/catalog/products`, `/catalog/categories`, and `/catalog/occasions`.
 
         Supported section types:
         - `banner`
@@ -649,10 +700,9 @@ paths:
         - `product_rail`
         - `occasion_rail`
 
-        `storeId` is optional. When supplied, store-specific banners and product availability are scoped to that store. Global content has `storeId = null` and remains visible for all stores.
+        `storeId` is optional and reserved for store-aware layout selection.
       operationId: GetHomeLayout
-      security:
-        - BearerAuth: []
+      security: []
       parameters:
         - name: storeId
           in: query
@@ -684,34 +734,24 @@ paths:
                         order: 1
                         enabled: true
                         payload:
-                          imageUrl: "/images/banners/home-hero.jpg"
-                          deepLink: "/products?collection=summer"
+                          bannerId: "30000000-0000-0000-0000-000000000001"
                       - type: category_rail
                         id: "50000000-0000-0000-0000-000000000002"
                         title: "Shop by Category"
                         order: 2
                         enabled: true
                         payload:
-                          items:
-                            - id: "10000000-0000-0000-0000-000000000001"
-                              name: "Birthday Flowers"
-                              imageUrl: "/images/categories/birthday.jpg"
-                              deepLink: "/categories/10000000-0000-0000-0000-000000000001"
-                          viewAll:
-                            label: "View All"
-                            deepLink: "/categories"
-        '401':
-          description: Missing, expired, or invalid JWT.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OperationResult'
-        '403':
-          description: Authenticated user is not in the Customer role.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OperationResult'
+                          take: 10
+                          deepLink: "/categories"
+                      - type: product_rail
+                        id: "50000000-0000-0000-0000-000000000003"
+                        title: "Best Sellers"
+                        order: 3
+                        enabled: true
+                        payload:
+                          selectionRule: "best_sellers"
+                          take: 10
+                          deepLink: "/products?sort=best_sellers"
 
   /cart:
     get:
@@ -1802,11 +1842,9 @@ components:
           example: true
         payload:
           nullable: true
-          oneOf:
-            - $ref: '#/components/schemas/BannerPayload'
-            - $ref: '#/components/schemas/CategoryRailPayload'
-            - $ref: '#/components/schemas/ProductRailPayload'
-            - $ref: '#/components/schemas/OccasionRailPayload'
+          type: object
+          additionalProperties: true
+          description: Section configuration used by the client to call the dedicated data endpoint. It does not contain rendered rail items.
 
     HomeLayoutOperationResult:
       type: object
