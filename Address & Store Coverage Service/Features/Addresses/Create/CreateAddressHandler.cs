@@ -1,4 +1,4 @@
-using Address___Store_Coverage_Service.Contracts.Addresses;
+using Address___Store_Coverage_Service.Features.Addresses;
 using Address___Store_Coverage_Service.Entities;
 using Address___Store_Coverage_Service.Persistence;
 using Address___Store_Coverage_Service.Services.GeoLookup;
@@ -58,23 +58,8 @@ public sealed class CreateAddressHandler(
         await unitOfWork.CompleteAsync();
 
         return OperationResultFactory.Created<object>(
-            ToResponse(address),
+            AddressMapping.ToResponse(address),
             "Address created successfully.",
             "Address created successfully.");
     }
-
-    private static AddressResponse ToResponse(UserAddress address) => new(
-        address.Id,
-        address.RecipientName,
-        address.Phone,
-        address.AddressLine,
-        address.City,
-        address.Area,
-        address.Lat,
-        address.Lng,
-        address.Label,
-        address.ServingStoreId,
-        address.IsServiceable,
-        address.IsDefault,
-        address.CreatedAtUtc);
 }

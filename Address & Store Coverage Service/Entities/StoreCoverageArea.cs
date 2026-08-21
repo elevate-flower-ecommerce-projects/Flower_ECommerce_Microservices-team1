@@ -4,6 +4,7 @@ public sealed class StoreCoverageArea
 {
     public Guid Id { get; set; }
     public Guid StoreId { get; set; }
+    public Store? Store { get; set; }
     public string City { get; set; } = string.Empty;
     public string Area { get; set; } = string.Empty;
     public decimal? MinLat { get; set; }
