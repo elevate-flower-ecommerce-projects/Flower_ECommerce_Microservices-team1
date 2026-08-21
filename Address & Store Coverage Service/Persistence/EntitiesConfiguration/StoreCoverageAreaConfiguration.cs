@@ -17,7 +17,14 @@ public sealed class StoreCoverageAreaConfiguration : IEntityTypeConfiguration<St
         builder.Property(coverage => coverage.MinLng).HasPrecision(9, 6);
         builder.Property(coverage => coverage.MaxLng).HasPrecision(9, 6);
 
+        builder.HasOne(coverage => coverage.Store)
+            .WithMany(store => store.CoverageAreas)
+            .HasForeignKey(coverage => coverage.StoreId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(coverage => new { coverage.City, coverage.Area });
         builder.HasIndex(coverage => coverage.StoreId);
+        builder.HasIndex(coverage => coverage.IsActive);
+        builder.HasIndex(coverage => new { coverage.City, coverage.Area, coverage.IsActive });
     }
 }

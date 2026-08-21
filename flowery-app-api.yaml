@@ -47,6 +47,8 @@ tags:
     description: Payment gateway integration and transaction charges
   - name: Address & Coverage
     description: Address validation and store delivery zone coverage
+  - name: Admin Stores
+    description: Admin management for stores, branches, and coverage areas
 
 paths:
   /identity/users/register:
@@ -788,7 +790,250 @@ paths:
         '200':
           description: Payment successful.
 
+  /admin/stores:
+    get:
+      tags:
+        - Admin Stores
+      summary: List stores and coverage areas
+      description: Admin-only list of stores with coverage definitions. Use `includeInactive=true` to audit deactivated stores and inactive coverage rows.
+      operationId: ListAdminStores
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: includeInactive
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Store list.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/StoreResponse'
+        '401':
+          description: Missing or invalid token.
+        '403':
+          description: Caller is not an Admin.
+    post:
+      tags:
+        - Admin Stores
+      summary: Create a store with coverage areas
+      description: Admin-only creation of a branch/store and explicit city/area coverage definitions with optional bounding boxes for point-in-area checks.
+      operationId: CreateAdminStore
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoreRequest'
+      responses:
+        '201':
+          description: Store created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/StoreResponse'
+        '409':
+          description: Store name already exists.
+        '422':
+          description: Validation failed; `data` maps fields to inline errors.
+
+  /admin/stores/coverage-diagnostics:
+    get:
+      tags:
+        - Admin Stores
+      summary: Get coverage gaps and overlaps
+      description: Admin-only diagnostics. Overlaps are city/area pairs covered by more than one active store. Gaps are known city/area pairs that have no active store coverage after deactivation or edits.
+      operationId: GetCoverageDiagnostics
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Coverage diagnostics.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CoverageDiagnosticsResponse'
+
+  /admin/stores/{storeId}:
+    get:
+      tags:
+        - Admin Stores
+      summary: Get store detail
+      operationId: GetAdminStore
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Store detail.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/StoreResponse'
+        '404':
+          description: Store was not found.
+    put:
+      tags:
+        - Admin Stores
+      summary: Update store and replace active coverage areas
+      description: Admin-only update. Existing coverage rows are marked inactive and new active rows are inserted, so historical gaps/overlaps remain queryable.
+      operationId: UpdateAdminStore
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoreRequest'
+      responses:
+        '200':
+          description: Store updated.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/StoreResponse'
+        '404':
+          description: Store was not found.
+        '409':
+          description: Store name already exists.
+        '422':
+          description: Validation failed; `data` maps fields to inline errors.
+    delete:
+      tags:
+        - Admin Stores
+      summary: Deactivate store
+      description: Admin-only deactivation. The store and coverage rows are marked inactive, and saved addresses that depended on the store are flagged with `servingStoreId=null` and `isServiceable=false`.
+      operationId: DeactivateAdminStore
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Store deactivated and dependent addresses flagged.
+        '404':
+          description: Store was not found.
+        '409':
+          description: Store is already inactive.
+
+  /stores/resolve:
+    post:
+      tags:
+        - Address & Coverage
+      summary: Resolve a store for an address or map pin
+      description: Resolves by active coverage city/area and optional bounding box point-in-area check. If no coverage matches but lat/lng is supplied, falls back to the nearest active store with coordinates.
+      operationId: ResolveStore
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveStoreRequest'
+      responses:
+        '200':
+          description: Store resolution result.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ResolveStoreResponse'
+        '422':
+          description: Validation failed; `data` maps fields to inline errors.
   /users/me/addresses:
+    get:
+      tags:
+        - Address & Coverage
+      summary: List my saved addresses
+      description: |
+        Returns all saved addresses for the authenticated Customer. Results are ordered with the default address first, then by most recently used or created. When the user has no addresses, `data` is an empty array and `message` is `No saved addresses yet.` so the client can show the empty state and Add address CTA.
+      operationId: ListMyAddresses
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Saved address list, possibly empty.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/AddressListItemResponse'
+              examples:
+                empty:
+                  summary: No saved addresses
+                  value:
+                    success: true
+                    statusCode: 200
+                    message: "No saved addresses yet."
+                    messageLocalized: "No saved addresses yet."
+                    data: []
+        '401':
+          description: Missing, expired, or invalid JWT.
+        '403':
+          description: Authenticated user is not in the Customer role.
     post:
       tags:
         - Address & Coverage
@@ -1015,6 +1260,217 @@ components:
         data:
           $ref: '#/components/schemas/RegisterCustomerResponse'
 
+    StoreCoverageAreaRequest:
+      type: object
+      required:
+        - city
+        - area
+      properties:
+        city:
+          type: string
+          maxLength: 120
+          example: "Cairo"
+        area:
+          type: string
+          maxLength: 120
+          example: "Nasr City"
+        minLat:
+          type: number
+          format: double
+          nullable: true
+          minimum: -90
+          maximum: 90
+          example: 30.02
+        maxLat:
+          type: number
+          format: double
+          nullable: true
+          minimum: -90
+          maximum: 90
+          example: 30.09
+        minLng:
+          type: number
+          format: double
+          nullable: true
+          minimum: -180
+          maximum: 180
+          example: 31.30
+        maxLng:
+          type: number
+          format: double
+          nullable: true
+          minimum: -180
+          maximum: 180
+          example: 31.39
+
+    StoreRequest:
+      type: object
+      required:
+        - name
+        - location
+      properties:
+        name:
+          type: string
+          maxLength: 160
+          example: "Nasr City Branch"
+        location:
+          type: string
+          maxLength: 500
+          example: "Nasr City, Cairo"
+        lat:
+          type: number
+          format: double
+          nullable: true
+          minimum: -90
+          maximum: 90
+          example: 30.0561
+        lng:
+          type: number
+          format: double
+          nullable: true
+          minimum: -180
+          maximum: 180
+          example: 31.33
+        coverageAreas:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoreCoverageAreaRequest'
+
+    StoreCoverageAreaResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        city:
+          type: string
+        area:
+          type: string
+        minLat:
+          type: number
+          format: double
+          nullable: true
+        maxLat:
+          type: number
+          format: double
+          nullable: true
+        minLng:
+          type: number
+          format: double
+          nullable: true
+        maxLng:
+          type: number
+          format: double
+          nullable: true
+        isActive:
+          type: boolean
+
+    StoreResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        location:
+          type: string
+        lat:
+          type: number
+          format: double
+          nullable: true
+        lng:
+          type: number
+          format: double
+          nullable: true
+        isActive:
+          type: boolean
+        createdAtUtc:
+          type: string
+          format: date-time
+        updatedAtUtc:
+          type: string
+          format: date-time
+          nullable: true
+        coverageAreas:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoreCoverageAreaResponse'
+
+    CoverageDiagnosticsResponse:
+      type: object
+      properties:
+        gaps:
+          type: array
+          items:
+            $ref: '#/components/schemas/CoverageGap'
+        overlaps:
+          type: array
+          items:
+            $ref: '#/components/schemas/CoverageOverlap'
+
+    CoverageGap:
+      type: object
+      properties:
+        city:
+          type: string
+        area:
+          type: string
+
+    CoverageOverlap:
+      type: object
+      properties:
+        city:
+          type: string
+        area:
+          type: string
+        storeIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    ResolveStoreRequest:
+      type: object
+      properties:
+        city:
+          type: string
+          nullable: true
+          example: "Cairo"
+        area:
+          type: string
+          nullable: true
+          example: "Nasr City"
+        lat:
+          type: number
+          format: double
+          nullable: true
+          minimum: -90
+          maximum: 90
+        lng:
+          type: number
+          format: double
+          nullable: true
+          minimum: -180
+          maximum: 180
+
+    ResolveStoreResponse:
+      type: object
+      properties:
+        storeId:
+          type: string
+          format: uuid
+          nullable: true
+        isServiceable:
+          type: boolean
+        resolutionType:
+          type: string
+          enum: [CoverageArea, NearestStore, Unresolved]
+        matchingStoreIds:
+          type: array
+          items:
+            type: string
+            format: uuid
     CreateAddressRequest:
       type: object
       required:
@@ -1145,6 +1601,10 @@ components:
         createdAtUtc:
           type: string
           format: date-time
+        lastUsedAtUtc:
+          type: string
+          format: date-time
+          nullable: true
 
     CreateAddressOperationResult:
       type: object

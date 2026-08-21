@@ -16,4 +16,5 @@ public sealed class UserAddress
     public bool IsServiceable { get; set; }
     public bool IsDefault { get; set; }
     public DateTime CreatedAtUtc { get; set; }
+    public DateTime? LastUsedAtUtc { get; set; }
 }
