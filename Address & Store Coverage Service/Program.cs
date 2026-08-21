@@ -62,6 +62,8 @@ app.UseSwaggerDocumentation();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapGet("/health", () => Results.Ok(new { status = "Healthy", service = "Flower E-Commerce Address & Store Coverage Service" }));
+
 app.MapCarter();
 
 app.Run();

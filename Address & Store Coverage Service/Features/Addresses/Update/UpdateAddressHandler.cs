@@ -89,23 +89,8 @@ public sealed class UpdateAddressHandler(
         await unitOfWork.CompleteAsync();
 
         return OperationResultFactory.Success<object>(
-            ToResponse(address),
+            AddressMapping.ToResponse(address),
             "Address updated successfully.",
             "Address updated successfully.");
     }
-
-    private static AddressResponse ToResponse(UserAddress address) => new(
-        address.Id,
-        address.RecipientName,
-        address.Phone,
-        address.AddressLine,
-        address.City,
-        address.Area,
-        address.Lat,
-        address.Lng,
-        address.Label,
-        address.ServingStoreId,
-        address.IsServiceable,
-        address.IsDefault,
-        address.CreatedAtUtc);
 }
