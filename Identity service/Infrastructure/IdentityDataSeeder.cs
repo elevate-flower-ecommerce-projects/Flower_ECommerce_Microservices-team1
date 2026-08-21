@@ -149,6 +149,9 @@ public sealed class IdentityDataSeeder(
         {
             user = new ApplicationUser
             {
+                Id = string.IsNullOrWhiteSpace(seedUser.Id)
+                    ? Guid.CreateVersion7().ToString()
+                    : seedUser.Id,
                 UserName = email,
                 Email = email,
                 EmailConfirmed = true,
@@ -198,6 +201,7 @@ public sealed class IdentityDataSeeder(
 
     private sealed class SeedUser
     {
+        public string Id { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;

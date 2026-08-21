@@ -852,6 +852,75 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationErrorResult'
+  /users/me/addresses/{id}:
+    put:
+      tags:
+        - Address & Coverage
+      summary: Update my delivery address
+      description: |
+        Updates a saved delivery address for the authenticated Customer.
+        The serving store is resolved again only when the address line, city, area, or map pin changes.
+      operationId: UpdateMyAddress
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAddressRequest'
+      responses:
+        '200':
+          description: Address updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateAddressOperationResult'
+        '401':
+          description: Missing, expired, or invalid JWT.
+        '403':
+          description: Authenticated user is not in the Customer role.
+        '404':
+          description: Address does not exist or is not owned by the current user.
+        '422':
+          description: Required field or Egyptian mobile validation failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResult'
+    delete:
+      tags:
+        - Address & Coverage
+      summary: Delete my delivery address
+      description: |
+        Deletes a saved delivery address for the authenticated Customer.
+        If it is the default and another address remains, the most recently created remaining address becomes default.
+      operationId: DeleteMyAddress
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Address deleted successfully.
+        '401':
+          description: Missing, expired, or invalid JWT.
+        '403':
+          description: Authenticated user is not in the Customer role.
+        '404':
+          description: Address does not exist or is not owned by the current user.
   /address-store-coverage/check:
     get:
       tags:
@@ -996,6 +1065,47 @@ components:
           maxLength: 50
           example: "Home"
 
+    UpdateAddressRequest:
+      type: object
+      required:
+        - recipientName
+        - phone
+        - addressLine
+        - city
+        - area
+      properties:
+        recipientName:
+          type: string
+          maxLength: 120
+        phone:
+          type: string
+          pattern: '^01[0125]\d{8}$'
+        addressLine:
+          type: string
+          maxLength: 500
+        city:
+          type: string
+          maxLength: 120
+        area:
+          type: string
+          maxLength: 120
+        lat:
+          type: number
+          format: double
+          nullable: true
+          minimum: -90
+          maximum: 90
+        lng:
+          type: number
+          format: double
+          nullable: true
+          minimum: -180
+          maximum: 180
+        label:
+          type: string
+          nullable: true
+          maxLength: 50
+
     AddressResponse:
       type: object
       properties:
@@ -1051,6 +1161,24 @@ components:
         messageLocalized:
           type: string
           example: "Address created successfully."
+        data:
+          $ref: '#/components/schemas/AddressResponse'
+
+    UpdateAddressOperationResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "Address updated successfully."
+        messageLocalized:
+          type: string
+          example: "Address updated successfully."
         data:
           $ref: '#/components/schemas/AddressResponse'
     UserLoginRequest:
