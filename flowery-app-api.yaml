@@ -1131,6 +1131,42 @@ paths:
           description: Authenticated user is not in the Customer role.
         '404':
           description: Address was not found for this user.
+  /users/me/addresses/{addressId}/default:
+    patch:
+      tags:
+        - Address & Coverage
+      summary: Set my default delivery address
+      description: |
+        Marks an address owned by the authenticated Customer as default.
+        The operation runs in a server-side transaction and removes default status from any previously default address for that Customer.
+      operationId: SetDefaultAddress
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: addressId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Default address updated successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AddressResponse'
+        '401':
+          description: Missing, expired, or invalid JWT.
+        '403':
+          description: Authenticated user is not in the Customer role.
+        '404':
+          description: Address was not found for this user.
   /address-store-coverage/check:
     get:
       tags:

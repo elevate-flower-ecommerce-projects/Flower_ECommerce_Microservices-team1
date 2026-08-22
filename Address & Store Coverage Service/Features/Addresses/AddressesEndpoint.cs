@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Address___Store_Coverage_Service.Contracts.Addresses;
 using Address___Store_Coverage_Service.Features.Addresses.Details;
 using Address___Store_Coverage_Service.Features.Addresses.List;
+using Address___Store_Coverage_Service.Features.Addresses.SetDefault;
 using Carter;
 using Flower.Common.StandardizedResponse;
 using MediatR;
@@ -30,6 +31,21 @@ public sealed class AddressesEndpoint : ICarterModule
         .Produces<OperationResult<IReadOnlyList<AddressListItemResponse>>>()
         .Produces<OperationResult>(StatusCodes.Status401Unauthorized)
         .Produces<OperationResult>(StatusCodes.Status403Forbidden);
+
+        group.MapPatch("/{addressId:guid}/default", async (Guid addressId, ClaimsPrincipal user, ISender sender, CancellationToken cancellationToken) =>
+        {
+            var userId = ResolveUserId(user);
+            if (string.IsNullOrWhiteSpace(userId))
+                return Unauthorized();
+
+            var result = await sender.Send(new SetDefaultAddressCommand(userId, addressId), cancellationToken);
+            return result.ToHttpResult();
+        })
+        .WithName("SetDefaultAddress")
+        .Produces<OperationResult<AddressResponse>>()
+        .Produces<OperationResult>(StatusCodes.Status401Unauthorized)
+        .Produces<OperationResult>(StatusCodes.Status403Forbidden)
+        .Produces<OperationResult>(StatusCodes.Status404NotFound);
 
         group.MapGet("/{addressId:guid}", async (Guid addressId, ClaimsPrincipal user, ISender sender, CancellationToken cancellationToken) =>
         {
