@@ -26,6 +26,7 @@ builder.Services.AddScoped(typeof(IUnitOfWork<AddressDbContext>), typeof(UnitOfW
 builder.Services.AddScoped<IAddressDataSeeder, AddressDataSeeder>();
 builder.Services.AddScoped<IGeoLookupService, StoreCoverageGeoLookupService>();
 builder.Services.AddScoped<ICreateAddressValidator, CreateAddressValidator>();
+builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddCarter();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
@@ -61,6 +62,8 @@ app.UseSwaggerDocumentation();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapGet("/health", () => Results.Ok(new { status = "Healthy", service = "Flower E-Commerce Address & Store Coverage Service" }));
 
 app.MapCarter();
 

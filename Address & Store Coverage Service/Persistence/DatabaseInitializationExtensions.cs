@@ -23,7 +23,7 @@ public static class DatabaseInitializationExtensions
                 await context.Database.EnsureDeletedAsync();
             }
 
-            await EnsureDatabaseExistsAsync(context);
+            await EnsureDatabaseExistsAsync(context, logger);
             await context.Database.EnsureCreatedAsync();
             await EnsureAddressSchemaAsync(context);
             await EnsureStoreSchemaAsync(context);
@@ -36,7 +36,7 @@ public static class DatabaseInitializationExtensions
         }
     }
 
-    private static async Task EnsureDatabaseExistsAsync(AddressDbContext context)
+    private static async Task EnsureDatabaseExistsAsync(AddressDbContext context, ILogger logger)
     {
         var connectionString = context.Database.GetConnectionString()
             ?? throw new InvalidOperationException("Address database connection string was not found.");
@@ -49,19 +49,36 @@ public static class DatabaseInitializationExtensions
 
         builder.InitialCatalog = "master";
 
-        await using var connection = new SqlConnection(builder.ConnectionString);
-        await connection.OpenAsync();
+        const int maxRetries = 5;
+        for (var attempt = 1; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                await using var connection = new SqlConnection(builder.ConnectionString);
+                await connection.OpenAsync();
 
-        await using var command = connection.CreateCommand();
-        command.CommandText = """
-            IF DB_ID(@databaseName) IS NULL
-            BEGIN
-                DECLARE @sql nvarchar(max) = N'CREATE DATABASE ' + QUOTENAME(@databaseName);
-                EXEC(@sql);
-            END
-            """;
-        command.Parameters.AddWithValue("@databaseName", databaseName);
-        await command.ExecuteNonQueryAsync();
+                await using var command = connection.CreateCommand();
+                command.CommandText = """
+                    IF DB_ID(@databaseName) IS NULL
+                    BEGIN
+                        DECLARE @sql nvarchar(max) = N'CREATE DATABASE ' + QUOTENAME(@databaseName);
+                        EXEC(@sql);
+                    END
+                    """;
+                command.Parameters.AddWithValue("@databaseName", databaseName);
+                await command.ExecuteNonQueryAsync();
+                break;
+            }
+            catch (SqlException ex) when (attempt < maxRetries)
+            {
+                logger.LogWarning(
+                    ex,
+                    "Failed to connect to SQL Server (Attempt {Attempt}/{MaxRetries}). Retrying in 3 seconds...",
+                    attempt,
+                    maxRetries);
+                await Task.Delay(TimeSpan.FromSeconds(3));
+            }
+        }
     }
 
     private static async Task EnsureAddressSchemaAsync(AddressDbContext context)
