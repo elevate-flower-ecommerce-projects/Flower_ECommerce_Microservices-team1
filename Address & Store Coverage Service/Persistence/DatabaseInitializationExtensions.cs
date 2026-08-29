@@ -27,6 +27,7 @@ public static class DatabaseInitializationExtensions
             await context.Database.EnsureCreatedAsync();
             await EnsureAddressSchemaAsync(context);
             await EnsureStoreSchemaAsync(context);
+            await EnsureAreaCitySchemaAsync(context);
             await scope.ServiceProvider.GetRequiredService<IAddressDataSeeder>().SeedAsync();
         }
         catch (Exception exception)
@@ -129,6 +130,45 @@ public static class DatabaseInitializationExtensions
                     ADD CONSTRAINT [FK_StoreCoverageAreas_Stores_StoreId]
                     FOREIGN KEY ([StoreId]) REFERENCES [Stores] ([Id]);
                 END
+            END;
+            """;
+
+        await context.Database.ExecuteSqlRawAsync(sql);
+    }
+
+    private static async Task EnsureAreaCitySchemaAsync(AddressDbContext context)
+    {
+        var sql = """
+            IF OBJECT_ID(N'[Areas]', N'U') IS NULL
+            BEGIN
+                CREATE TABLE [Areas] (
+                    [Id] uniqueidentifier NOT NULL,
+                    [Name] nvarchar(100) NOT NULL,
+                    [IsActive] bit NOT NULL,
+                    [CreatedAt] datetime2 NOT NULL,
+                    [CreatedBy] nvarchar(max) NOT NULL,
+                    [DeletedAt] datetime2 NULL,
+                    CONSTRAINT [PK_Areas] PRIMARY KEY ([Id])
+                );
+
+                CREATE UNIQUE INDEX [IX_Areas_Name] ON [Areas] ([Name]) WHERE [DeletedAt] IS NULL;
+            END;
+
+            IF OBJECT_ID(N'[Cities]', N'U') IS NULL
+            BEGIN
+                CREATE TABLE [Cities] (
+                    [Id] uniqueidentifier NOT NULL,
+                    [AreaId] uniqueidentifier NOT NULL,
+                    [Name] nvarchar(100) NOT NULL,
+                    [IsActive] bit NOT NULL,
+                    [CreatedAt] datetime2 NOT NULL,
+                    [CreatedBy] nvarchar(max) NOT NULL,
+                    [DeletedAt] datetime2 NULL,
+                    CONSTRAINT [PK_Cities] PRIMARY KEY ([Id]),
+                    CONSTRAINT [FK_Cities_Areas_AreaId] FOREIGN KEY ([AreaId]) REFERENCES [Areas] ([Id])
+                );
+
+                CREATE UNIQUE INDEX [IX_Cities_AreaId_Name] ON [Cities] ([AreaId], [Name]) WHERE [DeletedAt] IS NULL;
             END;
             """;
 
