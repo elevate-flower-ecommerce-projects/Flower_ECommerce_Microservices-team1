@@ -1,4 +1,4 @@
-﻿{
+{
     "info":  {
                  "_postman_id":  "flowery-team1-api-gateway-collection",
                  "name":  "Flowery E-Commerce API Gateway (Team 1)",
@@ -23,6 +23,42 @@
                          "value":  "en",
                          "type":  "string",
                          "description":  "Language header (en or ar)"
+                     },
+                     {
+                         "key":  "storeId",
+                         "type":  "string",
+                         "description":  "Nasr City Store ID",
+                         "value":  "60000000-0000-0000-0000-000000000001"
+                     },
+                     {
+                         "key":  "productId",
+                         "type":  "string",
+                         "description":  "Product ID (Classic Red Roses)",
+                         "value":  "40000000-0000-0000-0000-000000000001"
+                     },
+                     {
+                         "key":  "itemId",
+                         "type":  "string",
+                         "description":  "Cart Item ID",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "addressId",
+                         "type":  "string",
+                         "description":  "User Address ID",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "categoryId",
+                         "type":  "string",
+                         "description":  "Category ID",
+                         "value":  "10000000-0000-0000-0000-000000000001"
+                     },
+                     {
+                         "key":  "occasionId",
+                         "type":  "string",
+                         "description":  "Occasion ID",
+                         "value":  "20000000-0000-0000-0000-000000000001"
                      }
                  ],
     "item":  [
@@ -201,7 +237,7 @@
                                                                  ],
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password123!\"\n}"
+                                                                   "raw":  "{\n  \"email\": \"customer@flower.local\",\n  \"password\": \"CustomerFL@123\"\n}"
                                                                },
                                                       "url":  {
                                                                   "raw":  "{{baseUrl}}/api/v1/identity/auth/login",
@@ -231,7 +267,7 @@
                                                                  ],
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password123!\"\n}"
+                                                                   "raw":  "{\n  \"email\": \"customer@flower.local\",\n  \"password\": \"CustomerFL@123\"\n}"
                                                                },
                                                       "url":  {
                                                                   "raw":  "{{baseUrl}}/auth/login",
@@ -258,7 +294,7 @@
                                                                  ],
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"user@example.com\",\n  \"phone\": \"+201000000000\",\n  \"password\": \"Password123!\",\n  \"confirmPassword\": \"Password123!\"\n}"
+                                                                   "raw":  "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"customer_new@flower.local\",\n  \"phoneNumber\": \"01012345678\",\n  \"gender\": \"Male\",\n  \"password\": \"Password123!\",\n  \"confirmPassword\": \"Password123!\"\n}"
                                                                },
                                                       "url":  {
                                                                   "raw":  "{{baseUrl}}/api/v1/identity/users/register",
@@ -288,7 +324,7 @@
                                                                  ],
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"AdminPassword123!\"\n}"
+                                                                   "raw":  "{\n  \"email\": \"admin@Flower.local\",\n  \"password\": \"AdminFL@123\"\n}"
                                                                },
                                                       "url":  {
                                                                   "raw":  "{{baseUrl}}/api/v1/identity/admin/login",
@@ -348,7 +384,7 @@
                                                                  ],
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"email\": \"user@example.com\"\n}"
+                                                                   "raw":  "{\n  \"email\": \"customer@flower.local\"\n}"
                                                                },
                                                       "url":  {
                                                                   "raw":  "{{baseUrl}}/api/v1/identity/auth/forgot-password",
@@ -378,7 +414,7 @@
                                                                  ],
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"email\": \"user@example.com\",\n  \"otp\": \"123456\"\n}"
+                                                                   "raw":  "{\n  \"email\": \"customer@flower.local\",\n  \"otp\": \"123456\"\n}"
                                                                },
                                                       "url":  {
                                                                   "raw":  "{{baseUrl}}/api/v1/identity/auth/verify-otp",
@@ -408,7 +444,7 @@
                                                                  ],
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"email\": \"user@example.com\",\n  \"resetToken\": \"RESET_TOKEN_HERE\",\n  \"newPassword\": \"NewPassword123!\"\n}"
+                                                                   "raw":  "{\n  \"email\": \"customer@flower.local\",\n  \"resetToken\": \"PASTE_RESET_TOKEN_HERE\",\n  \"newPassword\": \"CustomerFL@123!\"\n}"
                                                                },
                                                       "url":  {
                                                                   "raw":  "{{baseUrl}}/api/v1/identity/auth/reset-password",
@@ -902,6 +938,44 @@
                                                                            ]
                                                               }
                                                   }
+                                  },
+                                  {
+                                      "name":  "Set Default User Address",
+                                      "request":  {
+                                                      "method":  "PATCH",
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "raw":  "{{baseUrl}}/api/v1/users/me/addresses/{{addressId}}/default",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "users",
+                                                                               "me",
+                                                                               "addresses",
+                                                                               "{{addressId}}",
+                                                                               "default"
+                                                                           ]
+                                                              },
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept-Language",
+                                                                         "type":  "text",
+                                                                         "value":  "{{acceptLanguage}}"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{bearerToken}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  }
                                   }
                               ]
                  },
@@ -1245,6 +1319,408 @@
                                                                                    }
                                                                                ]
                                                               }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Get Category Icon - Roses (Direct)",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "raw":  "{{baseUrl}}/categories/roses.png",
+                                                                  "path":  [
+                                                                               "categories",
+                                                                               "roses.png"
+                                                                           ]
+                                                              },
+                                                      "header":  [
+
+                                                                 ]
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Get Category Icon - Tulips (Direct)",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "raw":  "{{baseUrl}}/categories/tulips.png",
+                                                                  "path":  [
+                                                                               "categories",
+                                                                               "tulips.png"
+                                                                           ]
+                                                              },
+                                                      "header":  [
+
+                                                                 ]
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Get Category Icon - Bouquets (Direct)",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "raw":  "{{baseUrl}}/categories/bouquets.png",
+                                                                  "path":  [
+                                                                               "categories",
+                                                                               "bouquets.png"
+                                                                           ]
+                                                              },
+                                                      "header":  [
+
+                                                                 ]
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Get Category Icon - Gift (Direct)",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "raw":  "{{baseUrl}}/categories/gift.png",
+                                                                  "path":  [
+                                                                               "categories",
+                                                                               "gift.png"
+                                                                           ]
+                                                              },
+                                                      "header":  [
+
+                                                                 ]
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Get Category Icon - Card (Direct)",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "raw":  "{{baseUrl}}/categories/card.png",
+                                                                  "path":  [
+                                                                               "categories",
+                                                                               "card.png"
+                                                                           ]
+                                                              },
+                                                      "header":  [
+
+                                                                 ]
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Get Category Icon - Diamond (Direct)",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "raw":  "{{baseUrl}}/categories/diamond.png",
+                                                                  "path":  [
+                                                                               "categories",
+                                                                               "diamond.png"
+                                                                           ]
+                                                              },
+                                                      "header":  [
+
+                                                                 ]
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Get Category Icon - Roses via Catalog Prefix",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "raw":  "{{baseUrl}}/catalog/categories/roses.png",
+                                                                  "path":  [
+                                                                               "catalog",
+                                                                               "categories",
+                                                                               "roses.png"
+                                                                           ]
+                                                              },
+                                                      "header":  [
+
+                                                                 ]
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "Cart Service (Team 1)",
+                     "item":  [
+                                  {
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "storeId",
+                                                                                    "value":  "{{storeId}}"
+                                                                                }
+                                                                            ],
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "raw":  "{{baseUrl}}/api/v1/cart?storeId={{storeId}}",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "cart"
+                                                                           ]
+                                                              },
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept-Language",
+                                                                         "type":  "text",
+                                                                         "value":  "{{acceptLanguage}}"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{bearerToken}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "1. Get My Cart (Empty / Active)",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status is 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "var jsonData = pm.response.json();",
+                                                                                    "if (jsonData \u0026\u0026 jsonData.data \u0026\u0026 jsonData.data.lines \u0026\u0026 jsonData.data.lines.length \u003e 0) {",
+                                                                                    "    pm.collectionVariables.set(\u0027itemId\u0027, jsonData.data.lines[0].id);",
+                                                                                    "    console.log(\u0027Saved itemId: \u0027 + jsonData.data.lines[0].id);",
+                                                                                    "}"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "raw":  "{{baseUrl}}/api/v1/cart/items",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "cart",
+                                                                               "items"
+                                                                           ]
+                                                              },
+                                                      "method":  "POST",
+                                                      "body":  {
+                                                                   "raw":  "{\\n  \"productId\": \"{{productId}}\",\\n  \"quantity\": 2,\\n  \"storeId\": \"{{storeId}}\"\\n}",
+                                                                   "mode":  "raw"
+                                                               },
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept-Language",
+                                                                         "type":  "text",
+                                                                         "value":  "{{acceptLanguage}}"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{bearerToken}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "2. Add Item to Cart",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status is 201 Created or 200 OK\u0027, function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                                                                                    "var jsonData = pm.response.json();",
+                                                                                    "if (jsonData \u0026\u0026 jsonData.data \u0026\u0026 jsonData.data.lines \u0026\u0026 jsonData.data.lines.length \u003e 0) {",
+                                                                                    "    pm.collectionVariables.set(\u0027itemId\u0027, jsonData.data.lines[0].id);",
+                                                                                    "    console.log(\u0027Saved itemId from Add to Cart: \u0027 + jsonData.data.lines[0].id);",
+                                                                                    "}"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "url":  {
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "raw":  "{{baseUrl}}/api/v1/cart/items/{{itemId}}",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "cart",
+                                                                               "items",
+                                                                               "{{itemId}}"
+                                                                           ]
+                                                              },
+                                                      "method":  "PUT",
+                                                      "body":  {
+                                                                   "raw":  "{\\n  \"quantity\": 4,\\n  \"storeId\": \"{{storeId}}\"\\n}",
+                                                                   "mode":  "raw"
+                                                               },
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept-Language",
+                                                                         "type":  "text",
+                                                                         "value":  "{{acceptLanguage}}"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "type":  "text",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{bearerToken}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "3. Update Cart Item Quantity",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status is 200 OK\u0027, function () { pm.response.to.have.status(200); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "method":  "DELETE",
+                                                      "url":  {
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "storeId",
+                                                                                    "value":  "{{storeId}}"
+                                                                                }
+                                                                            ],
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "raw":  "{{baseUrl}}/api/v1/cart/items/{{itemId}}?storeId={{storeId}}",
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "cart",
+                                                                               "items",
+                                                                               "{{itemId}}"
+                                                                           ]
+                                                              },
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept-Language",
+                                                                         "type":  "text",
+                                                                         "value":  "{{acceptLanguage}}"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{bearerToken}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
+                                                  },
+                                      "name":  "4. Remove Item from Cart",
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status is 200 OK\u0027, function () { pm.response.to.have.status(200); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "5. Get Cart (Direct Route)",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  {
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "storeId",
+                                                                                    "value":  "{{storeId}}"
+                                                                                }
+                                                                            ],
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "raw":  "{{baseUrl}}/cart?storeId={{storeId}}",
+                                                                  "path":  [
+                                                                               "cart"
+                                                                           ]
+                                                              },
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept-Language",
+                                                                         "type":  "text",
+                                                                         "value":  "{{acceptLanguage}}"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{bearerToken}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               }
                                                   }
                                   }
                               ]

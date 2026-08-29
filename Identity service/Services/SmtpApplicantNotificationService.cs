@@ -43,22 +43,32 @@ public sealed class SmtpApplicantNotificationService(
 
         #region Build email
 
+        var host = string.IsNullOrWhiteSpace(emailOptions.Host) ? "smtp.gmail.com" : emailOptions.Host.Trim();
+        var port = emailOptions.Port > 0 ? emailOptions.Port : 587;
+        var username = (!string.IsNullOrWhiteSpace(emailOptions.Username) ? emailOptions.Username : emailOptions.UserName).Trim();
+        var password = emailOptions.Password?.Trim().Replace(" ", "") ?? string.Empty;
+        var fromAddress = !string.IsNullOrWhiteSpace(emailOptions.FromAddress)
+            ? emailOptions.FromAddress.Trim()
+            : (!string.IsNullOrWhiteSpace(emailOptions.FromEmail) ? emailOptions.FromEmail.Trim() : username);
+        var fromName = string.IsNullOrWhiteSpace(emailOptions.FromName) ? "Flower Delivery" : emailOptions.FromName.Trim();
+
         using var message = new MailMessage
         {
-            From = new MailAddress(emailOptions.FromEmail, emailOptions.FromName),
+            From = new MailAddress(fromAddress, fromName),
             Subject = BuildSubject(application),
             Body = BuildBody(applicant, application),
             IsBodyHtml = true
         };
-        message.To.Add(applicant.Email);
+        message.To.Add(applicant.Email.Trim());
 
-        using var client = new SmtpClient(emailOptions.Host, emailOptions.Port)
+        using var client = new SmtpClient(host, port)
         {
-            EnableSsl = emailOptions.EnableSsl
+            EnableSsl = emailOptions.EnableSsl,
+            UseDefaultCredentials = false,
+            Credentials = new NetworkCredential(username, password),
+            DeliveryMethod = SmtpDeliveryMethod.Network,
+            Timeout = 15000
         };
-
-        if (!string.IsNullOrWhiteSpace(emailOptions.UserName))
-            client.Credentials = new NetworkCredential(emailOptions.UserName, emailOptions.Password);
 
         #endregion
 
