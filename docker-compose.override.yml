@@ -38,6 +38,10 @@ services:
       - ASPNETCORE_HTTP_PORTS=8080
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=FlowerCartDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Flower_Dev_2026!};TrustServerCertificate=True;Encrypt=False;MultipleActiveResultSets=True
       - DatabaseInitialization__ResetOnStartup=${CART_RESET_DATABASE_ON_STARTUP:-false}
+      - Jwt__Key=${JWT_SIGNING_KEY:-FlowerIdentityService_Development_JwtSigningKey_ChangeMe_2026_AtLeast32Chars}
+      - Jwt__Issuer=${JWT_ISSUER:-FlowerIdentityService}
+      - Jwt__Audience=${JWT_AUDIENCE:-FlowerClients}
+      - Catalog__BaseUrl=${CATALOG_BASE_URL:-http://catalogservice:8080}
     ports:
       - "5292:8080"
     volumes:
