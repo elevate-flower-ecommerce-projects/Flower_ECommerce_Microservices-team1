@@ -85,6 +85,8 @@ await app.MigrateAndSeedCatalogDatabaseAsync();
 
 app.UseSwaggerDocumentation();
 
+app.UseStaticFiles();
+
 app.UseAuthentication();
 app.UseAuthorization();
 

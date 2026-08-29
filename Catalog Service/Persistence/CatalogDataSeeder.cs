@@ -23,16 +23,16 @@ public sealed class CatalogDataSeeder(CatalogDbContext dbContext) : ICatalogData
         if (!await dbContext.Categories.AnyAsync())
         {
             dbContext.Categories.AddRange(
-                new Category { Id = BirthdayCategoryId, Name = "Birthday Flowers", ImageUrl = "/images/categories/birthday.jpg", SortOrder = 1 },
-                new Category { Id = RosesCategoryId, Name = "Roses", ImageUrl = "/images/categories/roses.jpg", SortOrder = 2 },
-                new Category { Id = PlantsCategoryId, Name = "Plants", ImageUrl = "/images/categories/plants.jpg", SortOrder = 3 });
+                new Category { Id = BirthdayCategoryId, Name = "Bouquets", ImageUrl = "categories/bouquets.png", SortOrder = 1 },
+                new Category { Id = RosesCategoryId, Name = "Roses", ImageUrl = "categories/roses.png", SortOrder = 2 },
+                new Category { Id = PlantsCategoryId, Name = "Accessories", ImageUrl = "categories/damond.png", SortOrder = 3 });
         }
 
         if (!await dbContext.Occasions.AnyAsync())
         {
             dbContext.Occasions.AddRange(
-                new Occasion { Id = WeddingOccasionId, Name = "Wedding", ImageUrl = "/images/occasions/wedding.jpg", SortOrder = 1 },
-                new Occasion { Id = BirthdayOccasionId, Name = "Birthday", ImageUrl = "/images/occasions/birthday.jpg", SortOrder = 2 });
+                new Occasion { Id = WeddingOccasionId, Name = "Wedding", ImageUrl = "https://images.unsplash.com/photo-1519225429780-3f5309403066?auto=format&fit=crop&w=800&q=80", SortOrder = 1 },
+                new Occasion { Id = BirthdayOccasionId, Name = "Birthday", ImageUrl = "https://images.unsplash.com/photo-1558636508-e0db3814bd1d?auto=format&fit=crop&w=800&q=80", SortOrder = 2 });
         }
 
         if (!await dbContext.Products.AnyAsync())
@@ -55,10 +55,72 @@ public sealed class CatalogDataSeeder(CatalogDbContext dbContext) : ICatalogData
             dbContext.Banners.Add(new Banner
             {
                 Id = BannerId,
-                ImageUrl = "/images/banners/home-hero.jpg",
+                ImageUrl = "https://images.unsplash.com/photo-1526047932273-341f2a7631f9?auto=format&fit=crop&w=1200&q=80",
                 DeepLink = "/products?collection=summer",
                 SortOrder = 1
             });
+        }
+
+        // Update any existing entities that still have placeholder /images/ URLs
+        var existingCategories = await dbContext.Categories.ToListAsync();
+        foreach (var cat in existingCategories)
+        {
+            if (string.IsNullOrEmpty(cat.ImageUrl) || cat.ImageUrl.StartsWith("/images/"))
+            {
+                cat.ImageUrl = cat.Name switch
+                {
+                    "Birthday Flowers" or "Bouquets" => "categories/bouquets.png",
+                    "Roses" => "categories/roses.png",
+                    "Plants" or "Accessories" => "categories/damond.png",
+                    "Tulips" => "categories/tulips.png",
+                    "Gifts" => "categories/gift.png",
+                    "Cards" => "categories/card.png",
+                    _ => "categories/tulip_flower.png"
+                };
+            }
+        }
+
+        var existingOccasions = await dbContext.Occasions.ToListAsync();
+        foreach (var occ in existingOccasions)
+        {
+            if (string.IsNullOrEmpty(occ.ImageUrl) || occ.ImageUrl.StartsWith("/images/"))
+            {
+                occ.ImageUrl = occ.Name switch
+                {
+                    "Birthday" => "https://images.unsplash.com/photo-1558636508-e0db3814bd1d?auto=format&fit=crop&w=800&q=80",
+                    "Anniversary" => "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&w=800&q=80",
+                    "Valentine's Day" or "Valentine" => "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=800&q=80",
+                    "Wedding" => "https://images.unsplash.com/photo-1519225429780-3f5309403066?auto=format&fit=crop&w=800&q=80",
+                    _ => "https://images.unsplash.com/photo-1558636508-e0db3814bd1d?auto=format&fit=crop&w=800&q=80"
+                };
+            }
+        }
+
+        var existingProducts = await dbContext.Products.ToListAsync();
+        foreach (var prod in existingProducts)
+        {
+            if (string.IsNullOrEmpty(prod.ImageUrl) || prod.ImageUrl.StartsWith("/images/"))
+            {
+                prod.ImageUrl = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80";
+            }
+        }
+
+        var existingProductImages = await dbContext.ProductImages.ToListAsync();
+        foreach (var img in existingProductImages)
+        {
+            if (string.IsNullOrEmpty(img.ImageUrl) || img.ImageUrl.StartsWith("/images/"))
+            {
+                img.ImageUrl = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80";
+            }
+        }
+
+        var existingBanners = await dbContext.Banners.ToListAsync();
+        foreach (var b in existingBanners)
+        {
+            if (string.IsNullOrEmpty(b.ImageUrl) || b.ImageUrl.StartsWith("/images/"))
+            {
+                b.ImageUrl = "https://images.unsplash.com/photo-1526047932273-341f2a7631f9?auto=format&fit=crop&w=1200&q=80";
+            }
         }
 
         if (!await dbContext.HomeSections.AnyAsync())
