@@ -1,0 +1,492 @@
+{
+  "info": {
+    "name": "Flower — Cart Service (SCRUM-11 / 22 / 25 / 29)",
+    "description": "Manual test pack for the Cart Service.\n\nRun the folders top to bottom. Requests chain through collection variables, so run each folder in order the first time.\n\nRequires: SQL Server container up, Catalog Service running, Cart Service running, and section 1 of cart-demo-data.sql applied.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "itemId", "value": "" },
+    { "key": "itemId2", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "00 Setup",
+      "item": [
+        {
+          "name": "Catalog — list products (grab a productId)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{catalogUrl}}/products?pageSize=5", "host": ["{{catalogUrl}}"], "path": ["products"], "query": [{ "key": "pageSize", "value": "5" }] },
+            "description": "Confirms the Catalog is reachable and prints the seeded product ids to the Postman console."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Catalog is reachable', () => pm.response.to.have.status(200));",
+            "const items = pm.response.json().data.items;",
+            "pm.test('Seeded products exist', () => pm.expect(items.length).to.be.above(0));",
+            "items.forEach(p => console.log(p.id + '  ' + p.name));"
+          ]}}]
+        },
+        {
+          "name": "Catalog — product detail with storeId (must be inStock)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{catalogUrl}}/products/{{productId}}?storeId={{storeId}}", "host": ["{{catalogUrl}}"], "path": ["products", "{{productId}}"], "query": [{ "key": "storeId", "value": "{{storeId}}" }] },
+            "description": "If inStock is false here, run section 1 of cart-demo-data.sql. The cart cannot be tested without stock."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const d = pm.response.json().data;",
+            "pm.test('Product is in stock (else run cart-demo-data.sql)', () => pm.expect(d.inStock).to.be.true);",
+            "pm.test('Available quantity is 10', () => pm.expect(d.availableQuantity).to.eql(10));"
+          ]}}]
+        },
+        {
+          "name": "Cart — health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{cartUrl}}/health", "host": ["{{cartUrl}}"], "path": ["health"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Cart Service is up', () => pm.response.to.have.status(200));"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "01 Happy path",
+      "item": [
+        {
+          "name": "1. GET cart before anything -> 200 empty (not 404)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": { "raw": "{{cartUrl}}/?storeId={{storeId}}", "host": ["{{cartUrl}}"], "path": [""], "query": [{ "key": "storeId", "value": "{{storeId}}" }] },
+            "description": "SCRUM-29: a customer who never added anything gets an empty cart, not a missing resource."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 not 404', () => pm.response.to.have.status(200));",
+            "const d = pm.response.json().data;",
+            "pm.test('isEmpty', () => pm.expect(d.isEmpty).to.be.true);",
+            "pm.test('no lines', () => pm.expect(d.lines).to.be.an('array').that.is.empty);",
+            "pm.test('total is 0', () => pm.expect(d.total).to.eql(0));"
+          ]}}]
+        },
+        {
+          "name": "2. POST add qty 2 -> 201",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 2,\n  \"storeId\": \"{{storeId}}\"\n}" },
+            "url": { "raw": "{{cartUrl}}/items", "host": ["{{cartUrl}}"], "path": ["items"] },
+            "description": "SCRUM-11. Returns the whole recalculated cart, not just the created line."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 Created', () => pm.response.to.have.status(201));",
+            "const d = pm.response.json().data;",
+            "pm.test('one line', () => pm.expect(d.lines.length).to.eql(1));",
+            "pm.test('quantity 2', () => pm.expect(d.lines[0].quantity).to.eql(2));",
+            "pm.test('lineSubtotal = unitPrice * 2', () => pm.expect(d.lines[0].lineSubtotal).to.eql(d.lines[0].unitPrice * 2));",
+            "pm.test('subtotal matches the line', () => pm.expect(d.subtotal).to.eql(d.lines[0].lineSubtotal));",
+            "pm.test('deliveryFee deferred, so null', () => pm.expect(d.deliveryFee).to.be.null);",
+            "pm.collectionVariables.set('itemId', d.lines[0].id);"
+          ]}}]
+        },
+        {
+          "name": "3. POST same product qty 1 -> one line at 3, NOT two lines",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 1,\n  \"storeId\": \"{{storeId}}\"\n}" },
+            "url": { "raw": "{{cartUrl}}/items", "host": ["{{cartUrl}}"], "path": ["items"] },
+            "description": "The core SCRUM-11 rule. Enforced by the UX_CartItem_Cart_Product unique index, not only by a check in code."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 (increased, not created)', () => pm.response.to.have.status(200));",
+            "const d = pm.response.json().data;",
+            "pm.test('STILL one line', () => pm.expect(d.lines.length).to.eql(1));",
+            "pm.test('quantity is now 3', () => pm.expect(d.lines[0].quantity).to.eql(3));",
+            "pm.test('same line id as before', () => pm.expect(d.lines[0].id).to.eql(pm.collectionVariables.get('itemId')));"
+          ]}}]
+        },
+        {
+          "name": "4. GET cart -> totals recalculated",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": { "raw": "{{cartUrl}}/?storeId={{storeId}}", "host": ["{{cartUrl}}"], "path": [""], "query": [{ "key": "storeId", "value": "{{storeId}}" }] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const d = pm.response.json().data;",
+            "pm.test('not empty', () => pm.expect(d.isEmpty).to.be.false);",
+            "pm.test('subtotal = sum of lines', () => pm.expect(d.subtotal).to.eql(d.lines.reduce((s, l) => s + l.lineSubtotal, 0)));",
+            "pm.test('total = subtotal while deliveryFee is null', () => pm.expect(d.total).to.eql(d.subtotal));",
+            "pm.test('nothing changed yet', () => pm.expect(d.hasChanges).to.be.false);",
+            "pm.test('catalog reachable', () => pm.expect(d.pricingUnavailable).to.be.false);"
+          ]}}]
+        },
+        {
+          "name": "5. PUT quantity 5 (absolute, not a delta) -> 200",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"quantity\": 5,\n  \"storeId\": \"{{storeId}}\"\n}" },
+            "url": { "raw": "{{cartUrl}}/items/{{itemId}}", "host": ["{{cartUrl}}"], "path": ["items", "{{itemId}}"] },
+            "description": "SCRUM-22. Because the quantity is absolute, hammering the stepper from the frontend converges instead of accumulating. Send this twice and the result is identical."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const d = pm.response.json().data;",
+            "pm.test('quantity is exactly 5', () => pm.expect(d.lines[0].quantity).to.eql(5));",
+            "pm.test('subtotal followed the quantity', () => pm.expect(d.subtotal).to.eql(d.lines[0].unitPrice * 5));"
+          ]}}]
+        },
+        {
+          "name": "6. PUT quantity 0 -> line removed, cart empty",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"quantity\": 0,\n  \"storeId\": \"{{storeId}}\"\n}" },
+            "url": { "raw": "{{cartUrl}}/items/{{itemId}}", "host": ["{{cartUrl}}"], "path": ["items", "{{itemId}}"] },
+            "description": "SCRUM-22: stepping down to 0 is the documented way to remove a line."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const d = pm.response.json().data;",
+            "pm.test('line is gone', () => pm.expect(d.lines).to.be.empty);",
+            "pm.test('isEmpty', () => pm.expect(d.isEmpty).to.be.true);"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "02 Stock limits and validation",
+      "item": [
+        {
+          "name": "7. POST qty 50 over stock -> 409 + availableQuantity",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 50,\n  \"storeId\": \"{{storeId}}\"\n}" },
+            "url": { "raw": "{{cartUrl}}/items", "host": ["{{cartUrl}}"], "path": ["items"] },
+            "description": "The AC forbids silently clamping the quantity. The 409 carries the real ceiling so the client can correct its stepper."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('409 Conflict', () => pm.response.to.have.status(409));",
+            "const d = pm.response.json().data;",
+            "pm.test('tells the client the real ceiling', () => pm.expect(d.availableQuantity).to.eql(10));",
+            "pm.test('echoes what was requested', () => pm.expect(d.requestedQuantity).to.eql(50));"
+          ]}}]
+        },
+        {
+          "name": "8. POST product stocked at a DIFFERENT store -> 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"productId\": \"{{productIdOtherStore}}\",\n  \"quantity\": 1,\n  \"storeId\": \"{{storeId}}\"\n}" },
+            "url": { "raw": "{{cartUrl}}/items", "host": ["{{cartUrl}}"], "path": ["items"] },
+            "description": "Peace Lily is stocked at Maadi, not Nasr City. Proves storeId really drives the stock decision. Swap storeId for storeIdMaadi in the body and it succeeds."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('409, not stocked at this branch', () => pm.response.to.have.status(409));",
+            "pm.test('availableQuantity is 0', () => pm.expect(pm.response.json().data.availableQuantity).to.eql(0));"
+          ]}}]
+        },
+        {
+          "name": "9. POST without storeId -> 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 1\n}" },
+            "url": { "raw": "{{cartUrl}}/items", "host": ["{{cartUrl}}"], "path": ["items"] },
+            "description": "Stock cannot be validated without knowing which branch fulfils the order."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('422', () => pm.response.to.have.status(422));",
+            "pm.test('names the offending field', () => pm.expect(pm.response.json().data).to.have.property('storeId'));"
+          ]}}]
+        },
+        {
+          "name": "10. POST quantity 0 -> 422 (use DELETE instead)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 0,\n  \"storeId\": \"{{storeId}}\"\n}" },
+            "url": { "raw": "{{cartUrl}}/items", "host": ["{{cartUrl}}"], "path": ["items"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('422', () => pm.response.to.have.status(422));",
+            "pm.test('complains about quantity', () => pm.expect(pm.response.json().data).to.have.property('quantity'));"
+          ]}}]
+        },
+        {
+          "name": "11. POST unknown product -> 404",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"productId\": \"40000000-0000-0000-0000-0000000000ff\",\n  \"quantity\": 1,\n  \"storeId\": \"{{storeId}}\"\n}" },
+            "url": { "raw": "{{cartUrl}}/items", "host": ["{{cartUrl}}"], "path": ["items"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('404', () => pm.response.to.have.status(404));"
+          ]}}]
+        },
+        {
+          "name": "12. PUT unknown cart line -> 404",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"quantity\": 1,\n  \"storeId\": \"{{storeId}}\"\n}" },
+            "url": { "raw": "{{cartUrl}}/items/00000000-0000-0000-0000-0000000000ff", "host": ["{{cartUrl}}"], "path": ["items", "00000000-0000-0000-0000-0000000000ff"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('404', () => pm.response.to.have.status(404));"
+          ]}}]
+        },
+        {
+          "name": "13. DELETE unknown cart line -> 404",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": { "raw": "{{cartUrl}}/items/00000000-0000-0000-0000-0000000000ff?storeId={{storeId}}", "host": ["{{cartUrl}}"], "path": ["items", "00000000-0000-0000-0000-0000000000ff"], "query": [{ "key": "storeId", "value": "{{storeId}}" }] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('404', () => pm.response.to.have.status(404));"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "03 Authorization",
+      "item": [
+        {
+          "name": "14. No token -> 401",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{cartUrl}}/?storeId={{storeId}}", "host": ["{{cartUrl}}"], "path": [""], "query": [{ "key": "storeId", "value": "{{storeId}}" }] },
+            "description": "SCRUM-11 states a guest does not accumulate a saved cart."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('401', () => pm.response.to.have.status(401));"
+          ]}}]
+        },
+        {
+          "name": "15. Admin token -> 403 (cart is Customer-only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 1,\n  \"storeId\": \"{{storeId}}\"\n}" },
+            "url": { "raw": "{{cartUrl}}/items", "host": ["{{cartUrl}}"], "path": ["items"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('403 not 401, authenticated but wrong role', () => pm.response.to.have.status(403));"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "04 Multiple lines and removal",
+      "item": [
+        {
+          "name": "16. POST product A qty 2",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 2,\n  \"storeId\": \"{{storeId}}\"\n}" },
+            "url": { "raw": "{{cartUrl}}/items", "host": ["{{cartUrl}}"], "path": ["items"] },
+            "description": "Start from an empty cart. If a line already exists this returns 200 instead of 201, which is correct behaviour, not a failure."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 or 200', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+            "const line = pm.response.json().data.lines.find(l => l.productId === pm.environment.get('productId'));",
+            "pm.collectionVariables.set('itemId', line.id);"
+          ]}}]
+        },
+        {
+          "name": "17. POST product B qty 2 -> second line appears",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"productId\": \"{{productId2}}\",\n  \"quantity\": 2,\n  \"storeId\": \"{{storeId}}\"\n}" },
+            "url": { "raw": "{{cartUrl}}/items", "host": ["{{cartUrl}}"], "path": ["items"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 or 200', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+            "const d = pm.response.json().data;",
+            "pm.test('two distinct lines', () => pm.expect(d.lines.length).to.eql(2));",
+            "pm.test('subtotal is the sum of both', () => pm.expect(d.subtotal).to.eql(d.lines.reduce((s, l) => s + l.lineSubtotal, 0)));",
+            "const line = d.lines.find(l => l.productId === pm.environment.get('productId2'));",
+            "pm.collectionVariables.set('itemId2', line.id);"
+          ]}}]
+        },
+        {
+          "name": "18. DELETE line A -> one line left",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": { "raw": "{{cartUrl}}/items/{{itemId}}?storeId={{storeId}}", "host": ["{{cartUrl}}"], "path": ["items", "{{itemId}}"], "query": [{ "key": "storeId", "value": "{{storeId}}" }] },
+            "description": "SCRUM-25. Deletion is permanent; undo was deliberately deferred."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const d = pm.response.json().data;",
+            "pm.test('one line left', () => pm.expect(d.lines.length).to.eql(1));",
+            "pm.test('not empty yet', () => pm.expect(d.isEmpty).to.be.false);"
+          ]}}]
+        },
+        {
+          "name": "19. DELETE line B -> isEmpty true",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": { "raw": "{{cartUrl}}/items/{{itemId2}}?storeId={{storeId}}", "host": ["{{cartUrl}}"], "path": ["items", "{{itemId2}}"], "query": [{ "key": "storeId", "value": "{{storeId}}" }] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const d = pm.response.json().data;",
+            "pm.test('isEmpty', () => pm.expect(d.isEmpty).to.be.true);",
+            "pm.test('total back to 0', () => pm.expect(d.total).to.eql(0));"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "05 SCRUM-29 price change indicator (manual SQL step)",
+      "item": [
+        {
+          "name": "20. POST add an item (captures the price snapshot)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 2,\n  \"storeId\": \"{{storeId}}\"\n}" },
+            "url": { "raw": "{{cartUrl}}/items", "host": ["{{cartUrl}}"], "path": ["items"] },
+            "description": "STEP 1 of 3. Start from an empty cart.\n\nAfter this succeeds, run in SQL:\n\n    USE FlowerCatalogDb;\n    UPDATE Products SET Price = 555.00\n    WHERE Id = '40000000-0000-0000-0000-000000000001';\n\nThen send request 21."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 or 200', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+            "const line = pm.response.json().data.lines[0];",
+            "pm.collectionVariables.set('itemId', line.id);",
+            "console.log('Snapshot price captured: ' + line.unitPrice);",
+            "console.log('NOW RUN THE SQL IN THIS REQUEST DESCRIPTION, then send request 21.');"
+          ]}}]
+        },
+        {
+          "name": "21. GET cart after the price changed -> priceChanged true",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": { "raw": "{{cartUrl}}/?storeId={{storeId}}", "host": ["{{cartUrl}}"], "path": [""], "query": [{ "key": "storeId", "value": "{{storeId}}" }] },
+            "description": "STEP 2 of 3. The heart of SCRUM-29: the cart shows the LIVE price and flags that it moved.\n\nAfterwards put the price back:\n\n    USE FlowerCatalogDb;\n    UPDATE Products SET Price = 499.00\n    WHERE Id = '40000000-0000-0000-0000-000000000001';"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const d = pm.response.json().data;",
+            "pm.test('line flags the price change', () => pm.expect(d.lines[0].priceChanged).to.be.true);",
+            "pm.test('cart-level indicator is on', () => pm.expect(d.hasChanges).to.be.true);",
+            "pm.test('shows the NEW price (555), not the snapshot', () => pm.expect(d.lines[0].unitPrice).to.eql(555));",
+            "pm.test('subtotal used the new price', () => pm.expect(d.subtotal).to.eql(1110));",
+            "console.log('Now put the price back to 499 with the SQL in this description.');"
+          ]}}]
+        },
+        {
+          "name": "22. GET cart after reverting the price -> flags clear",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": { "raw": "{{cartUrl}}/?storeId={{storeId}}", "host": ["{{cartUrl}}"], "path": [""], "query": [{ "key": "storeId", "value": "{{storeId}}" }] },
+            "description": "STEP 3 of 3. Run only after restoring Price = 499.00."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const d = pm.response.json().data;",
+            "pm.test('priceChanged cleared', () => pm.expect(d.lines[0].priceChanged).to.be.false);",
+            "pm.test('hasChanges cleared', () => pm.expect(d.hasChanges).to.be.false);"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "06 Catalog outage (stop the Catalog Service first)",
+      "item": [
+        {
+          "name": "23. GET cart while Catalog is down -> 200 + pricingUnavailable",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": { "raw": "{{cartUrl}}/?storeId={{storeId}}", "host": ["{{cartUrl}}"], "path": [""], "query": [{ "key": "storeId", "value": "{{storeId}}" }] },
+            "description": "Needs at least one item in the cart, so run request 20 first while the Catalog is still up. Then stop the Catalog Service and send this. The cart must still render from its stored snapshot rather than returning 500."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200, NOT 500', () => pm.response.to.have.status(200));",
+            "const d = pm.response.json().data;",
+            "pm.test('client is told the numbers are stale', () => pm.expect(d.pricingUnavailable).to.be.true);",
+            "pm.test('lines still render from the snapshot', () => pm.expect(d.lines.length).to.be.above(0));"
+          ]}}]
+        },
+        {
+          "name": "24. POST while Catalog is down -> 503, not 500",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"productId\": \"{{productId2}}\",\n  \"quantity\": 1,\n  \"storeId\": \"{{storeId}}\"\n}" },
+            "url": { "raw": "{{cartUrl}}/items", "host": ["{{cartUrl}}"], "path": ["items"] },
+            "description": "Adding cannot proceed without a price and a stock figure, so it fails, but as an honest 503 rather than an unhandled 500. Restart the Catalog Service afterwards."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('503 Service Unavailable', () => pm.response.to.have.status(503));",
+            "pm.test('not an unhandled 500', () => pm.expect(pm.response.code).to.not.eql(500));"
+          ]}}]
+        }
+      ]
+    }
+  ]
+}

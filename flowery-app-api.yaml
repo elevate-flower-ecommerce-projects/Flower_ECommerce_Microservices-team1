@@ -757,12 +757,193 @@ paths:
     get:
       tags:
         - Cart
-      summary: Get User Cart
-      description: Retrieve current user active shopping cart.
+      summary: Get the current cart
+      description: >-
+        Returns the caller's cart with live pricing. Each stored line is re-validated against the
+        Catalog service, so `priceChanged` and `outOfStock` flag lines that moved since they were
+        added and `hasChanges` summarises them for the cart screen banner.
+        A customer with no cart yet receives `200` with an empty cart, never `404`.
+        If the Catalog service is unreachable the stored snapshot is returned with
+        `pricingUnavailable: true` instead of failing.
       operationId: GetCart
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: storeId
+          in: query
+          required: false
+          description: Branch used to resolve stock and price. Omit it and stock cannot be evaluated.
+          schema:
+            type: string
+            format: uuid
       responses:
         '200':
-          description: User cart items.
+          description: The cart, empty or populated.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Cart'
+        '401':
+          description: Missing or invalid token.
+        '403':
+          description: Caller is not a Customer.
+
+  /cart/items:
+    post:
+      tags:
+        - Cart
+      summary: Add an item to the cart
+      description: >-
+        Adding a product already present increases that line instead of creating a second one,
+        and the stock check applies to the resulting total. The cart is created on first use.
+      operationId: AddCartItem
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCartItemRequest'
+      responses:
+        '201':
+          description: A new line was created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Cart'
+        '200':
+          description: An existing line was increased.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Cart'
+        '404':
+          description: The product does not exist or is inactive.
+        '409':
+          description: Out of stock, or the requested total exceeds available stock.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/StockLimit'
+        '422':
+          description: Validation failed; `data` maps field names to messages.
+        '503':
+          description: The Catalog service is unreachable, so price and stock cannot be confirmed.
+
+  /cart/items/{itemId}:
+    put:
+      tags:
+        - Cart
+      summary: Set a cart line quantity
+      description: >-
+        The quantity is absolute, not a delta, so repeated calls from a fast stepper converge
+        instead of accumulating. Sending `0` removes the line.
+      operationId: UpdateCartItemQuantity
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCartItemQuantityRequest'
+      responses:
+        '200':
+          description: The updated cart.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Cart'
+        '404':
+          description: The cart line was not found.
+        '409':
+          description: The requested quantity exceeds available stock.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/StockLimit'
+        '422':
+          description: Validation failed; `data` maps field names to messages.
+        '503':
+          description: The Catalog service is unreachable, so price and stock cannot be confirmed.
+    delete:
+      tags:
+        - Cart
+      summary: Remove a cart line
+      description: Deletes the line permanently and returns the recalculated cart.
+      operationId: RemoveCartItem
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: storeId
+          in: query
+          required: false
+          description: Branch used to reprice the remaining lines.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The cart after removal; `isEmpty` is true when nothing is left.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Cart'
+        '404':
+          description: The cart line was not found.
+        '401':
+          description: Missing or invalid token.
+        '403':
+          description: Caller is not a Customer.
 
   /orders:
     post:
@@ -1186,6 +1367,128 @@ components:
       description: Provide JWT Bearer token obtained from `/identity/auth/login`.
 
   schemas:
+    Cart:
+      type: object
+      properties:
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartLine'
+        subtotal:
+          type: number
+          format: double
+          description: Sum of every line subtotal, priced live.
+          example: 2797.00
+        deliveryFee:
+          type: number
+          format: double
+          nullable: true
+          description: Always null for now; the delivery fee is owned by Order & Fulfillment.
+          example: null
+        total:
+          type: number
+          format: double
+          example: 2797.00
+        isEmpty:
+          type: boolean
+          description: True when the customer has no cart yet, or removed the last line.
+        hasChanges:
+          type: boolean
+          description: >-
+            True when any line changed price, went out of stock, or holds more units than are
+            still available. Drives the "prices updated" indicator on the cart screen.
+        pricingUnavailable:
+          type: boolean
+          description: >-
+            True when the Catalog service could not be reached, meaning prices and stock in this
+            response come from the snapshot taken when the items were added.
+
+    CartLine:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Cart line id, used for update and delete.
+        productId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Classic Red Roses"
+        imageUrl:
+          type: string
+          nullable: true
+        unitPrice:
+          type: number
+          format: double
+          description: The live price after any active discount.
+          example: 499.00
+        quantity:
+          type: integer
+          minimum: 1
+          example: 3
+        lineSubtotal:
+          type: number
+          format: double
+          example: 1497.00
+        inStock:
+          type: boolean
+        availableQuantity:
+          type: integer
+          description: Remaining units at the requested store; the ceiling for the quantity stepper.
+          example: 10
+        priceChanged:
+          type: boolean
+          description: True when the live price differs from the price captured when the item was added.
+        outOfStock:
+          type: boolean
+
+    AddCartItemRequest:
+      type: object
+      required: [productId, quantity, storeId]
+      properties:
+        productId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 99
+          example: 2
+        storeId:
+          type: string
+          format: uuid
+          description: Required; stock cannot be validated without knowing the fulfilling branch.
+
+    UpdateCartItemQuantityRequest:
+      type: object
+      required: [quantity, storeId]
+      properties:
+        quantity:
+          type: integer
+          minimum: 0
+          maximum: 99
+          description: Absolute quantity. Send 0 to remove the line.
+          example: 4
+        storeId:
+          type: string
+          format: uuid
+
+    StockLimit:
+      type: object
+      description: Returned with a 409 so the client can clamp its stepper to the real ceiling.
+      properties:
+        productId:
+          type: string
+          format: uuid
+        requestedQuantity:
+          type: integer
+          example: 9
+        availableQuantity:
+          type: integer
+          example: 4
+
     RegisterCustomerRequest:
       type: object
       required:

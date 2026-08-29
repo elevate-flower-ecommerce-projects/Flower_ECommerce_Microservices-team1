@@ -1,6 +1,36 @@
 @Cart_Service_HostAddress = http://localhost:5292
+@token = paste-a-Customer-JWT-here
+@storeId = 60000000-0000-0000-0000-000000000001
+@productId = 40000000-0000-0000-0000-000000000001
+@itemId = paste-a-cart-line-id-here
 
-GET {{Cart_Service_HostAddress}}/weatherforecast/
-Accept: application/json
+### Get the cart (empty carts return 200, not 404)
+GET {{Cart_Service_HostAddress}}/?storeId={{storeId}}
+Authorization: Bearer {{token}}
+
+### Add an item; adding the same product again increases the existing line
+POST {{Cart_Service_HostAddress}}/items
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "productId": "{{productId}}",
+  "quantity": 2,
+  "storeId": "{{storeId}}"
+}
+
+### Set an absolute quantity; 0 removes the line
+PUT {{Cart_Service_HostAddress}}/items/{{itemId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "quantity": 3,
+  "storeId": "{{storeId}}"
+}
+
+### Remove a line
+DELETE {{Cart_Service_HostAddress}}/items/{{itemId}}?storeId={{storeId}}
+Authorization: Bearer {{token}}
 
 ###
