@@ -1,9 +1,12 @@
 namespace Catalog_Service.Contracts.Home;
 
 public sealed record HomeSectionResponse(
-    string Type,
     Guid Id,
+    string Type,
     string? Title,
     int Order,
     bool Enabled,
-    object? Payload);
+    Guid? OccasionId,
+    Guid? CategoryId);
+
+

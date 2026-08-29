@@ -145,6 +145,8 @@ public sealed class AddressDataSeeder(
             }
         }
 
+        await CityAreaSeeder.SeedAsync(dbContext, cancellationToken);
+
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

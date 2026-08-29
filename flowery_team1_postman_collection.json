@@ -1203,6 +1203,28 @@
                                                   }
                                   },
                                   {
+                                      "name":  "Get Home Sections (Team 3 Alias)",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/catalog/home/sections",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "catalog",
+                                                                               "home",
+                                                                               "sections"
+                                                                           ]
+                                                              }
+                                                  }
+                                  },
+                                  {
                                       "name":  "Get All Categories",
                                       "request":  {
                                                       "method":  "GET",

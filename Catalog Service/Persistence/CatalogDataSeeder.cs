@@ -123,46 +123,63 @@ public sealed class CatalogDataSeeder(CatalogDbContext dbContext) : ICatalogData
             }
         }
 
-        if (!await dbContext.HomeSections.AnyAsync())
+        // Replace or seed HomeSections to match Team 3 structure
+        var existingSections = await dbContext.HomeSections.ToListAsync();
+        if (existingSections.Any())
         {
-            dbContext.HomeSections.AddRange(
-                new HomeSection
-                {
-                    Id = Guid.Parse("50000000-0000-0000-0000-000000000001"),
-                    Type = "banner",
-                    Title = "Summer Picks",
-                    Order = 1,
-                    Enabled = true,
-                    ContentRefJson = JsonSerializer.Serialize(new { bannerId = BannerId })
-                },
-                new HomeSection
-                {
-                    Id = Guid.Parse("50000000-0000-0000-0000-000000000002"),
-                    Type = "category_rail",
-                    Title = "Shop by Category",
-                    Order = 2,
-                    Enabled = true,
-                    ContentRefJson = JsonSerializer.Serialize(new { take = 10, deepLink = "/categories" })
-                },
-                new HomeSection
-                {
-                    Id = Guid.Parse("50000000-0000-0000-0000-000000000003"),
-                    Type = "product_rail",
-                    Title = "Best Sellers",
-                    Order = 3,
-                    Enabled = true,
-                    ContentRefJson = JsonSerializer.Serialize(new { selectionRule = "best_sellers", take = 10, deepLink = "/products?sort=best_sellers" })
-                },
-                new HomeSection
-                {
-                    Id = Guid.Parse("50000000-0000-0000-0000-000000000004"),
-                    Type = "occasion_rail",
-                    Title = "Occasions",
-                    Order = 4,
-                    Enabled = true,
-                    ContentRefJson = JsonSerializer.Serialize(new { take = 10, deepLink = "/occasions" })
-                });
+            dbContext.HomeSections.RemoveRange(existingSections);
+            await dbContext.SaveChangesAsync();
         }
+
+        dbContext.HomeSections.AddRange(
+            new HomeSection
+            {
+                Id = Guid.Parse("50000000-0000-0000-0000-000000000001"),
+                Type = "Categories",
+                Title = "Categories",
+                TitleAr = "الفئات",
+                Order = 0,
+                Enabled = true,
+                OccasionId = null,
+                CategoryId = null,
+                ContentRefJson = JsonSerializer.Serialize(new { titleAr = "الفئات", occasionId = (Guid?)null, categoryId = (Guid?)null })
+            },
+            new HomeSection
+            {
+                Id = Guid.Parse("50000000-0000-0000-0000-000000000002"),
+                Type = "BestSeller",
+                Title = "Best seller",
+                TitleAr = "الأكثر مبيعاً",
+                Order = 1,
+                Enabled = true,
+                OccasionId = null,
+                CategoryId = null,
+                ContentRefJson = JsonSerializer.Serialize(new { titleAr = "الأكثر مبيعاً", occasionId = (Guid?)null, categoryId = (Guid?)null })
+            },
+            new HomeSection
+            {
+                Id = Guid.Parse("50000000-0000-0000-0000-000000000003"),
+                Type = "Occasions",
+                Title = "Occasion",
+                TitleAr = "المناسبات",
+                Order = 2,
+                Enabled = true,
+                OccasionId = null,
+                CategoryId = null,
+                ContentRefJson = JsonSerializer.Serialize(new { titleAr = "المناسبات", occasionId = (Guid?)null, categoryId = (Guid?)null })
+            },
+            new HomeSection
+            {
+                Id = Guid.Parse("50000000-0000-0000-0000-000000000004"),
+                Type = "ProductsCarousel",
+                Title = "Valentine's picks",
+                TitleAr = "اختيارات عيد الحب",
+                Order = 3,
+                Enabled = true,
+                OccasionId = WeddingOccasionId,
+                CategoryId = null,
+                ContentRefJson = JsonSerializer.Serialize(new { titleAr = "اختيارات عيد الحب", occasionId = WeddingOccasionId, categoryId = (Guid?)null })
+            });
 
         await dbContext.SaveChangesAsync();
     }

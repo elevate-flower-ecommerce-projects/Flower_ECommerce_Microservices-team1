@@ -8,6 +8,8 @@ public sealed class AddressDbContext(DbContextOptions<AddressDbContext> options)
     public DbSet<UserAddress> UserAddresses => Set<UserAddress>();
     public DbSet<Store> Stores => Set<Store>();
     public DbSet<StoreCoverageArea> StoreCoverageAreas => Set<StoreCoverageArea>();
+    public DbSet<Area> Areas => Set<Area>();
+    public DbSet<City> Cities => Set<City>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

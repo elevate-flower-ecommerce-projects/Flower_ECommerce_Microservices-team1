@@ -5,7 +5,14 @@ public sealed class HomeSection
     public Guid Id { get; set; }
     public string Type { get; set; } = string.Empty;
     public string? Title { get; set; }
+    public string? TitleAr { get; set; }
     public int Order { get; set; }
     public bool Enabled { get; set; } = true;
+    public Guid? OccasionId { get; set; }
+    public Guid? CategoryId { get; set; }
     public string ContentRefJson { get; set; } = "{}";
+
+    public Occasion? Occasion { get; set; }
+    public Category? Category { get; set; }
 }
+
