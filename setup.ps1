@@ -13,7 +13,36 @@ Write-Host "[setup_backend] Starting Flower E-Commerce Microservices backend (Te
 
 if (-not (Test-Path $EnvFile)) {
     Write-Host "[setup_backend] Creating default .env file..."
-    New-Item -Path $EnvFile -ItemType File | Out-Null
+    @"
+# Docker Hub Username / Organization where CI/CD pushes images
+DOCKER_USERNAME=amr0110
+
+# Database & Infrastructure Credentials
+MSSQL_SA_PASSWORD=Password123!
+MSSQL_DB=FlowersAuthDb
+
+# RabbitMQ Credentials
+RABBITMQ_USER=guest
+RABBITMQ_PASS=guest
+
+# Seq Logging Admin Password
+SEQ_ADMIN_PASSWORD=Admin123!
+
+# JWT Authentication Settings
+JWT_SECRET=YOUR_SUPER_SECRET_KEY_CHANGE_IN_PRODUCTION_MIN_32_CHARS
+JWT_ISSUER=FlowersAuth
+JWT_AUDIENCE=FlowersApp
+BASE_URL=http://127.0.0.1:8080
+
+# Email / SMTP Settings (Gmail)
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_START_TLS=true
+EMAIL_USERNAME=testamr124@gmail.com
+EMAIL_PASSWORD=exlu nsgy vvsf nhup
+EMAIL_FROM_ADDRESS=testamr124@gmail.com
+EMAIL_FROM_NAME=Flower Delivery
+"@ | Set-Content -Path $EnvFile -Encoding UTF8
 }
 
 if ($Recreate) {

@@ -77,6 +77,13 @@ services:
       - PasswordReset__MaxAttempts=${PASSWORD_RESET_MAX_ATTEMPTS:-5}
       - PasswordReset__ResendCooldownSeconds=${PASSWORD_RESET_RESEND_COOLDOWN_SECONDS:-30}
       - PasswordReset__ResetTokenLifetimeMinutes=${PASSWORD_RESET_TOKEN_LIFETIME_MINUTES:-5}
+      - Email__Host=${EMAIL_HOST:-smtp.gmail.com}
+      - Email__Port=${EMAIL_PORT:-587}
+      - Email__UseStartTls=${EMAIL_USE_START_TLS:-true}
+      - Email__Username=${EMAIL_USERNAME:-testamr124@gmail.com}
+      - Email__Password=${EMAIL_PASSWORD:-exlu nsgy vvsf nhup}
+      - Email__FromAddress=${EMAIL_FROM_ADDRESS:-testamr124@gmail.com}
+      - Email__FromName=${EMAIL_FROM_NAME:-Flower Delivery}
     ports:
       - "5022:8080"
     depends_on:

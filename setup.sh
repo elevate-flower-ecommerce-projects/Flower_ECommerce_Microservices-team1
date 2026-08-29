@@ -27,7 +27,36 @@ ENV_VAR_NAME="${POSITIONAL[0]:-BASE_URL}"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   log "Creating default .env at $ENV_FILE"
-  touch "$ENV_FILE"
+  cat << 'EOF' > "$ENV_FILE"
+# Docker Hub Username / Organization where CI/CD pushes images
+DOCKER_USERNAME=amr0110
+
+# Database & Infrastructure Credentials
+MSSQL_SA_PASSWORD=Password123!
+MSSQL_DB=FlowersAuthDb
+
+# RabbitMQ Credentials
+RABBITMQ_USER=guest
+RABBITMQ_PASS=guest
+
+# Seq Logging Admin Password
+SEQ_ADMIN_PASSWORD=Admin123!
+
+# JWT Authentication Settings
+JWT_SECRET=YOUR_SUPER_SECRET_KEY_CHANGE_IN_PRODUCTION_MIN_32_CHARS
+JWT_ISSUER=FlowersAuth
+JWT_AUDIENCE=FlowersApp
+BASE_URL=http://127.0.0.1:8080
+
+# Email / SMTP Settings (Gmail)
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_START_TLS=true
+EMAIL_USERNAME=testamr124@gmail.com
+EMAIL_PASSWORD=exlu nsgy vvsf nhup
+EMAIL_FROM_ADDRESS=testamr124@gmail.com
+EMAIL_FROM_NAME=Flower Delivery
+EOF
 fi
 
 if $RECREATE; then
