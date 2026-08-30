@@ -1,4 +1,3 @@
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace Address___Store_Coverage_Service.Persistence;
@@ -22,8 +21,6 @@ public static class DatabaseInitializationExtensions
                 logger.LogWarning("Resetting Address database because DatabaseInitialization:ResetOnStartup is enabled.");
                 await context.Database.EnsureDeletedAsync();
             }
-
-            await EnsureDatabaseExistsAsync(context, logger);
             await context.Database.EnsureCreatedAsync();
             await EnsureAddressSchemaAsync(context);
             await EnsureStoreSchemaAsync(context);
@@ -34,51 +31,6 @@ public static class DatabaseInitializationExtensions
         {
             logger.LogError(exception, "Address database initialization failed. Verify SQL Server is running.");
             throw;
-        }
-    }
-
-    private static async Task EnsureDatabaseExistsAsync(AddressDbContext context, ILogger logger)
-    {
-        var connectionString = context.Database.GetConnectionString()
-            ?? throw new InvalidOperationException("Address database connection string was not found.");
-
-        var builder = new SqlConnectionStringBuilder(connectionString);
-        var databaseName = builder.InitialCatalog;
-
-        if (string.IsNullOrWhiteSpace(databaseName))
-            throw new InvalidOperationException("Address database name was not found in the connection string.");
-
-        builder.InitialCatalog = "master";
-
-        const int maxRetries = 5;
-        for (var attempt = 1; attempt <= maxRetries; attempt++)
-        {
-            try
-            {
-                await using var connection = new SqlConnection(builder.ConnectionString);
-                await connection.OpenAsync();
-
-                await using var command = connection.CreateCommand();
-                command.CommandText = """
-                    IF DB_ID(@databaseName) IS NULL
-                    BEGIN
-                        DECLARE @sql nvarchar(max) = N'CREATE DATABASE ' + QUOTENAME(@databaseName);
-                        EXEC(@sql);
-                    END
-                    """;
-                command.Parameters.AddWithValue("@databaseName", databaseName);
-                await command.ExecuteNonQueryAsync();
-                break;
-            }
-            catch (SqlException ex) when (attempt < maxRetries)
-            {
-                logger.LogWarning(
-                    ex,
-                    "Failed to connect to SQL Server (Attempt {Attempt}/{MaxRetries}). Retrying in 3 seconds...",
-                    attempt,
-                    maxRetries);
-                await Task.Delay(TimeSpan.FromSeconds(3));
-            }
         }
     }
 
