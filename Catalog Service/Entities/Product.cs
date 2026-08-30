@@ -14,6 +14,7 @@ public sealed class Product
     public Guid? OccasionId { get; set; }
     public bool IsActive { get; set; } = true;
     public int SoldCount { get; set; }
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
     public ICollection<ProductOccasion> ProductOccasions { get; set; } = [];
     public ICollection<ProductImage> Images { get; set; } = [];

@@ -1,4 +1,4 @@
-﻿using Carter;
+using Carter;
 using Catalog_Service.Contracts.Products;
 using Flower.Common.StandardizedResponse;
 using MediatR;
@@ -17,11 +17,12 @@ public sealed class GetProductsEndpoint : ICarterModule
             Guid? storeId,
             bool? inStock,
             string? search,
+            ProductSortBy? sortBy,
             ISender sender,
             CancellationToken cancellationToken) =>
         {
             var result = await sender.Send(
-                new GetProductsQuery(page ?? 1, pageSize ?? 20, categoryId, occasionId, storeId, inStock, search),
+                new GetProductsQuery(page ?? 1, pageSize ?? 20, categoryId, occasionId, storeId, inStock, search, sortBy),
                 cancellationToken);
 
             return result.ToHttpResult();

@@ -33,6 +33,10 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(product => product.DiscountEndsAtUtc)
             .IsRequired(false);
 
+        builder.Property(product => product.CreatedAtUtc)
+            .IsRequired();
+
         builder.HasIndex(product => product.SoldCount);
+        builder.HasIndex(product => product.CreatedAtUtc);
     }
 }

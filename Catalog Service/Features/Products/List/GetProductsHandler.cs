@@ -1,4 +1,4 @@
-﻿using Catalog_Service.Contracts.Products;
+using Catalog_Service.Contracts.Products;
 using Catalog_Service.Entities;
 using Catalog_Service.Features.Products;
 using Catalog_Service.Persistence;
@@ -33,6 +33,17 @@ public sealed class GetProductsHandler(IUnitOfWork<CatalogDbContext> unitOfWork)
                     : !product.StoreInventories.Any(inventory => inventory.IsEnabled && inventory.AvailableQuantity > 0 && (!hasStoreId || inventory.StoreId == storeId))))
             && (string.IsNullOrWhiteSpace(search) || product.Name.Contains(search));
 
+        Func<IQueryable<Product>, IOrderedQueryable<Product>> orderBy = request.SortBy switch
+        {
+            ProductSortBy.PriceAsc => query => query.OrderBy(product => product.Price).ThenBy(product => product.Id),
+            ProductSortBy.PriceDesc => query => query.OrderByDescending(product => product.Price).ThenBy(product => product.Id),
+            ProductSortBy.BestSeller => query => query.OrderByDescending(product => product.SoldCount).ThenBy(product => product.Id),
+            ProductSortBy.Newest => query => query.OrderByDescending(product => product.CreatedAtUtc).ThenBy(product => product.Id),
+            ProductSortBy.Oldest => query => query.OrderBy(product => product.CreatedAtUtc).ThenBy(product => product.Id),
+            ProductSortBy.Discount => query => query.OrderByDescending(product => product.DiscountPercent ?? 0).ThenBy(product => product.Price).ThenBy(product => product.Id),
+            _ => query => query.OrderBy(product => product.Name).ThenBy(product => product.Id)
+        };
+
         var paged = await unitOfWork.Repository<Product, Guid>()
             .GetPageSelectAsync(
                 page,
@@ -47,7 +58,7 @@ public sealed class GetProductsHandler(IUnitOfWork<CatalogDbContext> unitOfWork)
                     product.DiscountStartsAtUtc,
                     product.DiscountEndsAtUtc,
                     product.StoreInventories.Any(inventory => inventory.IsEnabled && inventory.AvailableQuantity > 0 && (!hasStoreId || inventory.StoreId == storeId))),
-                query => query.OrderBy(product => product.Name).ThenBy(product => product.Id));
+                orderBy);
 
         var utcNow = DateTime.UtcNow;
         var items = paged.Items

@@ -409,6 +409,25 @@ paths:
           description: Case-insensitive match on product name.
           schema:
             type: string
+        - name: sortBy
+          in: query
+          required: false
+          description: "Sorting options: PriceAsc (PriceLowToHigh), PriceDesc (PriceHighToLow), BestSeller (BestSelling), Newest (New), Oldest (Old), Discount (DiscountHighToLow)"
+          schema:
+            type: string
+            enum:
+              - PriceAsc
+              - PriceLowToHigh
+              - PriceDesc
+              - PriceHighToLow
+              - BestSeller
+              - BestSelling
+              - Newest
+              - New
+              - Oldest
+              - Old
+              - Discount
+              - DiscountHighToLow
       responses:
         '200':
           description: Catalog items.

@@ -72,7 +72,8 @@ internal static class ProductSeedData
         int soldCount,
         decimal? discountPercent = null,
         DateTime? activeFrom = null,
-        DateTime? activeTo = null)
+        DateTime? activeTo = null,
+        DateTime? createdAtUtc = null)
         => new()
         {
             Id = Guid.Parse($"40000000-0000-0000-0000-000000000{idSuffix}"),
@@ -85,6 +86,7 @@ internal static class ProductSeedData
             CategoryId = categoryId,
             OccasionId = occasionId,
             SoldCount = soldCount,
+            CreatedAtUtc = createdAtUtc ?? DateTime.UtcNow.AddDays(-int.Parse(idSuffix)),
             Description = $"A carefully arranged {name} prepared with fresh flowers and gift-ready presentation."
         };
 
