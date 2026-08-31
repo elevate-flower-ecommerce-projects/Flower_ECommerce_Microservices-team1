@@ -1,13 +1,15 @@
 using Flower.Common.StandardizedResponse;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using Order___Fulfillment_Service.Contracts.Orders;
+using Order___Fulfillment_Service.Entities;
 using Order___Fulfillment_Service.Features.Orders;
 using Order___Fulfillment_Service.Persistence;
+using Repository.Layer.Interfaces;
+using System.Linq.Expressions;
 
 namespace Order___Fulfillment_Service.Features.Orders.List;
 
-public sealed class ListCustomerOrdersHandler(OrderDbContext dbContext)
+public sealed class ListCustomerOrdersHandler(IUnitOfWork<OrderDbContext> unitOfWork)
     : IRequestHandler<ListCustomerOrdersQuery, OperationResult<PagedResponse<OrderListItemResponse>>>
 {
     public async Task<OperationResult<PagedResponse<OrderListItemResponse>>> Handle(
@@ -17,25 +19,27 @@ public sealed class ListCustomerOrdersHandler(OrderDbContext dbContext)
         var page = request.Page <= 0 ? 1 : request.Page;
         var pageSize = request.PageSize is <= 0 or > 100 ? 20 : request.PageSize;
 
-        var query = dbContext.Orders
-            .AsNoTracking()
-            .Include(order => order.Items)
-            .Where(order => order.UserId == request.UserId);
+        Expression<Func<Order, bool>> predicate = order => order.UserId == request.UserId;
 
-        var totalCount = await query.CountAsync(cancellationToken);
-        var orders = await query
-            .OrderByDescending(order => order.PlacedAtUtc)
-            .ThenByDescending(order => order.Id)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
+        var paged = await unitOfWork.Repository<Order, Guid>()
+            .GetPageSelectAsync(
+                page,
+                pageSize,
+                predicate,
+                order => new OrderListItemResponse(
+                    order.Id,
+                    order.OrderNumber,
+                    order.PlacedAtUtc,
+                    order.Items.Sum(item => item.Quantity),
+                    order.Items
+                        .OrderBy(item => item.Id)
+                        .Select(item => item.ThumbnailUrl)
+                        .FirstOrDefault(),
+                    OrderMapping.ToStatusResponse(order.Status),
+                    order.Total),
+                query => query.OrderByDescending(order => order.PlacedAtUtc).ThenByDescending(order => order.Id));
 
-        var response = new PagedResponse<OrderListItemResponse>(
-            page,
-            pageSize,
-            totalCount,
-            orders.Select(OrderMapping.ToListItem).ToList());
-
-        return OperationResultFactory.Success(response);
+        return OperationResultFactory.Success(
+            new PagedResponse<OrderListItemResponse>(page, pageSize, paged.TotalCount, paged.Items));
     }
 }

@@ -8,6 +8,8 @@ using Microsoft.IdentityModel.Tokens;
 using Order___Fulfillment_Service.Extensions;
 using Order___Fulfillment_Service.Persistence;
 using Order___Fulfillment_Service.Settings;
+using Repository.Layer;
+using Repository.Layer.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +21,7 @@ builder.Services.AddDbContext<OrderDbContext>(options =>
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.AddScoped<IOrderDataSeeder, OrderDataSeeder>();
+builder.Services.AddScoped(typeof(IUnitOfWork<OrderDbContext>), typeof(UnitOfWork<OrderDbContext>));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerDocumentation();
 builder.Services.AddCarter();
