@@ -765,6 +765,71 @@ paths:
           description: User cart items.
 
   /orders:
+    get:
+      tags:
+        - Orders
+      summary: List Customer Orders
+      description: Returns the authenticated customer's current and past orders, newest first. Used by the Profile Orders screen.
+      operationId: ListCustomerOrders
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Paged customer orders. Empty customers receive an empty `items` array and `totalCount` 0.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerOrdersOperationResult'
+              examples:
+                sample:
+                  value:
+                    success: true
+                    statusCode: 200
+                    message: "Success"
+                    messageLocalized: "Success"
+                    data:
+                      page: 1
+                      pageSize: 20
+                      totalCount: 2
+                      items:
+                        - id: "91000000-0000-0000-0000-000000000001"
+                          orderNumber: "FL-20260830-001"
+                          placedAtUtc: "2026-08-30T10:45:00Z"
+                          itemCount: 2
+                          thumbnailUrl: "/images/products/red-rose-bouquet.jpg"
+                          status:
+                            code: "out_for_delivery"
+                            label: "Out for Delivery"
+                            color: "#7C3AED"
+                          total: 1400
+        '401':
+          description: Missing or invalid token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
+        '403':
+          description: Caller is not a Customer.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
     post:
       tags:
         - Orders
@@ -776,6 +841,89 @@ paths:
       responses:
         '201':
           description: Order placed successfully.
+
+  /orders/{id}:
+    get:
+      tags:
+        - Orders
+      summary: Get Customer Order Details
+      description: Returns full detail for one order owned by the authenticated customer, including line items, delivery address, gift recipient info when applicable, payment method, and totals.
+      operationId: GetCustomerOrderDetails
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Customer order detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerOrderDetailsOperationResult'
+              examples:
+                sample:
+                  value:
+                    success: true
+                    statusCode: 200
+                    message: "Success"
+                    messageLocalized: "Success"
+                    data:
+                      id: "91000000-0000-0000-0000-000000000001"
+                      orderNumber: "FL-20260830-001"
+                      placedAtUtc: "2026-08-30T10:45:00Z"
+                      status:
+                        code: "out_for_delivery"
+                        label: "Out for Delivery"
+                        color: "#7C3AED"
+                      items:
+                        - productId: "20000000-0000-0000-0000-000000000001"
+                          productName: "Red Rose Bouquet"
+                          thumbnailUrl: "/images/products/red-rose-bouquet.jpg"
+                          quantity: 1
+                          unitPrice: 950
+                          lineTotal: 950
+                      deliveryAddress:
+                        recipientName: "SCRUM-23 Test Customer"
+                        phone: "01012345678"
+                        addressLine: "23 Abbas El Akkad Street, Building 4"
+                        city: "Cairo"
+                        area: "Nasr City"
+                      giftRecipient:
+                        name: "Mona Ali"
+                        phone: "01055550000"
+                        message: "Happy birthday"
+                      paymentMethod:
+                        code: "card"
+                        label: "Card"
+                        last4: "4242"
+                      priceBreakdown:
+                        subtotal: 1450
+                        deliveryFee: 50
+                        discount: 100
+                        total: 1400
+        '401':
+          description: Missing or invalid token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
+        '403':
+          description: Caller is not a Customer.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
+        '404':
+          description: Order not found or not owned by the current customer.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
 
   /payments/charge:
     post:
@@ -2071,6 +2219,210 @@ components:
           type: string
           example: "/products?sort=best_sellers"
 
+    CustomerOrdersOperationResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "Success"
+        messageLocalized:
+          type: string
+          example: "Success"
+        data:
+          $ref: '#/components/schemas/CustomerOrdersPage'
+
+    CustomerOrderDetailsOperationResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "Success"
+        messageLocalized:
+          type: string
+          example: "Success"
+        data:
+          $ref: '#/components/schemas/OrderDetail'
+
+    CustomerOrdersPage:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 20
+        totalCount:
+          type: integer
+          example: 2
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderListItem'
+
+    OrderListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderNumber:
+          type: string
+          example: "FL-20260830-001"
+        placedAtUtc:
+          type: string
+          format: date-time
+        itemCount:
+          type: integer
+          example: 2
+        thumbnailUrl:
+          type: string
+          nullable: true
+          example: "/images/products/red-rose-bouquet.jpg"
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        total:
+          type: number
+          format: decimal
+          example: 1400
+
+    OrderDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderNumber:
+          type: string
+        placedAtUtc:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderLineItem'
+        deliveryAddress:
+          $ref: '#/components/schemas/OrderDeliveryAddress'
+        giftRecipient:
+          $ref: '#/components/schemas/GiftRecipient'
+          nullable: true
+        paymentMethod:
+          $ref: '#/components/schemas/OrderPaymentMethod'
+        priceBreakdown:
+          $ref: '#/components/schemas/OrderPriceBreakdown'
+        canTrack:
+          type: boolean
+          description: True for Placed, Preparing, and Out for Delivery orders.
+        trackingUrl:
+          type: string
+          nullable: true
+          example: "/orders/91000000-0000-0000-0000-000000000001/tracking"
+
+    OrderLineItem:
+      type: object
+      properties:
+        productId:
+          type: string
+          format: uuid
+        productName:
+          type: string
+          example: "Red Rose Bouquet"
+        thumbnailUrl:
+          type: string
+          nullable: true
+        quantity:
+          type: integer
+          example: 1
+        unitPrice:
+          type: number
+          format: decimal
+          example: 950
+        lineTotal:
+          type: number
+          format: decimal
+          example: 950
+
+    OrderDeliveryAddress:
+      type: object
+      properties:
+        recipientName:
+          type: string
+        phone:
+          type: string
+        addressLine:
+          type: string
+        city:
+          type: string
+        area:
+          type: string
+
+    GiftRecipient:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        message:
+          type: string
+          nullable: true
+
+    OrderPaymentMethod:
+      type: object
+      properties:
+        code:
+          type: string
+          enum: [cash_on_delivery, card, wallet]
+        label:
+          type: string
+          example: "Card"
+        last4:
+          type: string
+          nullable: true
+          example: "4242"
+
+    OrderPriceBreakdown:
+      type: object
+      properties:
+        subtotal:
+          type: number
+          format: decimal
+        deliveryFee:
+          type: number
+          format: decimal
+        discount:
+          type: number
+          format: decimal
+        total:
+          type: number
+          format: decimal
+
+    OrderStatus:
+      type: object
+      properties:
+        code:
+          type: string
+          enum: [placed, preparing, out_for_delivery, delivered, cancelled]
+        label:
+          type: string
+          enum: [Placed, Preparing, Out for Delivery, Delivered, Cancelled]
+        color:
+          type: string
+          example: "#7C3AED"
     FieldConflictResult:
       type: object
       properties:
