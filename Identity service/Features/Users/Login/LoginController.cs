@@ -38,6 +38,31 @@ public sealed class LoginController(ISender sender, ILogger<LoginController> log
         }
     }
 
+    [HttpPost("refresh")]
+    [ProducesResponseType(typeof(OperationResult<LoginResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(OperationResult<LoginResponseDto>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(OperationResult<LoginResponseDto>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(OperationResult<LoginResponseDto>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(OperationResult), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await sender.Send(new RefreshUserTokenCommand(request.RefreshToken), cancellationToken);
+            return ToActionResult(result);
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "Unexpected error while processing a refresh token request");
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new OperationResult(
+                    Flower.Common.StandardizedResponse.StatusCode.InternalServerError,
+                    "An unexpected error occurred while processing the refresh token request.",
+                    "An unexpected error occurred while processing the refresh token request."));
+        }
+    }
+
     private IActionResult ToActionResult(Result<LoginResponseDto> result)
     {
         if (result.IsSuccess)
