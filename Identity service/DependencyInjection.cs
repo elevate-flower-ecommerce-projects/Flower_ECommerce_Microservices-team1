@@ -17,6 +17,7 @@ public static class DependencyInjection
 
         services.Configure<DriverDocumentStorageOptions>(
             configuration.GetSection(DriverDocumentStorageOptions.SectionName));
+        services.Configure<AvatarStorageOptions>(configuration.GetSection(AvatarStorageOptions.SectionName));
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<PasswordResetOptions>(configuration.GetSection(PasswordResetOptions.SectionName));
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
@@ -35,9 +36,11 @@ public static class DependencyInjection
 
         services.AddScoped(typeof(IUnitOfWork<ApplicationDbContext>), typeof(UnitOfWork<ApplicationDbContext>));
         services.AddScoped<IDriverDocumentStorage, LocalDriverDocumentStorage>();
+        services.AddScoped<IAvatarStorage, LocalAvatarStorage>();
         services.AddScoped<IApplicantNotificationService, SmtpApplicantNotificationService>();
         services.AddScoped<IDriverApplicationValidator, DriverApplicationValidator>();
         services.AddScoped<IRegisterCustomerValidator, RegisterCustomerValidator>();
+        services.AddScoped<IUpdateProfileValidator, UpdateProfileValidator>();
         services.AddScoped<IDriverLoginStatusGuard, DriverLoginStatusGuard>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IIdentityDataSeeder, IdentityDataSeeder>();

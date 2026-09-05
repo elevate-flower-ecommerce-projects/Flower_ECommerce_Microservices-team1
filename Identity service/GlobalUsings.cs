@@ -5,6 +5,7 @@ global using Identity_service.Abstractions.Seeding;
 global using Identity_service.Entities;
 global using Identity_service.Features.Drivers.Applications.Submit;
 global using Identity_service.Features.Users.Register;
+global using Identity_service.Features.Users.UpdateProfile;
 global using Identity_service.Infrastructure;
 global using Identity_service.Infrastructure.Implementations.Services;
 global using Identity_service.Infrastructure.Interfaces.Services;

@@ -84,6 +84,95 @@ paths:
               schema:
                 $ref: '#/components/schemas/OperationResult'
 
+  /identity/users/me/profile:
+    get:
+      tags:
+        - Users
+      summary: Read the signed-in user's profile
+      description: >-
+        Returns the caller's own profile. Open to every authenticated role, since customers,
+        drivers and admins all have a name, email, phone and avatar.
+      operationId: GetMyProfile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: The caller's profile.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Missing or invalid token.
+        '404':
+          description: The token belongs to an account that no longer exists.
+    put:
+      tags:
+        - Users
+      summary: Update the signed-in user's profile
+      description: >-
+        Updates name, email, phone, gender and avatar in one call. Email and phone are validated
+        for format and uniqueness exactly as in registration, except that the uniqueness check
+        skips the caller's own row so re-saving an unchanged email is not reported as a duplicate.
+
+        The email doubles as the username, so changing it also changes the login identity and
+        revokes every active refresh token. The response sets `emailChanged` to true in that case
+        and the client must sign in again with the new address. Changing anything else leaves the
+        session working.
+
+        Omitting `profilePicture` keeps the current avatar; sending a new one replaces it and
+        deletes the previous file.
+      operationId: UpdateMyProfile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+            encoding:
+              profilePicture:
+                contentType: image/jpeg, image/png
+      responses:
+        '200':
+          description: The updated profile.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Missing or invalid token.
+        '404':
+          description: The token belongs to an account that no longer exists.
+        '422':
+          description: >-
+            Validation failed. `data` maps field names to messages, for example
+            `{"Email":["Email already registered"]}` when another account already uses it.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        additionalProperties:
+                          type: array
+                          items:
+                            type: string
+
   /identity/auth/login:
     post:
       tags:
@@ -1386,6 +1475,73 @@ components:
       description: Provide JWT Bearer token obtained from `/identity/auth/login`.
 
   schemas:
+    UserProfile:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+          example: "Mariam Ahmed"
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+          nullable: true
+        phoneNumber:
+          type: string
+          nullable: true
+          example: "01010000001"
+        gender:
+          type: string
+          nullable: true
+          enum: [Male, Female]
+        profilePictureUrl:
+          type: string
+          nullable: true
+          description: Relative URL served as a static file, requiring no token.
+          example: "/uploads/avatars/01a06d307d3c7b0aa3d98e465c3e712d.jpg"
+        roles:
+          type: array
+          items:
+            type: string
+          example: ["Customer"]
+        emailChanged:
+          type: boolean
+          description: >-
+            True when this response changed the login email. Refresh tokens were revoked and the
+            client must sign in again with the new address. Always false on GET.
+
+    UpdateProfileRequest:
+      type: object
+      required: [fullName, email, phoneNumber, gender]
+      properties:
+        fullName:
+          type: string
+          maxLength: 201
+          description: Split into first and last name the same way registration does.
+          example: "Mariam Ahmed"
+        email:
+          type: string
+          format: email
+          maxLength: 256
+        phoneNumber:
+          type: string
+          pattern: '^01[0125]\d{8}$'
+          example: "01010000001"
+        gender:
+          type: string
+          enum: [Male, Female]
+        profilePicture:
+          type: string
+          format: binary
+          nullable: true
+          description: Optional jpg or png, 5MB maximum. Omit to keep the current avatar.
+
     Cart:
       type: object
       properties:
