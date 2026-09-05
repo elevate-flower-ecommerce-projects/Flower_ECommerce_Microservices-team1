@@ -59,6 +59,12 @@
                          "type":  "string",
                          "description":  "Occasion ID",
                          "value":  "20000000-0000-0000-0000-000000000001"
+                     },
+                     {
+                         "key":  "orderId",
+                         "type":  "string",
+                         "description":  "Order ID",
+                         "value":  "91000000-0000-0000-0000-000000000001"
                      }
                  ],
     "item":  [
@@ -1743,6 +1749,194 @@
                                                                               ],
                                                                    "type":  "bearer"
                                                                }
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "Orders \u0026 Fulfillment (Team 1)",
+                     "item":  [
+                                  {
+                                      "name":  "1. List My Orders",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept-Language",
+                                                                         "value":  "{{acceptLanguage}}",
+                                                                         "type":  "text"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/orders?page=1\u0026pageSize=20",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "orders"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "page",
+                                                                                    "value":  "1"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "pageSize",
+                                                                                    "value":  "20"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status is 200 OK\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "var jsonData = pm.response.json();",
+                                                                                    "if (jsonData \u0026\u0026 jsonData.data \u0026\u0026 jsonData.data.items \u0026\u0026 jsonData.data.items.length \u003e 0) {",
+                                                                                    "    pm.collectionVariables.set(\u0027orderId\u0027, jsonData.data.items[0].id);",
+                                                                                    "    console.log(\u0027Saved orderId: \u0027 + jsonData.data.items[0].id);",
+                                                                                    "}"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "2. Get Order Details",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept-Language",
+                                                                         "value":  "{{acceptLanguage}}",
+                                                                         "type":  "text"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/orders/{{orderId}}",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "orders",
+                                                                               "{{orderId}}"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status is 200 OK\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "var jsonData = pm.response.json();",
+                                                                                    "pm.test(\u0027Response has order detail data\u0027, function () { pm.expect(jsonData.data).to.be.an(\u0027object\u0027); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "3. List My Orders (Direct Route)",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept-Language",
+                                                                         "value":  "{{acceptLanguage}}",
+                                                                         "type":  "text"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/orders?page=1\u0026pageSize=20",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "orders"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "page",
+                                                                                    "value":  "1"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "pageSize",
+                                                                                    "value":  "20"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "4. Get Order Details (Direct Route)",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept-Language",
+                                                                         "value":  "{{acceptLanguage}}",
+                                                                         "type":  "text"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/orders/{{orderId}}",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "orders",
+                                                                               "{{orderId}}"
+                                                                           ]
+                                                              }
                                                   }
                                   }
                               ]
