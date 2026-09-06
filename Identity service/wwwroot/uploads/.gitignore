@@ -1,0 +1,7 @@
+# Uploaded avatars are runtime data, not source. The folders are kept so UseStaticFiles has a
+# web root to serve from on a fresh checkout.
+*
+!.gitignore
+!avatars/
+avatars/*
+!avatars/.gitkeep

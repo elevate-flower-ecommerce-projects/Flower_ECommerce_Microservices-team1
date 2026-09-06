@@ -13,6 +13,12 @@ public class ApplicationUser : IdentityUser
     public string LastName { get; set; } = string.Empty;
     public bool IsDisabled { get; set; }
 
+    /// <summary>
+    /// Relative URL of the avatar served from wwwroot, for example /uploads/avatars/{guid}.jpg.
+    /// Null until the user uploads one.
+    /// </summary>
+    public string? ProfilePictureUrl { get; set; }
+
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
     public CustomerProfile? CustomerProfile { get; set; }
     public DriverProfile? DriverProfile { get; set; }

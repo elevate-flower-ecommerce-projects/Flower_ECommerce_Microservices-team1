@@ -26,6 +26,9 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
         builder.Property(u => u.PhoneNumber)
             .HasMaxLength(32);
 
+        builder.Property(u => u.ProfilePictureUrl)
+            .HasMaxLength(500);
+
         builder.HasIndex(u => u.PhoneNumber)
             .IsUnique()
             .HasDatabaseName("UX_ApplicationUser_PhoneNumber")
