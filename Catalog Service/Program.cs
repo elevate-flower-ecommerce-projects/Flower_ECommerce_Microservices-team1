@@ -86,6 +86,10 @@ await app.MigrateAndSeedCatalogDatabaseAsync();
 app.UseSwaggerDocumentation();
 
 app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    RequestPath = "/catalog"
+});
 
 app.UseAuthentication();
 app.UseAuthorization();
