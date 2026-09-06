@@ -1,9 +1,10 @@
-using Catalog_Service.Contracts.Categories;
+﻿using Catalog_Service.Contracts.Categories;
 using Catalog_Service.Entities;
 using Catalog_Service.Persistence;
 using Flower.Common.StandardizedResponse;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Repository.Layer.Interfaces;
 
 namespace Catalog_Service.Features.Categories.Admin.CreateCategory;
 
@@ -12,7 +13,7 @@ namespace Catalog_Service.Features.Categories.Admin.CreateCategory;
 /// which is what keeps clients in sync without a release.
 /// </summary>
 public sealed class CreateCategoryHandler(
-    CatalogDbContext dbContext,
+    IUnitOfWork<CatalogDbContext> unitOfWork,
     ILogger<CreateCategoryHandler> logger)
     : IRequestHandler<CreateCategoryCommand, OperationResult<object>>
 {
@@ -28,8 +29,9 @@ public sealed class CreateCategoryHandler(
                 CategoryMessages.ValidationFailed);
 
         var name = request.Name.Trim();
+        var categoryRepository = unitOfWork.Repository<Category, Guid>();
 
-        if (await dbContext.Categories.AnyAsync(category => category.Name == name, cancellationToken))
+        if (await categoryRepository.ExistsAsync(category => category.Name == name))
             return OperationResultFactory.Conflict<object>(
                 message: CategoryMessages.NameAlreadyExists,
                 messageLocalized: CategoryMessages.NameAlreadyExists);
@@ -43,13 +45,13 @@ public sealed class CreateCategoryHandler(
             IsActive = request.IsActive ?? true
         };
 
-        dbContext.Categories.Add(category);
+        await categoryRepository.Create(category);
 
         try
         {
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await unitOfWork.CompleteAsync();
         }
-        // The AnyAsync check above loses to a concurrent insert; the unique index does not.
+        // The ExistsAsync check above loses to a concurrent insert; the unique index does not.
         catch (DbUpdateException exception) when (IsDuplicateName(exception))
         {
             logger.LogWarning("Category name {Name} already exists.", name);

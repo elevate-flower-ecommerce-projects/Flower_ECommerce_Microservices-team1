@@ -1,8 +1,10 @@
-using Catalog_Service.Contracts.Categories;
+﻿using Catalog_Service.Contracts.Categories;
+using Catalog_Service.Entities;
 using Catalog_Service.Persistence;
 using Flower.Common.StandardizedResponse;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Repository.Layer.Interfaces;
 
 namespace Catalog_Service.Features.Categories.GetCategoryById;
 
@@ -11,7 +13,7 @@ namespace Catalog_Service.Features.Categories.GetCategoryById;
 /// An archived category answers 410 Gone instead of 404 so an old link can render a
 /// "no longer available" screen rather than a dead end.
 /// </summary>
-public sealed class GetCategoryByIdHandler(CatalogDbContext dbContext)
+public sealed class GetCategoryByIdHandler(IUnitOfWork<CatalogDbContext> unitOfWork)
     : IRequestHandler<GetCategoryByIdQuery, OperationResult<CategoryResponse>>
 {
     internal const string ArchivedMessage = "This category is no longer available.";
@@ -22,8 +24,8 @@ public sealed class GetCategoryByIdHandler(CatalogDbContext dbContext)
         CancellationToken cancellationToken)
     {
         // Archived rows are loaded on purpose: the two outcomes must stay distinguishable.
-        var category = await dbContext.Categories
-            .AsNoTracking()
+        var category = await unitOfWork.Repository<Category, Guid>()
+            .Query()
             .Where(entity => entity.Id == request.CategoryId)
             .Select(entity => new
             {

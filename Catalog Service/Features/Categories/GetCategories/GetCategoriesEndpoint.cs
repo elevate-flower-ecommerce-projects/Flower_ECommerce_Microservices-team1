@@ -11,10 +11,11 @@ public sealed class GetCategoriesEndpoint : ICarterModule
     {
         app.MapGet("/categories", async (
             string? search,
+            CategorySortBy? sortBy,
             ISender sender,
             CancellationToken cancellationToken) =>
         {
-            var result = await sender.Send(new GetCategoriesQuery(search), cancellationToken);
+            var result = await sender.Send(new GetCategoriesQuery(search, sortBy), cancellationToken);
             return result.ToHttpResult();
         })
         .AllowAnonymous()

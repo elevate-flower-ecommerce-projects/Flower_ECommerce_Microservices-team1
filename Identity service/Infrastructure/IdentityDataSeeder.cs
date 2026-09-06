@@ -1,4 +1,4 @@
-namespace Identity_service.Infrastructure;
+﻿namespace Identity_service.Infrastructure;
 
 public interface IIdentityDataSeeder
 {
@@ -34,6 +34,8 @@ public sealed class IdentityDataSeeder(
         {
             await SeedUserAsync(customer, ApplicationRoleNames.Customer, createCustomerProfile: true, cancellationToken);
         }
+
+        await SeedNotificationsAsync(cancellationToken);
 
         var applicants = configuration
             .GetSection("Seed:DriverApplicants")
@@ -184,6 +186,59 @@ public sealed class IdentityDataSeeder(
 
             await dbContext.SaveChangesAsync(cancellationToken);
         }
+    }
+
+    private async Task SeedNotificationsAsync(CancellationToken cancellationToken)
+    {
+        var customer = await userManager.FindByEmailAsync("scrum23.addresses@flower.local");
+        if (customer is null)
+            return;
+
+        var notifications = new[]
+        {
+            new UserNotification
+            {
+                Id = Guid.Parse("94000000-0000-0000-0000-000000000001"),
+                UserId = customer.Id,
+                Title = "New offer",
+                Body = "Fresh bouquets are available today with a limited discount.",
+                Type = "offer",
+                DeepLink = "/catalog/products?sortBy=Discount",
+                IsRead = false,
+                CreatedAtUtc = new DateTime(2026, 9, 6, 10, 0, 0, DateTimeKind.Utc)
+            },
+            new UserNotification
+            {
+                Id = Guid.Parse("94000000-0000-0000-0000-000000000002"),
+                UserId = customer.Id,
+                Title = "New offer",
+                Body = "A new flower collection has been added to the catalog.",
+                Type = "offer",
+                DeepLink = "/catalog/home/layout",
+                IsRead = false,
+                CreatedAtUtc = new DateTime(2026, 9, 5, 11, 30, 0, DateTimeKind.Utc)
+            },
+            new UserNotification
+            {
+                Id = Guid.Parse("94000000-0000-0000-0000-000000000003"),
+                UserId = customer.Id,
+                Title = "Remember",
+                Body = "You still have saved addresses ready for fast checkout.",
+                Type = "reminder",
+                DeepLink = "/users/me/addresses",
+                IsRead = true,
+                CreatedAtUtc = new DateTime(2026, 9, 4, 9, 15, 0, DateTimeKind.Utc),
+                ReadAtUtc = new DateTime(2026, 9, 4, 12, 0, 0, DateTimeKind.Utc)
+            }
+        };
+
+        foreach (var notification in notifications)
+        {
+            if (!await dbContext.UserNotifications.AnyAsync(existing => existing.Id == notification.Id, cancellationToken))
+                dbContext.UserNotifications.Add(notification);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     private sealed class SeedDriverApplicant

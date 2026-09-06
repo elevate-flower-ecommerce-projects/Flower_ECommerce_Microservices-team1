@@ -1,4 +1,4 @@
-openapi: 3.0.3
+﻿openapi: 3.0.3
 info:
   title: Elevate Flower E-Commerce Microservices API
   version: 1.0.0
@@ -31,6 +31,8 @@ tags:
     description: Customer registration and profile management
   - name: Authentication
     description: User authentication, JWT tokens, and OTP password reset
+  - name: Notifications
+    description: Customer notification inbox and read state
   - name: Driver Applications
     description: Prospective driver onboarding and document submissions
   - name: Admins
@@ -192,6 +194,48 @@ paths:
         '401':
           description: Invalid or expired password reset authorization.
 
+  /identity/notifications:
+    get:
+      tags:
+        - Notifications
+      summary: List my notifications
+      description: Returns the current authenticated customer's notifications, newest first, with read state for mobile rendering.
+      operationId: ListMyNotifications
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: isRead
+          in: query
+          required: false
+          description: Optional filter for read or unread notifications.
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Paginated notification inbox.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationsOperationResult'
+        '401':
+          description: Missing or invalid token.
+        '403':
+          description: Caller is not a Customer.
   /identity/drivers/applications:
     post:
       tags:
@@ -450,7 +494,25 @@ paths:
           schema:
             type: string
           description: Case-insensitive match on the category name.
-      responses:
+        - name: sortBy
+          in: query
+          required: false
+          description: "Category sorting options: LowestPrice (PriceAsc/PriceLowToHigh), HighestPrice (PriceDesc/PriceHighToLow), New (Newest), Old (Oldest), Discount (DiscountHighToLow)."
+          schema:
+            type: string
+            enum:
+              - LowestPrice
+              - PriceAsc
+              - PriceLowToHigh
+              - HighestPrice
+              - PriceDesc
+              - PriceHighToLow
+              - New
+              - Newest
+              - Old
+              - Oldest
+              - Discount
+              - DiscountHighToLow      responses:
         '200':
           description: Active categories.
           content:
@@ -2299,6 +2361,60 @@ components:
         viewAll:
           $ref: '#/components/schemas/ViewAllAction'
 
+    NotificationListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          example: "New offer"
+        body:
+          type: string
+          example: "Fresh bouquets are available today with a limited discount."
+        type:
+          type: string
+          example: "offer"
+        deepLink:
+          type: string
+          nullable: true
+          example: "/catalog/products?sortBy=Discount"
+        isRead:
+          type: boolean
+          example: false
+        createdAtUtc:
+          type: string
+          format: date-time
+        readAtUtc:
+          type: string
+          format: date-time
+          nullable: true
+
+    NotificationsPage:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 20
+        totalCount:
+          type: integer
+          example: 3
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationListItem'
+
+    NotificationsOperationResult:
+      allOf:
+        - $ref: '#/components/schemas/OperationResult'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/NotificationsPage'
     CategorySummary:
       type: object
       properties:
@@ -2447,3 +2563,4 @@ components:
           type: array
           items:
             type: string
+

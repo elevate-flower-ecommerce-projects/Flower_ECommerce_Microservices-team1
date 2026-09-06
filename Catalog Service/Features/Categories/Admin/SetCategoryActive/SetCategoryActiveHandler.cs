@@ -1,24 +1,25 @@
-using Catalog_Service.Contracts.Categories;
+﻿using Catalog_Service.Contracts.Categories;
+using Catalog_Service.Entities;
 using Catalog_Service.Persistence;
 using Flower.Common.StandardizedResponse;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
+using Repository.Layer.Interfaces;
 
 namespace Catalog_Service.Features.Categories.Admin.SetCategoryActive;
 
 /// <summary>
-/// Archives or restores a category. Archiving only hides it from the customer bar —
+/// Archives or restores a category. Archiving only hides it from the customer bar,
 /// the row stays so old deep links can answer 410 Gone instead of 404.
 /// </summary>
-public sealed class SetCategoryActiveHandler(CatalogDbContext dbContext)
+public sealed class SetCategoryActiveHandler(IUnitOfWork<CatalogDbContext> unitOfWork)
     : IRequestHandler<SetCategoryActiveCommand, OperationResult<AdminCategoryResponse>>
 {
     public async Task<OperationResult<AdminCategoryResponse>> Handle(
         SetCategoryActiveCommand request,
         CancellationToken cancellationToken)
     {
-        var category = await dbContext.Categories
-            .FirstOrDefaultAsync(entity => entity.Id == request.CategoryId, cancellationToken);
+        var categoryRepository = unitOfWork.Repository<Category, Guid>();
+        var category = await categoryRepository.Get(request.CategoryId);
 
         if (category is null)
             return OperationResultFactory.NotFound<AdminCategoryResponse>(
@@ -37,7 +38,8 @@ public sealed class SetCategoryActiveHandler(CatalogDbContext dbContext)
         }
 
         category.IsActive = request.IsActive;
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await categoryRepository.Update(category);
+        await unitOfWork.CompleteAsync();
 
         var message = request.IsActive
             ? CategoryMessages.Restored

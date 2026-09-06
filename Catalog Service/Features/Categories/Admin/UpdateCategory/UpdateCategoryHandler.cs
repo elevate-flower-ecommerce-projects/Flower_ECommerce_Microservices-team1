@@ -1,8 +1,10 @@
-using Catalog_Service.Contracts.Categories;
+﻿using Catalog_Service.Contracts.Categories;
+using Catalog_Service.Entities;
 using Catalog_Service.Persistence;
 using Flower.Common.StandardizedResponse;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Repository.Layer.Interfaces;
 
 namespace Catalog_Service.Features.Categories.Admin.UpdateCategory;
 
@@ -11,7 +13,7 @@ namespace Catalog_Service.Features.Categories.Admin.UpdateCategory;
 /// Archiving is a separate operation so a rename can never disable a category by accident.
 /// </summary>
 public sealed class UpdateCategoryHandler(
-    CatalogDbContext dbContext,
+    IUnitOfWork<CatalogDbContext> unitOfWork,
     ILogger<UpdateCategoryHandler> logger)
     : IRequestHandler<UpdateCategoryCommand, OperationResult<object>>
 {
@@ -26,9 +28,10 @@ public sealed class UpdateCategoryHandler(
                 CategoryMessages.ValidationFailed,
                 CategoryMessages.ValidationFailed);
 
+        var categoryRepository = unitOfWork.Repository<Category, Guid>();
+
         // Archived categories stay editable so they can be fixed before being restored.
-        var category = await dbContext.Categories
-            .FirstOrDefaultAsync(entity => entity.Id == request.CategoryId, cancellationToken);
+        var category = await categoryRepository.Get(request.CategoryId);
 
         if (category is null)
             return OperationResultFactory.NotFound<object>(
@@ -37,9 +40,8 @@ public sealed class UpdateCategoryHandler(
 
         var name = request.Name.Trim();
 
-        var nameTaken = await dbContext.Categories.AnyAsync(
-            entity => entity.Id != request.CategoryId && entity.Name == name,
-            cancellationToken);
+        var nameTaken = await categoryRepository.ExistsAsync(
+            entity => entity.Id != request.CategoryId && entity.Name == name);
 
         if (nameTaken)
             return OperationResultFactory.Conflict<object>(
@@ -52,9 +54,11 @@ public sealed class UpdateCategoryHandler(
         if (request.SortOrder is not null)
             category.SortOrder = request.SortOrder.Value;
 
+        await categoryRepository.Update(category);
+
         try
         {
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await unitOfWork.CompleteAsync();
         }
         catch (DbUpdateException exception) when (IsDuplicateName(exception))
         {

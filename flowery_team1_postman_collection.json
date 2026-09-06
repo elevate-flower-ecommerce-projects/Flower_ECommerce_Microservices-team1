@@ -1,4 +1,4 @@
-{
+﻿{
     "info":  {
                  "_postman_id":  "flowery-team1-api-gateway-collection",
                  "name":  "Flowery E-Commerce API Gateway (Team 1)",
@@ -575,6 +575,136 @@
                                                                                "admin",
                                                                                "session"
                                                                            ]
+                                                              },
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               }
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "Notifications (Team 1)",
+                     "item":  [
+                                  {
+                                      "name":  "List My Notifications",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/identity/notifications?page=1\u0026pageSize=20",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "identity",
+                                                                               "notifications"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "page",
+                                                                                    "value":  "1"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "pageSize",
+                                                                                    "value":  "20"
+                                                                                }
+                                                                            ]
+                                                              },
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "List My Unread Notifications",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/identity/notifications?page=1\u0026pageSize=20\u0026isRead=false",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "identity",
+                                                                               "notifications"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "page",
+                                                                                    "value":  "1"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "pageSize",
+                                                                                    "value":  "20"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "isRead",
+                                                                                    "value":  "false",
+                                                                                    "description":  "Filters by IsRead boolean for the Flutter notification UI."
+                                                                                }
+                                                                            ]
+                                                              },
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "List My Notifications (Direct Path)",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/notifications?page=1\u0026pageSize=20",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "notifications"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "page",
+                                                                                    "value":  "1"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "pageSize",
+                                                                                    "value":  "20"
+                                                                                }
+                                                                            ]
                                                               },
                                                       "auth":  {
                                                                    "type":  "bearer",
@@ -1829,7 +1959,7 @@
 
                                                                  ],
                                                       "url":  {
-                                                                  "raw":  "{{baseUrl}}/api/v1/catalog/categories",
+                                                                  "raw":  "{{baseUrl}}/api/v1/catalog/categories?sortBy=LowestPrice",
                                                                   "host":  [
                                                                                "{{baseUrl}}"
                                                                            ],
@@ -1838,7 +1968,14 @@
                                                                                "v1",
                                                                                "catalog",
                                                                                "categories"
-                                                                           ]
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "sortBy",
+                                                                                    "value":  "LowestPrice",
+                                                                                    "description":  "Allowed: LowestPrice, HighestPrice, New, Old, Discount. Also accepts PriceAsc, PriceDesc, Newest, Oldest, PriceLowToHigh, PriceHighToLow, DiscountHighToLow."
+                                                                                }
+                                                                            ]
                                                               }
                                                   }
                                   },
@@ -2269,13 +2406,20 @@
 
                                                                  ],
                                                       "url":  {
-                                                                  "raw":  "{{baseUrl}}/categories",
+                                                                  "raw":  "{{baseUrl}}/categories?sortBy=LowestPrice",
                                                                   "host":  [
                                                                                "{{baseUrl}}"
                                                                            ],
                                                                   "path":  [
                                                                                "categories"
-                                                                           ]
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "sortBy",
+                                                                                    "value":  "LowestPrice",
+                                                                                    "description":  "Allowed: LowestPrice, HighestPrice, New, Old, Discount. Also accepts PriceAsc, PriceDesc, Newest, Oldest, PriceLowToHigh, PriceHighToLow, DiscountHighToLow."
+                                                                                }
+                                                                            ]
                                                               }
                                                   }
                                   },
