@@ -25,7 +25,10 @@ public sealed class CatalogDataSeeder(CatalogDbContext dbContext) : ICatalogData
             dbContext.Categories.AddRange(
                 new Category { Id = BirthdayCategoryId, Name = "Bouquets", ImageUrl = "categories/bouquets.png", SortOrder = 1 },
                 new Category { Id = RosesCategoryId, Name = "Roses", ImageUrl = "categories/roses.png", SortOrder = 2 },
-                new Category { Id = PlantsCategoryId, Name = "Accessories", ImageUrl = "categories/damond.png", SortOrder = 3 });
+                new Category { Id = PlantsCategoryId, Name = "Accessories", ImageUrl = "categories/damond.png", SortOrder = 3 },
+                new Category { Id = Guid.Parse("10000000-0000-0000-0000-000000000004"), Name = "Tulips", ImageUrl = "categories/tulips.png", SortOrder = 4 },
+                new Category { Id = Guid.Parse("10000000-0000-0000-0000-000000000005"), Name = "Gifts", ImageUrl = "categories/gift.png", SortOrder = 5 },
+                new Category { Id = Guid.Parse("10000000-0000-0000-0000-000000000006"), Name = "Cards", ImageUrl = "categories/card.png", SortOrder = 6 });
         }
 
         if (!await dbContext.Occasions.AnyAsync())

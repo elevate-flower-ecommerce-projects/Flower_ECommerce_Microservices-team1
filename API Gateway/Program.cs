@@ -25,6 +25,12 @@ app.UseCors("AllowAll");
 // Configure the HTTP request pipeline.
 app.UseSwaggerDocumentation();
 
+app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    RequestPath = "/catalog"
+});
+
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy", service = "Flower E-Commerce API Gateway" }));
