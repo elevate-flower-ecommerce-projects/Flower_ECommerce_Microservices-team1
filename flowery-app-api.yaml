@@ -602,14 +602,16 @@ paths:
         - name: sortBy
           in: query
           required: false
-          description: "Sorting options: PriceAsc (PriceLowToHigh), PriceDesc (PriceHighToLow), BestSeller (BestSelling), Newest (New), Oldest (Old), Discount (DiscountHighToLow)"
+          description: "Sorting options: LowestPrice (PriceAsc/PriceLowToHigh), HighestPrice (PriceDesc/PriceHighToLow), BestSeller (BestSelling), Newest (New), Oldest (Old), Discount (DiscountHighToLow)"
           schema:
             type: string
             enum:
               - PriceAsc
               - PriceLowToHigh
+              - LowestPrice
               - PriceDesc
               - PriceHighToLow
+              - HighestPrice
               - BestSeller
               - BestSelling
               - Newest
@@ -631,34 +633,10 @@ paths:
         Powers the home category rail and the Categories screen.
         Returns only active categories, ordered by `sortOrder` then name.
         The client renders the "All" entry itself; it is not returned here.
+        Filtering, searching, and sorting are applied through `/catalog/products`.
       operationId: GetCategories
       security: []
-      parameters:
-        - name: search
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Case-insensitive match on the category name.
-        - name: sortBy
-          in: query
-          required: false
-          description: "Category sorting options: LowestPrice (PriceAsc/PriceLowToHigh), HighestPrice (PriceDesc/PriceHighToLow), New (Newest), Old (Oldest), Discount (DiscountHighToLow)."
-          schema:
-            type: string
-            enum:
-              - LowestPrice
-              - PriceAsc
-              - PriceLowToHigh
-              - HighestPrice
-              - PriceDesc
-              - PriceHighToLow
-              - New
-              - Newest
-              - Old
-              - Oldest
-              - Discount
-              - DiscountHighToLow      responses:
+      responses:
         '200':
           description: Active categories.
           content:

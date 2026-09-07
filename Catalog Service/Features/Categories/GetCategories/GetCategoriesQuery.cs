@@ -4,7 +4,5 @@ using MediatR;
 
 namespace Catalog_Service.Features.Categories.GetCategories;
 
-public sealed record GetCategoriesQuery(
-    string? Search,
-    CategorySortBy? SortBy = null)
+public sealed record GetCategoriesQuery
     : IRequest<OperationResult<IReadOnlyList<CategoryResponse>>>;

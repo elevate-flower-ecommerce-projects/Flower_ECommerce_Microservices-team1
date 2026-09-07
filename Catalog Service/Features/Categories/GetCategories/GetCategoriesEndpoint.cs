@@ -10,12 +10,10 @@ public sealed class GetCategoriesEndpoint : ICarterModule
     public void AddRoutes(IEndpointRouteBuilder app)
     {
         app.MapGet("/categories", async (
-            string? search,
-            CategorySortBy? sortBy,
             ISender sender,
             CancellationToken cancellationToken) =>
         {
-            var result = await sender.Send(new GetCategoriesQuery(search, sortBy), cancellationToken);
+            var result = await sender.Send(new GetCategoriesQuery(), cancellationToken);
             return result.ToHttpResult();
         })
         .AllowAnonymous()

@@ -4,8 +4,10 @@ public enum ProductSortBy
 {
     PriceAsc = 1,
     PriceLowToHigh = 1,
+    LowestPrice = 1,
     PriceDesc = 2,
     PriceHighToLow = 2,
+    HighestPrice = 2,
     BestSeller = 3,
     BestSelling = 3,
     Newest = 4,

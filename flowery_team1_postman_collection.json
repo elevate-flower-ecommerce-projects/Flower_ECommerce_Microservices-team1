@@ -2153,7 +2153,7 @@
 
                                                                  ],
                                                       "url":  {
-                                                                  "raw":  "{{baseUrl}}/api/v1/catalog/categories?sortBy=LowestPrice",
+                                                                  "raw":  "{{baseUrl}}/api/v1/catalog/categories",
                                                                   "host":  [
                                                                                "{{baseUrl}}"
                                                                            ],
@@ -2162,14 +2162,7 @@
                                                                                "v1",
                                                                                "catalog",
                                                                                "categories"
-                                                                           ],
-                                                                  "query":  [
-                                                                                {
-                                                                                    "key":  "sortBy",
-                                                                                    "value":  "LowestPrice",
-                                                                                    "description":  "Allowed: LowestPrice, HighestPrice, New, Old, Discount. Also accepts PriceAsc, PriceDesc, Newest, Oldest, PriceLowToHigh, PriceHighToLow, DiscountHighToLow."
-                                                                                }
-                                                                            ]
+                                                                           ]
                                                               }
                                                   }
                                   },
@@ -2230,7 +2223,7 @@
 
                                                                  ],
                                                       "url":  {
-                                                                  "raw":  "{{baseUrl}}/api/v1/catalog/products",
+                                                                  "raw":  "{{baseUrl}}/api/v1/catalog/products?page=1\u0026pageSize=20\u0026categoryId={{categoryId}}\u0026occasionId={{occasionId}}\u0026search=rose\u0026sortBy=LowestPrice",
                                                                   "host":  [
                                                                                "{{baseUrl}}"
                                                                            ],
@@ -2239,7 +2232,37 @@
                                                                                "v1",
                                                                                "catalog",
                                                                                "products"
-                                                                           ]
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "page",
+                                                                                    "value":  "1"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "pageSize",
+                                                                                    "value":  "20"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "categoryId",
+                                                                                    "value":  "{{categoryId}}",
+                                                                                    "description":  "Optional. Use selected category id from /catalog/categories."
+                                                                                },
+                                                                                {
+                                                                                    "key":  "occasionId",
+                                                                                    "value":  "{{occasionId}}",
+                                                                                    "description":  "Optional. Use selected occasion id from /catalog/occasions."
+                                                                                },
+                                                                                {
+                                                                                    "key":  "search",
+                                                                                    "value":  "rose",
+                                                                                    "description":  "Optional product name search."
+                                                                                },
+                                                                                {
+                                                                                    "key":  "sortBy",
+                                                                                    "value":  "LowestPrice",
+                                                                                    "description":  "Allowed: LowestPrice, HighestPrice, BestSeller, New, Old, Discount. Also accepts PriceAsc, PriceDesc, Newest, Oldest, PriceLowToHigh, PriceHighToLow, BestSelling, DiscountHighToLow."
+                                                                                }
+                                                                            ]
                                                               }
                                                   }
                                   },
@@ -2600,20 +2623,13 @@
 
                                                                  ],
                                                       "url":  {
-                                                                  "raw":  "{{baseUrl}}/categories?sortBy=LowestPrice",
+                                                                  "raw":  "{{baseUrl}}/categories",
                                                                   "host":  [
                                                                                "{{baseUrl}}"
                                                                            ],
                                                                   "path":  [
                                                                                "categories"
-                                                                           ],
-                                                                  "query":  [
-                                                                                {
-                                                                                    "key":  "sortBy",
-                                                                                    "value":  "LowestPrice",
-                                                                                    "description":  "Allowed: LowestPrice, HighestPrice, New, Old, Discount. Also accepts PriceAsc, PriceDesc, Newest, Oldest, PriceLowToHigh, PriceHighToLow, DiscountHighToLow."
-                                                                                }
-                                                                            ]
+                                                                           ]
                                                               }
                                                   }
                                   },
