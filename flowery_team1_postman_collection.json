@@ -587,6 +587,178 @@
                                                                               ]
                                                                }
                                                   }
+                                  },
+                                  {
+                                      "name":  "Get Customer Profile",
+                                      "request":  {
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "method":  "GET",
+                                                      "header":  {
+
+                                                                 },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/identity/users/me/profile",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "identity",
+                                                                               "users",
+                                                                               "me",
+                                                                               "profile"
+                                                                           ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Update Customer Profile",
+                                      "request":  {
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "method":  "PUT",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/identity/users/me/profile",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "identity",
+                                                                               "users",
+                                                                               "me",
+                                                                               "profile"
+                                                                           ]
+                                                              },
+                                                      "body":  {
+                                                                   "mode":  "formdata",
+                                                                   "formdata":  [
+                                                                                    {
+                                                                                        "key":  "fullName",
+                                                                                        "value":  "Nour Mohamed",
+                                                                                        "type":  "text"
+                                                                                    },
+                                                                                    {
+                                                                                        "key":  "email",
+                                                                                        "value":  "customer@flower.local",
+                                                                                        "type":  "text"
+                                                                                    },
+                                                                                    {
+                                                                                        "key":  "phoneNumber",
+                                                                                        "value":  "01010000001",
+                                                                                        "type":  "text"
+                                                                                    },
+                                                                                    {
+                                                                                        "key":  "gender",
+                                                                                        "value":  "Female",
+                                                                                        "type":  "text"
+                                                                                    },
+                                                                                    {
+                                                                                        "key":  "profilePicture",
+                                                                                        "type":  "file",
+                                                                                        "src":  [
+
+                                                                                                ],
+                                                                                        "disabled":  true,
+                                                                                        "description":  "Optional avatar upload. Enable and choose a JPG or PNG file."
+                                                                                    }
+                                                                                ]
+                                                               }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Get Driver Profile",
+                                      "request":  {
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "method":  "GET",
+                                                      "header":  {
+
+                                                                 },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/identity/drivers/me/profile",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "identity",
+                                                                               "drivers",
+                                                                               "me",
+                                                                               "profile"
+                                                                           ]
+                                                              }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Update Driver Profile",
+                                      "request":  {
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "method":  "PUT",
+                                                      "header":  {
+                                                                     "key":  "Content-Type",
+                                                                     "value":  "application/json",
+                                                                     "type":  "text"
+                                                                 },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/identity/drivers/me/profile",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "identity",
+                                                                               "drivers",
+                                                                               "me",
+                                                                               "profile"
+                                                                           ]
+                                                              },
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"driver@example.com\",\n  \"phoneNumber\": \"01011111111\",\n  \"gender\": \"Male\",\n  \"profilePictureUrl\": null,\n  \"vehicleType\": \"Motorcycle\",\n  \"vehiclePlateNumber\": \"UP16DL0007\",\n  \"country\": \"Egypt\"\n}"
+                                                               }
+                                                  }
                                   }
                               ]
                  },
@@ -1630,13 +1802,30 @@
                                                                    "mode":  "formdata",
                                                                    "formdata":  [
                                                                                     {
-                                                                                        "key":  "fullName",
-                                                                                        "value":  "Driver Name",
+                                                                                        "key":  "country",
+                                                                                        "value":  "Egypt",
                                                                                         "type":  "text"
                                                                                     },
                                                                                     {
+                                                                                        "key":  "firstLegalName",
+                                                                                        "value":  "John",
+                                                                                        "type":  "text"
+                                                                                    },
+                                                                                    {
+                                                                                        "key":  "secondLegalName",
+                                                                                        "value":  "Doe",
+                                                                                        "type":  "text"
+                                                                                    },
+                                                                                    {
+                                                                                        "key":  "fullName",
+                                                                                        "value":  "John Doe",
+                                                                                        "type":  "text",
+                                                                                        "disabled":  true,
+                                                                                        "description":  "Backward-compatible field. New clients should send firstLegalName and secondLegalName."
+                                                                                    },
+                                                                                    {
                                                                                         "key":  "phone",
-                                                                                        "value":  "+201011111111",
+                                                                                        "value":  "01011111111",
                                                                                         "type":  "text"
                                                                                     },
                                                                                     {
@@ -1656,7 +1845,12 @@
                                                                                     },
                                                                                     {
                                                                                         "key":  "vehiclePlateNumber",
-                                                                                        "value":  "ABC-123",
+                                                                                        "value":  "UP16DL0007",
+                                                                                        "type":  "text"
+                                                                                    },
+                                                                                    {
+                                                                                        "key":  "gender",
+                                                                                        "value":  "Male",
                                                                                         "type":  "text"
                                                                                     },
                                                                                     {

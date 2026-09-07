@@ -326,62 +326,6 @@ paths:
         '403':
           description: Caller is not a Customer.
 
-  /identity/users/me/profile:
-    get:
-      tags:
-        - Users
-      summary: Get my customer profile
-      description: Returns the authenticated customer's editable profile fields.
-      operationId: GetMyUserProfile
-      security:
-        - BearerAuth: []
-      responses:
-        '200':
-          description: Customer profile returned successfully.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserProfileOperationResult'
-        '401':
-          description: Missing or invalid token.
-        '403':
-          description: Caller is not a Customer.
-        '404':
-          description: Profile was not found.
-    put:
-      tags:
-        - Users
-      summary: Update my customer profile
-      description: Updates editable profile fields for the authenticated customer.
-      operationId: UpdateMyUserProfile
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateUserProfileRequest'
-      responses:
-        '200':
-          description: Customer profile updated successfully.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserProfileOperationResult'
-        '401':
-          description: Missing or invalid token.
-        '403':
-          description: Caller is not a Customer.
-        '404':
-          description: Profile was not found.
-        '422':
-          description: Profile validation or duplicate field failure.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ValidationErrorResult'
-
   /identity/drivers/me/profile:
     get:
       tags:
