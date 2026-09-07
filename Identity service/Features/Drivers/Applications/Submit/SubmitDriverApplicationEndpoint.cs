@@ -45,12 +45,16 @@ public sealed class SubmitDriverApplicationEndpoint : ICarterModule
         }
 
         var result = await sender.Send(new SubmitDriverApplicationCommand(
+            request.Country,
+            request.FirstLegalName,
+            request.SecondLegalName,
             request.FullName,
             request.Phone,
             request.Email,
             request.NationalId,
             request.VehicleType,
             request.VehiclePlateNumber,
+            request.Gender,
             request.Password,
             request.ConfirmPassword,
             documents), cancellationToken);

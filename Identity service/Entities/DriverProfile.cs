@@ -14,6 +14,7 @@ public class DriverProfile
 
     #region Driver details
 
+    public string Country { get; set; } = "Egypt";
     public VehicleType VehicleType { get; set; }
     public string PlateNumber { get; set; } = string.Empty;
     public string NationalId { get; set; } = string.Empty;

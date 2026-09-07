@@ -12,6 +12,10 @@ public class DriverProfileConfiguration : IEntityTypeConfiguration<DriverProfile
 
         builder.HasKey(driverProfile => driverProfile.Id);
 
+        builder.Property(driverProfile => driverProfile.Country)
+            .HasMaxLength(100)
+            .IsRequired();
+
         builder.Property(driverProfile => driverProfile.NationalId)
             .HasMaxLength(32)
             .IsRequired();

@@ -84,19 +84,25 @@ internal sealed class DriverApplicationUploadOperationFilter : IOperationFilter
                         Type = "object",
                         Required = new HashSet<string>
                         {
-                            "fullName",
+                            "country",
+                            "firstLegalName",
+                            "secondLegalName",
                             "phone",
                             "email",
                             "nationalId",
                             "vehicleType",
                             "vehiclePlateNumber",
+                            "gender",
                             "password",
                             "confirmPassword",
                             "documents"
                         },
                         Properties =
                         {
-                            ["fullName"] = new OpenApiSchema { Type = "string" },
+                            ["country"] = new OpenApiSchema { Type = "string", Example = new Microsoft.OpenApi.Any.OpenApiString("Egypt") },
+                            ["firstLegalName"] = new OpenApiSchema { Type = "string" },
+                            ["secondLegalName"] = new OpenApiSchema { Type = "string" },
+                            ["fullName"] = new OpenApiSchema { Type = "string", Description = "Backward-compatible full name field. New clients should send firstLegalName and secondLegalName." },
                             ["phone"] = new OpenApiSchema { Type = "string", Example = new Microsoft.OpenApi.Any.OpenApiString("01020000001") },
                             ["email"] = new OpenApiSchema { Type = "string", Format = "email" },
                             ["nationalId"] = new OpenApiSchema { Type = "string" },
@@ -104,9 +110,10 @@ internal sealed class DriverApplicationUploadOperationFilter : IOperationFilter
                             {
                                 Type = "integer",
                                 Format = "int32",
-                                Description = "0 = Motorcycle, 1 = Car, 2 = Van"
+                                Description = "0 = Motorcycle, 1 = Car"
                             },
                             ["vehiclePlateNumber"] = new OpenApiSchema { Type = "string" },
+                            ["gender"] = new OpenApiSchema { Type = "string", Description = "Male or Female" },
                             ["password"] = new OpenApiSchema { Type = "string", Format = "password" },
                             ["confirmPassword"] = new OpenApiSchema { Type = "string", Format = "password" },
                             ["documents"] = new OpenApiSchema

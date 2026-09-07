@@ -35,14 +35,16 @@ public sealed class SubmitDriverApplicationHandler(
         #region Create identity account
 
         var email = request.Email.Trim().ToLowerInvariant();
-        var name = SplitFullName(request.FullName);
+        var name = ResolveName(request);
+        _ = Enum.TryParse<Gender>(request.Gender.Trim(), ignoreCase: true, out var gender);
         var user = new ApplicationUser
         {
             FirstName = name.FirstName,
             LastName = name.LastName,
             UserName = email,
             Email = email,
-            PhoneNumber = request.Phone.Trim()
+            PhoneNumber = request.Phone.Trim(),
+            Gender = gender
         };
 
         var created = await userManager.CreateAsync(user, request.Password);
@@ -69,6 +71,7 @@ public sealed class SubmitDriverApplicationHandler(
         await unitOfWork.Repository<DriverProfile, Guid>().Create(new DriverProfile
         {
             UserId = user.Id,
+            Country = request.Country.Trim(),
             NationalId = request.NationalId.Trim(),
             VehicleType = request.VehicleType,
             PlateNumber = request.VehiclePlateNumber.Trim()
@@ -133,9 +136,12 @@ public sealed class SubmitDriverApplicationHandler(
         return errors;
     }
 
-    private static (string FirstName, string LastName) SplitFullName(string fullName)
+    private static (string FirstName, string LastName) ResolveName(SubmitDriverApplicationCommand request)
     {
-        var parts = fullName.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+        if (!string.IsNullOrWhiteSpace(request.FirstLegalName) && !string.IsNullOrWhiteSpace(request.SecondLegalName))
+            return (request.FirstLegalName.Trim(), request.SecondLegalName.Trim());
+
+        var parts = request.FullName.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
         return parts.Length == 1
             ? (parts[0], parts[0])
             : (parts[0], parts[1]);
