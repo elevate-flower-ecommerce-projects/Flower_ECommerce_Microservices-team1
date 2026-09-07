@@ -1,5 +1,6 @@
 ﻿using MassTransit;
 using NotificationService.Shared.Models;
+using NotificationService.Shared.Services;
 
 namespace NotificationService.Extensions;
 
@@ -29,6 +30,11 @@ public static class RegisterInfrastructure
                 // 4. Configure endpoints (this will auto-configure queues for your consumers)
                 cfg.ConfigureEndpoints(context);
             });
+        });
+
+        services.AddHttpClient<AuthServiceClient>(client =>
+        {
+            client.BaseAddress = new Uri("http://identityservice:8080");
         });
         return services;
     }
