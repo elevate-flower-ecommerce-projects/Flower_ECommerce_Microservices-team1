@@ -20,4 +20,5 @@ public class ApplicationUser : IdentityUser
     public Gender? Gender { get; set; }
     public ICollection<PasswordResetRequest> PasswordResetRequests { get; set; } = [];
     public ICollection<PasswordResetAuditEvent> PasswordResetAuditEvents { get; set; } = [];
+    public ICollection<UserFCMToken> UserFCMTokens { get; set; } = [];
 }

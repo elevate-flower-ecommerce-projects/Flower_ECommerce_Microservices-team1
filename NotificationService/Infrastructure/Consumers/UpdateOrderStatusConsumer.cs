@@ -13,7 +13,8 @@ public class UpdateOrderStatusConsumer(IMediator mediator) : IConsumer<UpdateOrd
     {
         var result = await _mediator.Send(new SendUpdateOrderStatusNotificationQuery(
             OrderId: context.Message.OrderId,
-            OrderStatus: context.Message.OrderStatus
+            OrderStatus: context.Message.OrderStatus,
+            UserId: context.Message.UserId
         ));
 
     }
