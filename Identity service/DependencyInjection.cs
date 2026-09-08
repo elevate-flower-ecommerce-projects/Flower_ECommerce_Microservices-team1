@@ -1,5 +1,6 @@
 using Flower.Common.StandardizedResponse;
 using Identity_service.Exceptions;
+using Identity_service.Infrastructure.Persistence.Repositories;
 using System.Reflection;
 using System.Threading.RateLimiting;
 
@@ -75,7 +76,7 @@ public static class DependencyInjection
         mappingConfiguration.Scan(assembly);
 
         services.AddSingleton<IMapper>(new Mapper(mappingConfiguration));
-
+        services.AddInfrastructureDependancies(configuration);
         return services;
     }
 
@@ -225,6 +226,12 @@ public static class DependencyInjection
             };
         });
 
+        return services;
+    }
+
+    private static IServiceCollection AddInfrastructureDependancies(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddScoped(typeof(Repository<>));
         return services;
     }
 }

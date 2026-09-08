@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Identity_service.Abstractions;
 using Identity_service.Entities;
 using Identity_service.Errors;
+using Identity_service.Features.Users.StoreFCMToken;
 using Identity_service.Services;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
@@ -13,7 +14,7 @@ public sealed class LoginHandler(
     SignInManager<ApplicationUser> signInManager,
     IDriverLoginStatusGuard driverLoginStatusGuard,
     IJwtTokenService jwtTokenService,
-    ILogger<LoginHandler> logger)
+    ILogger<LoginHandler> logger ,IMediator mediator)
     : IRequestHandler<LoginCommand, Result<LoginResponseDto>>
 {
     public async Task<Result<LoginResponseDto>> Handle(
@@ -76,6 +77,8 @@ public sealed class LoginHandler(
             cancellationToken);
 
         logger.LogInformation("Login succeeded for account {UserId} with role {Role}", user.Id, role);
+
+        await mediator.Send(new UpSertFCMTokenOrchestrator(user.Id, request.DeviceId, request.FCMToken));
 
         return Result.Success(new LoginResponseDto(
             tokens.AccessToken,

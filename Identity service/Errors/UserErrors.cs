@@ -34,4 +34,10 @@ public static class UserErrors
 
     public static readonly Error InvalidToken =
         new("User.InvalidToken", "The provided token is invalid.", StatusCodes.Status401Unauthorized);
+
+    public static readonly Error FCMTokenNotFoundForThisDevice =
+        new("FCMToken.NotFoundForThisevice", "FCM Token Not Found For This Device.", StatusCodes.Status404NotFound);
+
+    public static readonly Error CanNotInsertFCMToken =
+       new("FCMToken.CanNotInsertFCMToken", "Can Not Insert FCM Token", StatusCodes.Status500InternalServerError);
 }

@@ -3,7 +3,7 @@ using MediatR;
 
 namespace Identity_service.Features.Users.Login;
 
-public sealed record LoginCommand(string Email, string Password)
+public sealed record LoginCommand(string Email, string Password ,string FCMToken , string DeviceId)
     : IRequest<Result<LoginResponseDto>>;
 
 public class LoginCommandValidator : AbstractValidator<LoginCommand>

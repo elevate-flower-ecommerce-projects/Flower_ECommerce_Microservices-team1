@@ -23,7 +23,7 @@ public sealed class LoginController(ISender sender, ILogger<LoginController> log
     {
         try
         {
-            var result = await sender.Send(new LoginCommand(request.Email, request.Password), cancellationToken);
+            var result = await sender.Send(new LoginCommand(request.Email, request.Password, request.DeviceId, request.FCMToken), cancellationToken);
             return ToActionResult(result);
         }
         catch (Exception exception)

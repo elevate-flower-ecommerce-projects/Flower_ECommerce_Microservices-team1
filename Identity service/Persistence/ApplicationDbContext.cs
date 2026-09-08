@@ -14,7 +14,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<DriverDocument> DriverDocuments => Set<DriverDocument>();
     public DbSet<PasswordResetRequest> PasswordResetRequests => Set<PasswordResetRequest>();
     public DbSet<PasswordResetAuditEvent> PasswordResetAuditEvents => Set<PasswordResetAuditEvent>();
-
+    public DbSet<UserFCMToken> UserFCMTokens {  get; set; }
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
