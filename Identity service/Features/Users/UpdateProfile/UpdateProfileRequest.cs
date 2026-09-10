@@ -9,4 +9,13 @@ public sealed class UpdateProfileRequest
 
     /// <summary>Optional. Omitting it keeps the current avatar.</summary>
     public IFormFile? ProfilePicture { get; set; }
+
+    /// <summary>Driver only. Omit to keep the current vehicle type.</summary>
+    public string? VehicleType { get; set; }
+
+    /// <summary>Driver only. Omit to keep the current vehicle plate number.</summary>
+    public string? VehiclePlateNumber { get; set; }
+
+    /// <summary>Driver only. Omit to keep the current country.</summary>
+    public string? Country { get; set; }
 }

@@ -93,7 +93,7 @@ paths:
       summary: Read the signed-in user's profile
       description: >-
         Returns the caller's own profile. Open to every authenticated role, since customers,
-        drivers and admins all have a name, email, phone and avatar.
+        drivers and admins all have a name, email, phone and avatar. Driver callers also receive `vehicleType`, `vehiclePlateNumber` and `country`.
       operationId: GetMyProfile
       security:
         - BearerAuth: []
@@ -129,6 +129,9 @@ paths:
 
         Omitting `profilePicture` keeps the current avatar; sending a new one replaces it and
         deletes the previous file.
+
+        Driver callers may also send `vehicleType`, `vehiclePlateNumber`, and `country`.
+        Omitting any driver vehicle field keeps its current value.
       operationId: UpdateMyProfile
       security:
         - BearerAuth: []
@@ -1612,6 +1615,24 @@ components:
           description: >-
             True when this response changed the login email. Refresh tokens were revoked and the
             client must sign in again with the new address. Always false on GET.
+        vehicleType:
+          type: string
+          nullable: true
+          enum: [Motorcycle, Car]
+          description: Driver-only vehicle type. Null for customers and admins.
+          example: Motorcycle
+        vehiclePlateNumber:
+          type: string
+          nullable: true
+          maxLength: 32
+          description: Driver-only vehicle plate number. Null for customers and admins.
+          example: UP16DL0007
+        country:
+          type: string
+          nullable: true
+          maxLength: 100
+          description: Driver-only country. Null for customers and admins.
+          example: Egypt
 
     UpdateProfileRequest:
       type: object
@@ -1638,6 +1659,24 @@ components:
           format: binary
           nullable: true
           description: Optional jpg or png, 5MB maximum. Omit to keep the current avatar.
+        vehicleType:
+          type: string
+          nullable: true
+          enum: [Motorcycle, Car]
+          description: Driver-only. Omit to keep the current vehicle type.
+          example: Motorcycle
+        vehiclePlateNumber:
+          type: string
+          nullable: true
+          maxLength: 32
+          description: Driver-only. Omit to keep the current vehicle plate number.
+          example: UP16DL0007
+        country:
+          type: string
+          nullable: true
+          maxLength: 100
+          description: Driver-only. Omit to keep the current country.
+          example: Egypt
 
     Cart:
       type: object

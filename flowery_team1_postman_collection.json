@@ -1,4 +1,4 @@
-﻿{
+{
     "info":  {
                  "_postman_id":  "flowery-team1-api-gateway-collection",
                  "name":  "Flowery E-Commerce API Gateway (Team 1)",
@@ -674,6 +674,91 @@
                                                                                         "key":  "gender",
                                                                                         "value":  "Female",
                                                                                         "type":  "text"
+                                                                                    },
+                                                                                    {
+                                                                                        "key":  "profilePicture",
+                                                                                        "type":  "file",
+                                                                                        "src":  [
+
+                                                                                                ],
+                                                                                        "disabled":  true,
+                                                                                        "description":  "Optional avatar upload. Enable and choose a JPG or PNG file."
+                                                                                    }
+                                                                                ]
+                                                               }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Update Driver Profile (Shared)",
+                                      "request":  {
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "method":  "PUT",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/identity/users/me/profile",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "identity",
+                                                                               "users",
+                                                                               "me",
+                                                                               "profile"
+                                                                           ]
+                                                              },
+                                                      "body":  {
+                                                                   "mode":  "formdata",
+                                                                   "formdata":  [
+                                                                                    {
+                                                                                        "key":  "fullName",
+                                                                                        "value":  "John Doe",
+                                                                                        "type":  "text"
+                                                                                    },
+                                                                                    {
+                                                                                        "key":  "email",
+                                                                                        "value":  "driver@example.com",
+                                                                                        "type":  "text"
+                                                                                    },
+                                                                                    {
+                                                                                        "key":  "phoneNumber",
+                                                                                        "value":  "01011111111",
+                                                                                        "type":  "text"
+                                                                                    },
+                                                                                    {
+                                                                                        "key":  "gender",
+                                                                                        "value":  "Male",
+                                                                                        "type":  "text"
+                                                                                    },
+                                                                                    {
+                                                                                        "key":  "vehicleType",
+                                                                                        "value":  "Motorcycle",
+                                                                                        "type":  "text",
+                                                                                        "description":  "Driver-only. Valid values: Motorcycle, Car."
+                                                                                    },
+                                                                                    {
+                                                                                        "key":  "vehiclePlateNumber",
+                                                                                        "value":  "UP16DL0007",
+                                                                                        "type":  "text",
+                                                                                        "description":  "Driver-only vehicle plate number."
+                                                                                    },
+                                                                                    {
+                                                                                        "key":  "country",
+                                                                                        "value":  "Egypt",
+                                                                                        "type":  "text",
+                                                                                        "description":  "Driver-only. Omit to keep the current country."
                                                                                     },
                                                                                     {
                                                                                         "key":  "profilePicture",

@@ -10,4 +10,7 @@ public sealed record UserProfileResponse(
     string? Gender,
     string? ProfilePictureUrl,
     IReadOnlyList<string> Roles,
-    bool EmailChanged);
+    bool EmailChanged,
+    string? VehicleType,
+    string? VehiclePlateNumber,
+    string? Country);

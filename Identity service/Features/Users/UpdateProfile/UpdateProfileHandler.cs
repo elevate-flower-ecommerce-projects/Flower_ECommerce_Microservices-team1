@@ -27,9 +27,26 @@ public sealed class UpdateProfileHandler(
                 messageLocalized: UpdateProfileMessages.UserNotFound);
         }
 
+        var roles = await userManager.GetRolesAsync(user);
+        var isDriver = roles.Contains(ApplicationRoleNames.Driver);
+
         var validationErrors = await validator.ValidateAsync(request, cancellationToken);
+        if (isDriver)
+            AddDriverProfileValidationErrors(request, validationErrors);
+
         if (validationErrors.Count > 0)
             return ValidationFailure(validationErrors);
+
+        var driverProfile = isDriver
+            ? await dbContext.DriverProfiles.SingleOrDefaultAsync(profile => profile.UserId == user.Id, cancellationToken)
+            : null;
+
+        if (isDriver && driverProfile is null)
+        {
+            return OperationResultFactory.NotFound<object>(
+                message: "Driver profile was not found.",
+                messageLocalized: "Driver profile was not found.");
+        }
 
         var email = request.Email.Trim().ToLowerInvariant();
         var phoneNumber = request.PhoneNumber.Trim();
@@ -53,6 +70,8 @@ public sealed class UpdateProfileHandler(
             user.FirstName = name.FirstName;
             user.LastName = name.LastName;
             user.Gender = gender;
+
+            ApplyDriverProfileUpdates(request, driverProfile);
 
             if (emailChanged)
             {
@@ -81,18 +100,18 @@ public sealed class UpdateProfileHandler(
             if (emailChanged)
                 await RevokeActiveRefreshTokensAsync(user.Id, cancellationToken);
 
+            await dbContext.SaveChangesAsync(cancellationToken);
+
             // Only drop the previous file once the new one is safely persisted.
             if (storedAvatarUrl is not null)
                 await avatarStorage.DeleteAsync(previousAvatarUrl, cancellationToken);
-
-            var roles = await userManager.GetRolesAsync(user);
 
             var message = emailChanged
                 ? UpdateProfileMessages.EmailChangedSignOut
                 : UpdateProfileMessages.ProfileUpdated;
 
             return OperationResultFactory.Success<object>(
-                user.ToProfileResponse(roles, emailChanged),
+                user.ToProfileResponse(roles, emailChanged, driverProfile),
                 message,
                 message);
         }
@@ -146,6 +165,64 @@ public sealed class UpdateProfileHandler(
         await avatarStorage.DeleteAsync(storedAvatarUrl, cancellationToken);
         return ValidationFailure(errors);
     }
+
+    private static void AddDriverProfileValidationErrors(
+        UpdateProfileCommand request,
+        Dictionary<string, string[]> errors)
+    {
+        var vehicleType = request.VehicleType?.Trim();
+        var plateNumber = request.VehiclePlateNumber?.Trim();
+        var country = request.Country?.Trim();
+
+        UserProfileFieldRules.AddIf(
+            errors,
+            nameof(request.VehicleType),
+            vehicleType is not null && (vehicleType.Length == 0 || !IsSupportedVehicleType(vehicleType)),
+            "Vehicle type must be Motorcycle or Car.");
+
+        UserProfileFieldRules.AddIf(
+            errors,
+            nameof(request.VehiclePlateNumber),
+            plateNumber is not null && plateNumber.Length == 0,
+            "Vehicle plate number is required.");
+        UserProfileFieldRules.AddIf(
+            errors,
+            nameof(request.VehiclePlateNumber),
+            plateNumber?.Length > 32,
+            "Vehicle plate number must not exceed 32 characters.");
+
+        UserProfileFieldRules.AddIf(
+            errors,
+            nameof(request.Country),
+            country is not null && country.Length == 0,
+            "Country is required.");
+        UserProfileFieldRules.AddIf(
+            errors,
+            nameof(request.Country),
+            country?.Length > 100,
+            "Country must not exceed 100 characters.");
+    }
+
+    private static void ApplyDriverProfileUpdates(UpdateProfileCommand request, DriverProfile? driverProfile)
+    {
+        if (driverProfile is null)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(request.VehicleType)
+            && Enum.TryParse<VehicleType>(request.VehicleType.Trim(), ignoreCase: true, out var vehicleType))
+        {
+            driverProfile.VehicleType = vehicleType;
+        }
+
+        if (request.VehiclePlateNumber is not null)
+            driverProfile.PlateNumber = request.VehiclePlateNumber.Trim();
+
+        if (request.Country is not null)
+            driverProfile.Country = request.Country.Trim();
+    }
+
+    private static bool IsSupportedVehicleType(string value)
+        => Enum.TryParse<VehicleType>(value, ignoreCase: true, out var vehicleType) && Enum.IsDefined(vehicleType);
 
     private static OperationResult<object> ValidationFailure(Dictionary<string, string[]> errors)
         => OperationResultFactory.Validation<object>(
