@@ -1,5 +1,11 @@
+using System.Text.Json.Serialization;
+
 namespace Identity_service.Features.Users.UpdateProfile;
 
+/// <summary>
+/// The vehicle fields only exist for drivers, so they are left out of the JSON entirely for
+/// customers and admins instead of being sent as null.
+/// </summary>
 public sealed record UserProfileResponse(
     string UserId,
     string FullName,
@@ -11,6 +17,6 @@ public sealed record UserProfileResponse(
     string? ProfilePictureUrl,
     IReadOnlyList<string> Roles,
     bool EmailChanged,
-    string? VehicleType,
-    string? VehiclePlateNumber,
-    string? Country);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? VehicleType,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? VehiclePlateNumber,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Country);
