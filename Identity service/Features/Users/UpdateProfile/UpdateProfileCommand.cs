@@ -5,11 +5,9 @@ namespace Identity_service.Features.Users.UpdateProfile;
 
 public sealed record UpdateProfileCommand(
     string UserId,
-    string FullName,
+    string FirstName,
+    string LastName,
     string Email,
     string PhoneNumber,
-    string Gender,
-    IFormFile? ProfilePicture,
-    string? VehicleType,
-    string? VehiclePlateNumber,
-    string? Country) : IRequest<OperationResult<object>>;
+    Gender? Gender,
+    IFormFile? ProfilePicture) : IRequest<OperationResult<object>>;

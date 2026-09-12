@@ -3,20 +3,16 @@ using System.Text.Json.Serialization;
 namespace Identity_service.Features.Users.UpdateProfile;
 
 /// <summary>
-/// The vehicle fields only exist for drivers, so they are left out of the JSON entirely for
-/// customers and admins instead of being sent as null.
+/// Account data shared by every role. Vehicle details are returned by /drivers/me/profile.
 /// </summary>
 public sealed record UserProfileResponse(
     string UserId,
-    string FullName,
     string FirstName,
     string LastName,
+    string FullName,
     string? Email,
     string? PhoneNumber,
-    string? Gender,
+    [property: JsonConverter(typeof(JsonStringEnumConverter<Gender>))] Gender? Gender,
     string? ProfilePictureUrl,
     IReadOnlyList<string> Roles,
-    bool EmailChanged,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? VehicleType,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? VehiclePlateNumber,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Country);
+    bool EmailChanged);

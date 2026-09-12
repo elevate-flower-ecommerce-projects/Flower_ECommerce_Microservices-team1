@@ -92,8 +92,10 @@ paths:
         - Users
       summary: Read the signed-in user's profile
       description: >-
-        Returns the caller's own profile. Open to every authenticated role, since customers,
-        drivers and admins all have a name, email, phone and avatar. Driver callers also receive `vehicleType`, `vehiclePlateNumber` and `country`.
+        Returns the caller's own account profile. Open to every authenticated role, since
+        customers, drivers and admins all have a name, email, phone, gender and avatar. This is
+        the Edit profile screen, which is identical in the customer and driver apps. Vehicle
+        details are returned by `/identity/drivers/me/profile`.
       operationId: GetMyProfile
       security:
         - BearerAuth: []
@@ -130,8 +132,9 @@ paths:
         Omitting `profilePicture` keeps the current avatar; sending a new one replaces it and
         deletes the previous file.
 
-        Driver callers may also send `vehicleType`, `vehiclePlateNumber`, and `country`.
-        Omitting any driver vehicle field keeps its current value.
+        Fields match the Edit profile screen: `firstName`, `lastName`, `email`, `phoneNumber`,
+        `gender`, `profilePicture`. Vehicle details are updated through
+        `/identity/drivers/me/profile`. Password changes are not part of this endpoint.
       operationId: UpdateMyProfile
       security:
         - BearerAuth: []
@@ -156,6 +159,13 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/UserProfile'
+        '400':
+          description: >-
+            The form could not be read, for example `gender` is not one of the allowed values.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
         '401':
           description: Missing or invalid token.
         '404':
@@ -333,14 +343,17 @@ paths:
     get:
       tags:
         - Driver Applications
-      summary: Get my driver profile
-      description: Returns the authenticated driver's editable identity and vehicle profile fields.
+      summary: Get my vehicle info
+      description: >-
+        Returns the signed-in driver's Vehicle info screen: vehicle type, vehicle number and the
+        current vehicle license. Name, email, phone, gender and photo come from
+        `/identity/users/me/profile`, shared with customers.
       operationId: GetMyDriverProfile
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: Driver profile returned successfully.
+          description: Vehicle info returned successfully.
           content:
             application/json:
               schema:
@@ -350,40 +363,89 @@ paths:
         '403':
           description: Caller is not a Driver.
         '404':
-          description: Profile was not found.
+          description: Driver profile was not found.
     put:
       tags:
         - Driver Applications
-      summary: Update my driver profile
-      description: Updates editable profile and vehicle fields for the authenticated driver.
+      summary: Update my vehicle info
+      description: >-
+        Updates the vehicle type and number and, optionally, replaces the vehicle license.
+        Omitting `vehicleLicense` keeps the current one. Every license upload is kept with the
+        driver's application documents, so admins can still see earlier versions.
       operationId: UpdateMyDriverProfile
       security:
         - BearerAuth: []
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               $ref: '#/components/schemas/UpdateDriverProfileRequest'
+            encoding:
+              vehicleLicense:
+                contentType: image/jpeg, image/png, application/pdf
       responses:
         '200':
-          description: Driver profile updated successfully.
+          description: Vehicle info updated successfully.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/DriverProfileOperationResult'
+        '400':
+          description: >-
+            The form could not be read, for example `vehicleType` is not one of the allowed values.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
         '401':
           description: Missing or invalid token.
         '403':
           description: Caller is not a Driver.
         '404':
-          description: Profile was not found.
+          description: Driver profile or application was not found.
         '422':
-          description: Profile validation or duplicate field failure.
+          description: >-
+            Validation failed. `data` maps field names to messages, for example
+            `{"VehicleNumber":["Vehicle number is required."]}`.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationErrorResult'
+
+  /identity/drivers/me/profile/vehicle-license:
+    get:
+      tags:
+        - Driver Applications
+      summary: Download my vehicle license
+      description: >-
+        Streams the signed-in driver's current vehicle license. The file is private, so it is
+        only reachable through this authorized endpoint and never through a public link.
+      operationId: DownloadMyVehicleLicense
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: The license file.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Missing or invalid token.
+        '403':
+          description: Caller is not a Driver.
+        '404':
+          description: No license was uploaded yet.
 
   /identity/drivers/applications:
     post:
@@ -1581,13 +1643,16 @@ components:
         userId:
           type: string
           format: uuid
-        fullName:
-          type: string
-          example: "Mariam Ahmed"
         firstName:
           type: string
+          example: "Mariam"
         lastName:
           type: string
+          example: "Ahmed"
+        fullName:
+          type: string
+          description: First and last name joined, for headers such as the Profile screen.
+          example: "Mariam Ahmed"
         email:
           type: string
           format: email
@@ -1615,34 +1680,20 @@ components:
           description: >-
             True when this response changed the login email. Refresh tokens were revoked and the
             client must sign in again with the new address. Always false on GET.
-        vehicleType:
-          type: string
-          nullable: true
-          enum: [Motorcycle, Car]
-          description: Driver-only vehicle type. Null for customers and admins.
-          example: Motorcycle
-        vehiclePlateNumber:
-          type: string
-          nullable: true
-          maxLength: 32
-          description: Driver-only vehicle plate number. Null for customers and admins.
-          example: UP16DL0007
-        country:
-          type: string
-          nullable: true
-          maxLength: 100
-          description: Driver-only country. Null for customers and admins.
-          example: Egypt
 
     UpdateProfileRequest:
       type: object
-      required: [fullName, email, phoneNumber, gender]
+      description: Mirrors the Edit profile screen, identical in the customer and driver apps.
+      required: [firstName, lastName, email, phoneNumber, gender]
       properties:
-        fullName:
+        firstName:
           type: string
-          maxLength: 201
-          description: Split into first and last name the same way registration does.
-          example: "Mariam Ahmed"
+          maxLength: 100
+          example: "Mariam"
+        lastName:
+          type: string
+          maxLength: 100
+          example: "Ahmed"
         email:
           type: string
           format: email
@@ -1659,24 +1710,66 @@ components:
           format: binary
           nullable: true
           description: Optional jpg or png, 5MB maximum. Omit to keep the current avatar.
+
+    DriverProfile:
+      type: object
+      description: Mirrors the driver app's Vehicle info screen.
+      properties:
         vehicleType:
+          $ref: '#/components/schemas/VehicleType'
+        vehicleNumber:
           type: string
-          nullable: true
-          enum: [Motorcycle, Car]
-          description: Driver-only. Omit to keep the current vehicle type.
-          example: Motorcycle
-        vehiclePlateNumber:
-          type: string
-          nullable: true
           maxLength: 32
-          description: Driver-only. Omit to keep the current vehicle plate number.
           example: UP16DL0007
-        country:
-          type: string
+        vehicleLicense:
+          allOf:
+            - $ref: '#/components/schemas/DriverVehicleLicense'
           nullable: true
-          maxLength: 100
-          description: Driver-only. Omit to keep the current country.
-          example: Egypt
+
+    DriverVehicleLicense:
+      type: object
+      description: The license is private; download it through `downloadUrl` with the driver's token.
+      properties:
+        documentId:
+          type: string
+          format: uuid
+        fileName:
+          type: string
+          example: license.pdf
+        contentType:
+          type: string
+          example: application/pdf
+        uploadedAt:
+          type: string
+          format: date-time
+        downloadUrl:
+          type: string
+          example: /drivers/me/profile/vehicle-license
+
+    DriverProfileOperationResult:
+      allOf:
+        - $ref: '#/components/schemas/OperationResult'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/DriverProfile'
+
+    UpdateDriverProfileRequest:
+      type: object
+      description: Mirrors the Vehicle info screen.
+      required: [vehicleType, vehicleNumber]
+      properties:
+        vehicleType:
+          $ref: '#/components/schemas/VehicleType'
+        vehicleNumber:
+          type: string
+          maxLength: 32
+          example: UP16DL0007
+        vehicleLicense:
+          type: string
+          format: binary
+          nullable: true
+          description: Optional jpg, png or pdf, 5MB maximum. Omit to keep the current license.
 
     Cart:
       type: object

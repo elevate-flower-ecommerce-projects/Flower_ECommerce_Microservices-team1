@@ -62,6 +62,7 @@ public static class DependencyInjection
         services.AddProblemDetails();
 
         services.AddExceptionHandler<ValidationExceptionHandler>();
+        services.AddExceptionHandler<BadRequestExceptionHandler>();
         services.AddExceptionHandler<GlobalExceptionHandler>();
 
         var assembly = Assembly.GetExecutingAssembly();

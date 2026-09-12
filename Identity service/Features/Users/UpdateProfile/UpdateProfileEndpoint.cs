@@ -68,14 +68,12 @@ public sealed class UpdateProfileEndpoint : ICarterModule
 
         var result = await sender.Send(new UpdateProfileCommand(
             userId,
-            request.FullName,
+            request.FirstName,
+            request.LastName,
             request.Email,
             request.PhoneNumber,
             request.Gender,
-            profilePicture,
-            request.VehicleType,
-            request.VehiclePlateNumber,
-            request.Country), cancellationToken);
+            profilePicture), cancellationToken);
 
         return result.ToHttpResult();
     }

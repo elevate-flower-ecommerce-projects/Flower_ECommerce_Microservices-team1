@@ -11,30 +11,13 @@ public sealed class GetMyDriverProfileHandler(ApplicationDbContext dbContext)
     {
         var profile = await dbContext.DriverProfiles
             .AsNoTracking()
-            .Include(driverProfile => driverProfile.User)
             .SingleOrDefaultAsync(driverProfile => driverProfile.UserId == request.UserId, cancellationToken);
 
-        if (profile?.User is null)
-        {
-            return OperationResultFactory.NotFound<DriverProfileResponse>(
-                message: "Driver profile was not found.",
-                messageLocalized: "Driver profile was not found.");
-        }
+        if (profile is null)
+            return DriverVehicleLicenseDocuments.DriverProfileNotFound<DriverProfileResponse>();
 
-        return OperationResultFactory.Success(ToResponse(profile.User, profile));
+        var license = await DriverVehicleLicenseDocuments.FindCurrentAsync(dbContext, request.UserId, cancellationToken);
+
+        return OperationResultFactory.Success(DriverVehicleLicenseDocuments.ToProfileResponse(profile, license));
     }
-
-    internal static DriverProfileResponse ToResponse(ApplicationUser user, DriverProfile profile)
-        => new(
-            user.Id,
-            user.FirstName,
-            user.LastName,
-            $"{user.FirstName} {user.LastName}".Trim(),
-            user.Email ?? string.Empty,
-            user.PhoneNumber ?? string.Empty,
-            user.Gender,
-            user.ProfilePictureUrl,
-            profile.VehicleType,
-            profile.PlateNumber,
-            profile.Country);
 }

@@ -20,25 +20,26 @@ public sealed class UpdateProfileValidator(
     {
         var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
 
-        var fullName = request.FullName?.Trim() ?? string.Empty;
+        var firstName = request.FirstName?.Trim() ?? string.Empty;
+        var lastName = request.LastName?.Trim() ?? string.Empty;
         var email = request.Email?.Trim().ToLowerInvariant() ?? string.Empty;
         var phoneNumber = request.PhoneNumber?.Trim() ?? string.Empty;
-        var gender = request.Gender?.Trim() ?? string.Empty;
 
         #region Required fields and formats
 
-        UserProfileFieldRules.AddIf(errors, nameof(request.FullName), fullName.Length == 0, "Full name is required.");
+        UserProfileFieldRules.AddIf(errors, nameof(request.FirstName), firstName.Length == 0, "First name is required.");
+        UserProfileFieldRules.AddIf(
+            errors,
+            nameof(request.FirstName),
+            firstName.Length > UserProfileFieldRules.MaxNamePartLength,
+            "First name must not exceed 100 characters.");
 
-        if (fullName.Length > 0)
-        {
-            var name = UserProfileFieldRules.SplitFullName(fullName);
-            UserProfileFieldRules.AddIf(
-                errors,
-                nameof(request.FullName),
-                name.FirstName.Length > UserProfileFieldRules.MaxNamePartLength
-                    || name.LastName.Length > UserProfileFieldRules.MaxNamePartLength,
-                "First name and last name must not exceed 100 characters each.");
-        }
+        UserProfileFieldRules.AddIf(errors, nameof(request.LastName), lastName.Length == 0, "Last name is required.");
+        UserProfileFieldRules.AddIf(
+            errors,
+            nameof(request.LastName),
+            lastName.Length > UserProfileFieldRules.MaxNamePartLength,
+            "Last name must not exceed 100 characters.");
 
         UserProfileFieldRules.AddIf(errors, nameof(request.Email), email.Length == 0, "Email is required.");
         UserProfileFieldRules.AddIf(
@@ -54,11 +55,11 @@ public sealed class UpdateProfileValidator(
             phoneNumber.Length > 0 && !UserProfileFieldRules.IsValidEgyptianMobile(phoneNumber),
             "Enter a valid Egyptian mobile number (01[0-2,5]XXXXXXXX).");
 
-        UserProfileFieldRules.AddIf(errors, nameof(request.Gender), gender.Length == 0, "Gender is required.");
+        UserProfileFieldRules.AddIf(errors, nameof(request.Gender), request.Gender is null, "Gender is required.");
         UserProfileFieldRules.AddIf(
             errors,
             nameof(request.Gender),
-            gender.Length > 0 && !UserProfileFieldRules.IsSupportedGender(gender),
+            request.Gender is { } gender && !Enum.IsDefined(gender),
             "Gender must be Male or Female.");
 
         ValidateProfilePicture(request.ProfilePicture, errors);

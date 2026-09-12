@@ -22,18 +22,6 @@ public static partial class UserProfileFieldRules
     public static bool IsValidEgyptianMobile(string phoneNumber)
         => EgyptianMobileRegex().IsMatch(phoneNumber);
 
-    public static bool IsSupportedGender(string value)
-        => Enum.TryParse<Gender>(value, ignoreCase: true, out var gender) && Enum.IsDefined(gender);
-
-    /// <summary>Splits a full name the same way registration does, so both produce identical rows.</summary>
-    public static (string FirstName, string LastName) SplitFullName(string fullName)
-    {
-        var parts = fullName.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length == 1
-            ? (parts[0], parts[0])
-            : (parts[0], parts[1]);
-    }
-
     public static void AddIf(
         Dictionary<string, string[]> errors,
         string field,

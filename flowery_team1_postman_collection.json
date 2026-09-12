@@ -656,8 +656,13 @@
                                                                    "mode":  "formdata",
                                                                    "formdata":  [
                                                                                     {
-                                                                                        "key":  "fullName",
-                                                                                        "value":  "Nour Mohamed",
+                                                                                        "key":  "firstName",
+                                                                                        "value":  "Nour",
+                                                                                        "type":  "text"
+                                                                                    },
+                                                                                    {
+                                                                                        "key":  "lastName",
+                                                                                        "value":  "Mohamed",
                                                                                         "type":  "text"
                                                                                     },
                                                                                     {
@@ -689,7 +694,7 @@
                                                   }
                                   },
                                   {
-                                      "name":  "Update Driver Profile (Shared)",
+                                      "name":  "Update Driver Account (Shared Edit profile screen)",
                                       "request":  {
                                                       "auth":  {
                                                                    "type":  "bearer",
@@ -723,8 +728,13 @@
                                                                    "mode":  "formdata",
                                                                    "formdata":  [
                                                                                     {
-                                                                                        "key":  "fullName",
-                                                                                        "value":  "John Doe",
+                                                                                        "key":  "firstName",
+                                                                                        "value":  "John",
+                                                                                        "type":  "text"
+                                                                                    },
+                                                                                    {
+                                                                                        "key":  "lastName",
+                                                                                        "value":  "Doe",
                                                                                         "type":  "text"
                                                                                     },
                                                                                     {
@@ -741,24 +751,6 @@
                                                                                         "key":  "gender",
                                                                                         "value":  "Male",
                                                                                         "type":  "text"
-                                                                                    },
-                                                                                    {
-                                                                                        "key":  "vehicleType",
-                                                                                        "value":  "Motorcycle",
-                                                                                        "type":  "text",
-                                                                                        "description":  "Driver-only. Valid values: Motorcycle, Car."
-                                                                                    },
-                                                                                    {
-                                                                                        "key":  "vehiclePlateNumber",
-                                                                                        "value":  "UP16DL0007",
-                                                                                        "type":  "text",
-                                                                                        "description":  "Driver-only vehicle plate number."
-                                                                                    },
-                                                                                    {
-                                                                                        "key":  "country",
-                                                                                        "value":  "Egypt",
-                                                                                        "type":  "text",
-                                                                                        "description":  "Driver-only. Omit to keep the current country."
                                                                                     },
                                                                                     {
                                                                                         "key":  "profilePicture",
@@ -807,7 +799,7 @@
                                                   }
                                   },
                                   {
-                                      "name":  "Update Driver Profile",
+                                      "name":  "Update Driver Vehicle Info",
                                       "request":  {
                                                       "auth":  {
                                                                    "type":  "bearer",
@@ -820,11 +812,9 @@
                                                                               ]
                                                                },
                                                       "method":  "PUT",
-                                                      "header":  {
-                                                                     "key":  "Content-Type",
-                                                                     "value":  "application/json",
-                                                                     "type":  "text"
-                                                                 },
+                                                      "header":  [
+
+                                                                 ],
                                                       "url":  {
                                                                   "raw":  "{{baseUrl}}/api/v1/identity/drivers/me/profile",
                                                                   "host":  [
@@ -840,9 +830,64 @@
                                                                            ]
                                                               },
                                                       "body":  {
-                                                                   "mode":  "raw",
-                                                                   "raw":  "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"driver@example.com\",\n  \"phoneNumber\": \"01011111111\",\n  \"gender\": \"Male\",\n  \"profilePictureUrl\": null,\n  \"vehicleType\": \"Motorcycle\",\n  \"vehiclePlateNumber\": \"UP16DL0007\",\n  \"country\": \"Egypt\"\n}"
+                                                                   "mode":  "formdata",
+                                                                   "formdata":  [
+                                                                                    {
+                                                                                        "key":  "vehicleType",
+                                                                                        "value":  "Motorcycle",
+                                                                                        "type":  "text",
+                                                                                        "description":  "Valid values: Motorcycle, Car."
+                                                                                    },
+                                                                                    {
+                                                                                        "key":  "vehicleNumber",
+                                                                                        "value":  "UP16DL0007",
+                                                                                        "type":  "text"
+                                                                                    },
+                                                                                    {
+                                                                                        "key":  "vehicleLicense",
+                                                                                        "type":  "file",
+                                                                                        "src":  [
+
+                                                                                                ],
+                                                                                        "disabled":  true,
+                                                                                        "description":  "Optional license upload. Enable and choose a JPG, PNG or PDF file."
+                                                                                    }
+                                                                                ]
                                                                }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Download My Vehicle License",
+                                      "request":  {
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/identity/drivers/me/profile/vehicle-license",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "identity",
+                                                                               "drivers",
+                                                                               "me",
+                                                                               "profile",
+                                                                               "vehicle-license"
+                                                                           ]
+                                                              }
                                                   }
                                   }
                               ]

@@ -1,15 +1,22 @@
 using Flower.Common.StandardizedResponse;
-using System.ComponentModel.DataAnnotations;
-using System.Text.RegularExpressions;
+using Identity_service.Features.Users;
+using Microsoft.Extensions.Options;
 
 namespace Identity_service.Features.Drivers.Profile;
 
-public sealed partial class UpdateMyDriverProfileHandler(
-    UserManager<ApplicationUser> userManager,
+/// <summary>
+/// Updates the driver's vehicle: type, number and, optionally, a new license document. Account
+/// fields are not touched here; they belong to /users/me/profile.
+/// </summary>
+public sealed class UpdateMyDriverProfileHandler(
     ApplicationDbContext dbContext,
+    IDriverDocumentStorage documentStorage,
+    IOptions<DriverDocumentStorageOptions> documentOptions,
     ILogger<UpdateMyDriverProfileHandler> logger)
     : IRequestHandler<UpdateMyDriverProfileCommand, OperationResult<object>>
 {
+    private const int MaxVehicleNumberLength = 32;
+
     public async Task<OperationResult<object>> Handle(
         UpdateMyDriverProfileCommand request,
         CancellationToken cancellationToken)
@@ -19,109 +26,120 @@ public sealed partial class UpdateMyDriverProfileHandler(
             return Validation(errors);
 
         var profile = await dbContext.DriverProfiles
-            .Include(driverProfile => driverProfile.User)
             .SingleOrDefaultAsync(driverProfile => driverProfile.UserId == request.UserId, cancellationToken);
 
-        if (profile?.User is null)
+        if (profile is null)
+            return DriverVehicleLicenseDocuments.DriverProfileNotFound<object>();
+
+        profile.VehicleType = request.VehicleType!.Value;
+        profile.PlateNumber = request.VehicleNumber.Trim();
+
+        if (request.VehicleLicense is not null)
         {
-            return OperationResultFactory.NotFound<object>(
-                message: "Driver profile was not found.",
-                messageLocalized: "Driver profile was not found.");
-        }
+            // The license is kept with the application documents so admins see every version.
+            var applicationId = await dbContext.Set<DriverApplication>()
+                .Where(application => application.UserId == request.UserId)
+                .OrderByDescending(application => application.SubmittedAt)
+                .Select(application => (Guid?)application.Id)
+                .FirstOrDefaultAsync(cancellationToken);
 
-        var user = profile.User;
-        var email = request.Email.Trim().ToLowerInvariant();
-        var phoneNumber = request.PhoneNumber.Trim();
-
-        if (await dbContext.Users.AnyAsync(candidate => candidate.Id != user.Id && candidate.NormalizedEmail == email.ToUpper(), cancellationToken))
-            errors[nameof(request.Email)] = ["Email already registered"];
-
-        if (await dbContext.Users.AnyAsync(candidate => candidate.Id != user.Id && candidate.PhoneNumber == phoneNumber, cancellationToken))
-            errors[nameof(request.PhoneNumber)] = ["Phone number already registered"];
-
-        if (errors.Count > 0)
-            return Validation(errors);
-
-        user.FirstName = request.FirstName.Trim();
-        user.LastName = request.LastName.Trim();
-        user.UserName = email;
-        user.Email = email;
-        user.PhoneNumber = phoneNumber;
-        user.ProfilePictureUrl = string.IsNullOrWhiteSpace(request.ProfilePictureUrl) ? null : request.ProfilePictureUrl.Trim();
-        _ = Enum.TryParse<Gender>(request.Gender.Trim(), ignoreCase: true, out var gender);
-        user.Gender = gender;
-
-        profile.VehicleType = request.VehicleType;
-        profile.PlateNumber = request.VehiclePlateNumber.Trim();
-        profile.Country = request.Country.Trim();
-
-        var updated = await userManager.UpdateAsync(user);
-        if (!updated.Succeeded)
-        {
-            logger.LogWarning("Failed to update driver profile {UserId}. Identity errors: {Errors}", user.Id, string.Join(", ", updated.Errors.Select(error => error.Code)));
-            foreach (var error in updated.Errors)
+            if (applicationId is null)
             {
-                var field = error.Code.Contains("Email", StringComparison.OrdinalIgnoreCase) || error.Code.Contains("UserName", StringComparison.OrdinalIgnoreCase)
-                    ? nameof(request.Email)
-                    : "Profile";
-
-                errors[field] = errors.TryGetValue(field, out var existing) ? [.. existing, error.Description] : [error.Description];
+                logger.LogWarning("Driver {UserId} has a profile but no application to attach the license to.", request.UserId);
+                return OperationResultFactory.NotFound<object>(
+                    message: "Driver application was not found.",
+                    messageLocalized: "Driver application was not found.");
             }
 
-            return Validation(errors);
+            var stored = await documentStorage.SaveAsync(applicationId.Value, request.VehicleLicense, cancellationToken);
+            dbContext.Set<DriverDocument>().Add(new DriverDocument
+            {
+                ApplicationId = applicationId.Value,
+                FileUrl = stored.StorageKey,
+                DocType = DriverVehicleLicenseDocuments.VehicleLicense,
+                OriginalFileName = stored.OriginalFileName,
+                ContentType = stored.ContentType,
+                SizeInBytes = stored.SizeInBytes
+            });
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return OperationResultFactory.Success<object>(GetMyDriverProfileHandler.ToResponse(user, profile), "Profile updated successfully.", "Profile updated successfully.");
+        var license = await DriverVehicleLicenseDocuments.FindCurrentAsync(dbContext, request.UserId, cancellationToken);
+
+        return OperationResultFactory.Success<object>(
+            DriverVehicleLicenseDocuments.ToProfileResponse(profile, license),
+            "Vehicle info updated successfully.",
+            "Vehicle info updated successfully.");
     }
 
-    private static Dictionary<string, string[]> Validate(UpdateMyDriverProfileCommand request)
+    private Dictionary<string, string[]> Validate(UpdateMyDriverProfileCommand request)
     {
         var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
-        var firstName = request.FirstName?.Trim() ?? string.Empty;
-        var lastName = request.LastName?.Trim() ?? string.Empty;
-        var email = request.Email?.Trim().ToLowerInvariant() ?? string.Empty;
-        var phoneNumber = request.PhoneNumber?.Trim() ?? string.Empty;
-        var gender = request.Gender?.Trim() ?? string.Empty;
-        var plateNumber = request.VehiclePlateNumber?.Trim() ?? string.Empty;
-        var country = request.Country?.Trim() ?? string.Empty;
-        var profilePictureUrl = request.ProfilePictureUrl?.Trim();
+        var vehicleNumber = request.VehicleNumber?.Trim() ?? string.Empty;
 
-        AddIf(errors, nameof(request.FirstName), firstName.Length == 0, "First name is required.");
-        AddIf(errors, nameof(request.FirstName), firstName.Length > 100, "First name must not exceed 100 characters.");
-        AddIf(errors, nameof(request.LastName), lastName.Length == 0, "Last name is required.");
-        AddIf(errors, nameof(request.LastName), lastName.Length > 100, "Last name must not exceed 100 characters.");
-        AddIf(errors, nameof(request.Email), email.Length == 0, "Email is required.");
-        AddIf(errors, nameof(request.Email), email.Length > 0 && (email.Length > 256 || !new EmailAddressAttribute().IsValid(email)), "Enter a valid email address.");
-        AddIf(errors, nameof(request.PhoneNumber), phoneNumber.Length == 0, "Phone number is required.");
-        AddIf(errors, nameof(request.PhoneNumber), phoneNumber.Length > 0 && !EgyptianMobileRegex().IsMatch(phoneNumber), "Enter a valid Egyptian mobile number (01[0-2,5]XXXXXXXX).");
-        AddIf(errors, nameof(request.Gender), gender.Length == 0, "Gender is required.");
-        AddIf(errors, nameof(request.Gender), gender.Length > 0 && !IsSupportedGender(gender), "Gender must be Male or Female.");
-        AddIf(errors, nameof(request.VehicleType), !Enum.IsDefined(request.VehicleType), "Vehicle type must be Motorcycle or Car.");
-        AddIf(errors, nameof(request.VehiclePlateNumber), plateNumber.Length == 0, "Vehicle plate number is required.");
-        AddIf(errors, nameof(request.VehiclePlateNumber), plateNumber.Length > 32, "Vehicle plate number must not exceed 32 characters.");
-        AddIf(errors, nameof(request.Country), country.Length == 0, "Country is required.");
-        AddIf(errors, nameof(request.Country), country.Length > 100, "Country must not exceed 100 characters.");
-        AddIf(errors, nameof(request.ProfilePictureUrl), profilePictureUrl?.Length > 512, "Profile picture URL must not exceed 512 characters.");
+        UserProfileFieldRules.AddIf(errors, nameof(request.VehicleType), request.VehicleType is null, "Vehicle type is required.");
+        UserProfileFieldRules.AddIf(
+            errors,
+            nameof(request.VehicleType),
+            request.VehicleType is { } vehicleType && !Enum.IsDefined(vehicleType),
+            "Vehicle type must be Motorcycle or Car.");
+
+        UserProfileFieldRules.AddIf(errors, nameof(request.VehicleNumber), vehicleNumber.Length == 0, "Vehicle number is required.");
+        UserProfileFieldRules.AddIf(
+            errors,
+            nameof(request.VehicleNumber),
+            vehicleNumber.Length > MaxVehicleNumberLength,
+            "Vehicle number must not exceed 32 characters.");
+
+        ValidateLicense(request.VehicleLicense, errors);
 
         return errors;
     }
 
-    private static OperationResult<object> Validation(Dictionary<string, string[]> errors)
-        => OperationResultFactory.Validation<object>(errors, "Profile validation failed.", "Profile validation failed.");
-
-    private static bool IsSupportedGender(string value)
-        => Enum.TryParse<Gender>(value, ignoreCase: true, out var gender) && Enum.IsDefined(gender);
-
-    private static void AddIf(Dictionary<string, string[]> errors, string field, bool condition, string message)
+    private void ValidateLicense(IFormFile? file, Dictionary<string, string[]> errors)
     {
-        if (!condition)
+        if (file is null)
             return;
 
-        errors[field] = errors.TryGetValue(field, out var current) ? [.. current, message] : [message];
+        var options = documentOptions.Value;
+        var allowedContentTypes = options.AllowedContentTypes.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        const string field = nameof(UpdateMyDriverProfileCommand.VehicleLicense);
+
+        UserProfileFieldRules.AddIf(errors, field, file.Length <= 0, "The selected file is empty.");
+        UserProfileFieldRules.AddIf(
+            errors,
+            field,
+            file.Length > options.MaxFileSizeBytes,
+            $"The file exceeds the {options.MaxFileSizeBytes / (1024 * 1024)}MB size limit.");
+
+        // The declared content type comes from the client, so the file signature is checked too.
+        UserProfileFieldRules.AddIf(
+            errors,
+            field,
+            file.Length > 0 && (!allowedContentTypes.Contains(file.ContentType) || !HasAllowedSignature(file)),
+            "The vehicle license must be a jpg, png or pdf file.");
     }
 
-    [GeneratedRegex(@"^01[0125]\d{8}$", RegexOptions.CultureInvariant)]
-    private static partial Regex EgyptianMobileRegex();
+    private static readonly byte[] PngSignature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+    private static readonly byte[] JpegSignature = [0xFF, 0xD8, 0xFF];
+    private static readonly byte[] PdfSignature = [0x25, 0x50, 0x44, 0x46];
+
+    private static bool HasAllowedSignature(IFormFile file)
+    {
+        Span<byte> header = stackalloc byte[8];
+
+        using var stream = file.OpenReadStream();
+        var read = stream.ReadAtLeast(header, header.Length, throwOnEndOfStream: false);
+
+        return StartsWith(header, read, PngSignature)
+            || StartsWith(header, read, JpegSignature)
+            || StartsWith(header, read, PdfSignature);
+    }
+
+    private static bool StartsWith(ReadOnlySpan<byte> header, int read, byte[] signature)
+        => read >= signature.Length && header[..signature.Length].SequenceEqual(signature);
+
+    private static OperationResult<object> Validation(Dictionary<string, string[]> errors)
+        => OperationResultFactory.Validation<object>(errors, "Vehicle info validation failed.", "Vehicle info validation failed.");
 }
