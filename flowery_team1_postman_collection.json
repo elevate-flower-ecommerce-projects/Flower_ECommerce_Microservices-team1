@@ -809,6 +809,24 @@
                                                                                         "type":  "text"
                                                                                     },
                                                                                     {
+                                                                                        "key":  "vehicleType",
+                                                                                        "value":  "Motorcycle",
+                                                                                        "type":  "text",
+                                                                                        "description":  "Driver-only. Valid values: Motorcycle, Car. Omit to keep the current vehicle type."
+                                                                                    },
+                                                                                    {
+                                                                                        "key":  "vehiclePlateNumber",
+                                                                                        "value":  "UP16DL0007",
+                                                                                        "type":  "text",
+                                                                                        "description":  "Driver-only. Omit to keep the current vehicle plate number."
+                                                                                    },
+                                                                                    {
+                                                                                        "key":  "country",
+                                                                                        "value":  "Egypt",
+                                                                                        "type":  "text",
+                                                                                        "description":  "Driver-only. Omit to keep the current country."
+                                                                                    },
+                                                                                    {
                                                                                         "key":  "profilePicture",
                                                                                         "type":  "file",
                                                                                         "src":  [
@@ -3352,11 +3370,11 @@
                                                         "listen":  "test",
                                                         "script":  {
                                                                        "exec":  [
-                                                                                    "pm.test('Status is 200 OK', function () { pm.response.to.have.status(200); });",
+                                                                                    "pm.test(\u0027Status is 200 OK\u0027, function () { pm.response.to.have.status(200); });",
                                                                                     "var jsonData = pm.response.json();",
-                                                                                    "if (jsonData && jsonData.data && jsonData.data.length > 0) {",
-                                                                                    "    pm.collectionVariables.set('orderId', jsonData.data[0].id);",
-                                                                                    "    console.log('Saved orderId: ' + jsonData.data[0].id);",
+                                                                                    "if (jsonData \u0026\u0026 jsonData.data \u0026\u0026 jsonData.data.length \u003e 0) {",
+                                                                                    "    pm.collectionVariables.set(\u0027orderId\u0027, jsonData.data[0].id);",
+                                                                                    "    console.log(\u0027Saved orderId: \u0027 + jsonData.data[0].id);",
                                                                                     "}"
                                                                                 ],
                                                                        "type":  "text/javascript"

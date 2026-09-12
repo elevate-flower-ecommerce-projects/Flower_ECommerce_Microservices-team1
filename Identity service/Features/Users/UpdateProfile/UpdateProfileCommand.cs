@@ -10,4 +10,7 @@ public sealed record UpdateProfileCommand(
     string Email,
     string PhoneNumber,
     Gender? Gender,
-    IFormFile? ProfilePicture) : IRequest<OperationResult<object>>;
+    IFormFile? ProfilePicture,
+    VehicleType? VehicleType,
+    string? VehiclePlateNumber,
+    string? Country) : IRequest<OperationResult<object>>;

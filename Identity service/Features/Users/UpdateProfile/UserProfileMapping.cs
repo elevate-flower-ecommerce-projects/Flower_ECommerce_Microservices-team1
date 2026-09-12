@@ -5,7 +5,8 @@ public static class UserProfileMapping
     public static UserProfileResponse ToProfileResponse(
         this ApplicationUser user,
         IEnumerable<string> roles,
-        bool emailChanged = false)
+        bool emailChanged = false,
+        DriverProfile? driverProfile = null)
         => new(
             user.Id,
             user.FirstName,
@@ -16,5 +17,8 @@ public static class UserProfileMapping
             user.Gender,
             user.ProfilePictureUrl,
             [.. roles],
-            emailChanged);
+            emailChanged,
+            driverProfile?.VehicleType,
+            driverProfile?.PlateNumber,
+            driverProfile?.Country);
 }

@@ -9,7 +9,7 @@ namespace Identity_service.Features.Users.UpdateProfile;
 
 public sealed class UpdateProfileHandler(
     UserManager<ApplicationUser> userManager,
-    ApplicationDbContext dbContext,
+    IUnitOfWork<ApplicationDbContext> unitOfWork,
     IUpdateProfileValidator validator,
     IAvatarStorage avatarStorage,
     ILogger<UpdateProfileHandler> logger)
@@ -27,11 +27,29 @@ public sealed class UpdateProfileHandler(
                 messageLocalized: UpdateProfileMessages.UserNotFound);
         }
 
+        var roles = await userManager.GetRolesAsync(user);
+        var isDriver = roles.Contains(ApplicationRoleNames.Driver);
+
         var validationErrors = await validator.ValidateAsync(request, cancellationToken);
+        if (isDriver)
+            AddDriverProfileValidationErrors(request, validationErrors);
+
         if (validationErrors.Count > 0)
             return ValidationFailure(validationErrors);
 
-        var roles = await userManager.GetRolesAsync(user);
+        var driverProfile = isDriver
+            ? await unitOfWork.Repository<DriverProfile, Guid>()
+                .Query()
+                .SingleOrDefaultAsync(profile => profile.UserId == user.Id, cancellationToken)
+            : null;
+
+        if (isDriver && driverProfile is null)
+        {
+            return OperationResultFactory.NotFound<object>(
+                message: "Driver profile was not found.",
+                messageLocalized: "Driver profile was not found.");
+        }
+
         var email = request.Email.Trim().ToLowerInvariant();
         var phoneNumber = request.PhoneNumber.Trim();
 
@@ -52,6 +70,8 @@ public sealed class UpdateProfileHandler(
             user.FirstName = request.FirstName.Trim();
             user.LastName = request.LastName.Trim();
             user.Gender = request.Gender;
+
+            ApplyDriverProfileUpdates(request, driverProfile);
 
             if (emailChanged)
             {
@@ -80,7 +100,7 @@ public sealed class UpdateProfileHandler(
             if (emailChanged)
                 await RevokeActiveRefreshTokensAsync(user.Id, cancellationToken);
 
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await unitOfWork.CompleteAsync();
 
             // Only drop the previous file once the new one is safely persisted.
             if (storedAvatarUrl is not null)
@@ -91,7 +111,7 @@ public sealed class UpdateProfileHandler(
                 : UpdateProfileMessages.ProfileUpdated;
 
             return OperationResultFactory.Success<object>(
-                user.ToProfileResponse(roles, emailChanged),
+                user.ToProfileResponse(roles, emailChanged, driverProfile),
                 message,
                 message);
         }
@@ -122,7 +142,8 @@ public sealed class UpdateProfileHandler(
     /// </summary>
     private async Task RevokeActiveRefreshTokensAsync(string userId, CancellationToken cancellationToken)
     {
-        var activeTokens = await dbContext.Set<RefreshToken>()
+        var activeTokens = await unitOfWork.Repository<RefreshToken, Guid>()
+            .Query()
             .Where(token => token.UserId == userId && token.RevokedOn == null)
             .ToListAsync(cancellationToken);
 
@@ -132,7 +153,7 @@ public sealed class UpdateProfileHandler(
         foreach (var token in activeTokens)
             token.RevokedOn = DateTime.UtcNow;
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await unitOfWork.CompleteAsync();
         logger.LogInformation("Revoked {Count} refresh tokens after an email change for {UserId}.", activeTokens.Count, userId);
     }
 
@@ -144,6 +165,57 @@ public sealed class UpdateProfileHandler(
     {
         await avatarStorage.DeleteAsync(storedAvatarUrl, cancellationToken);
         return ValidationFailure(errors);
+    }
+
+    private static void AddDriverProfileValidationErrors(
+        UpdateProfileCommand request,
+        Dictionary<string, string[]> errors)
+    {
+        var plateNumber = request.VehiclePlateNumber?.Trim();
+        var country = request.Country?.Trim();
+
+        UserProfileFieldRules.AddIf(
+            errors,
+            nameof(request.VehicleType),
+            request.VehicleType is { } vehicleType && !Enum.IsDefined(vehicleType),
+            "Vehicle type must be Motorcycle or Car.");
+
+        UserProfileFieldRules.AddIf(
+            errors,
+            nameof(request.VehiclePlateNumber),
+            plateNumber is not null && plateNumber.Length == 0,
+            "Vehicle plate number is required.");
+        UserProfileFieldRules.AddIf(
+            errors,
+            nameof(request.VehiclePlateNumber),
+            plateNumber?.Length > 32,
+            "Vehicle plate number must not exceed 32 characters.");
+
+        UserProfileFieldRules.AddIf(
+            errors,
+            nameof(request.Country),
+            country is not null && country.Length == 0,
+            "Country is required.");
+        UserProfileFieldRules.AddIf(
+            errors,
+            nameof(request.Country),
+            country?.Length > 100,
+            "Country must not exceed 100 characters.");
+    }
+
+    private static void ApplyDriverProfileUpdates(UpdateProfileCommand request, DriverProfile? driverProfile)
+    {
+        if (driverProfile is null)
+            return;
+
+        if (request.VehicleType is not null)
+            driverProfile.VehicleType = request.VehicleType.Value;
+
+        if (request.VehiclePlateNumber is not null)
+            driverProfile.PlateNumber = request.VehiclePlateNumber.Trim();
+
+        if (request.Country is not null)
+            driverProfile.Country = request.Country.Trim();
     }
 
     private static OperationResult<object> ValidationFailure(Dictionary<string, string[]> errors)

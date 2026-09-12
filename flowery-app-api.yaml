@@ -10,7 +10,7 @@ info:
     - **Authentication & Login**: Unified customer/driver login and refresh (`/identity/auth/login`, `/identity/auth/refresh`) issuing JWT tokens with role claims and driver application status.
     - **Admin Login**: Admin login, refresh and session check (`/identity/admin/login`, `/identity/admin/refresh`, `/identity/admin/session`).
     - **OTP Password Reset**: Password reset flow via email OTP (`/identity/auth/forgot-password`, `/identity/auth/verify-otp`, `/identity/auth/reset-password`).
-    - **Profile**: Account profile for every role (`/identity/users/me/profile`) and the driver's vehicle info (`/identity/drivers/me/profile`).
+    - **Profile**: Account profile for every role (`/identity/users/me/profile`) with driver vehicle fields when the caller is a Driver. `/identity/drivers/me/profile` also manages vehicle license uploads.
     - **Driver Application Onboarding**: Prospective driver application submission (`/identity/drivers/applications`) with multipart document uploads and status tracking.
     - **Admin Operations**: Security audits, rate-limiting, and driver application review endpoints (`/identity/admin/drivers/applications`).
     - **Server-Driven Home Screen**: Anonymous SDUI layout endpoint (`/catalog/home/layout`) returning ordered backend-defined sections and fetch configuration.
@@ -33,8 +33,8 @@ info:
     - Driver (approved, Motorcycle `UP16DL0007`): `driver@flower.local` / `DriverFL@123`
     - Admin: `admin@Flower.local` / `AdminFL@123` (use `/identity/admin/login`)
 
-    A driver's full profile is two calls: `GET /identity/users/me/profile` (account) and
-    `GET /identity/drivers/me/profile` (vehicle info).
+    A driver can read account and vehicle summary fields from `GET /identity/users/me/profile`;
+    `GET /identity/drivers/me/profile` remains available for the vehicle-license document workflow.
   contact:
     name: Elevate E-Commerce Team
     email: support@flower.local
@@ -115,9 +115,8 @@ paths:
       summary: Read the signed-in user's profile
       description: >-
         Returns the caller's own account profile. Open to every authenticated role, since
-        customers, drivers and admins all have a name, email, phone, gender and avatar. This is
-        the Edit profile screen, which is identical in the customer and driver apps. Vehicle
-        details are returned by `/identity/drivers/me/profile`.
+        customers, drivers and admins all have a name, email, phone, gender and avatar. Driver
+        callers also receive `vehicleType`, `vehiclePlateNumber`, and `country` for the profile screen.
       operationId: GetMyProfile
       security:
         - BearerAuth: []
@@ -142,7 +141,9 @@ paths:
         - Users
       summary: Update the signed-in user's profile
       description: >-
-        Updates name, email, phone, gender and avatar in one call. Email and phone are validated
+        Updates name, email, phone, gender and avatar in one call. Driver callers may also send
+        `vehicleType`, `vehiclePlateNumber`, and `country`; omitting any driver vehicle field
+        keeps its current value. Email and phone are validated
         for format and uniqueness exactly as in registration, except that the uniqueness check
         skips the caller's own row so re-saving an unchanged email is not reported as a duplicate.
 
@@ -2096,6 +2097,23 @@ components:
           description: >-
             True when this response changed the login email. Refresh tokens were revoked and the
             client must sign in again with the new address. Always false on GET.
+        vehicleType:
+          allOf:
+            - $ref: '#/components/schemas/VehicleType'
+          nullable: true
+          description: Driver-only vehicle type. Null for customers and admins.
+        vehiclePlateNumber:
+          type: string
+          nullable: true
+          maxLength: 32
+          description: Driver-only vehicle plate number. Null for customers and admins.
+          example: UP16DL0007
+        country:
+          type: string
+          nullable: true
+          maxLength: 100
+          description: Driver-only country. Null for customers and admins.
+          example: Egypt
 
     UpdateProfileRequest:
       type: object
@@ -2126,6 +2144,23 @@ components:
           format: binary
           nullable: true
           description: Optional jpg or png, 5MB maximum. Omit to keep the current avatar.
+        vehicleType:
+          allOf:
+            - $ref: '#/components/schemas/VehicleType'
+          nullable: true
+          description: Driver-only. Omit to keep the current vehicle type.
+        vehiclePlateNumber:
+          type: string
+          nullable: true
+          maxLength: 32
+          description: Driver-only. Omit to keep the current vehicle plate number.
+          example: UP16DL0007
+        country:
+          type: string
+          nullable: true
+          maxLength: 100
+          description: Driver-only. Omit to keep the current country.
+          example: Egypt
 
     DriverProfile:
       type: object

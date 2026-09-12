@@ -73,7 +73,10 @@ public sealed class UpdateProfileEndpoint : ICarterModule
             request.Email,
             request.PhoneNumber,
             request.Gender,
-            profilePicture), cancellationToken);
+            profilePicture,
+            request.VehicleType,
+            request.VehiclePlateNumber,
+            request.Country), cancellationToken);
 
         return result.ToHttpResult();
     }
