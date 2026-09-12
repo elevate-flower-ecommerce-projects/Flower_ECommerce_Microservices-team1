@@ -3,16 +3,29 @@ info:
   title: Elevate Flower E-Commerce Microservices API
   version: 1.0.0
   description: |
-    Official OpenAPI 3.0.3 specification for the **Elevate Flower E-Commerce Microservices** platform on `Development` branch.
-    
+    Official OpenAPI 3.0.3 specification for the **Elevate Flower E-Commerce Microservices** platform on the `master` branch.
+
     ### Available Modules & APIs:
     - **Customer Registration**: Customer account registration (`/identity/users/register`) with Egyptian mobile validation, password rules, and field-mapped duplicate checks.
-    - **Authentication & Login**: Unified customer/driver login (`/identity/auth/login`) issuing JWT tokens with role claims and driver application status.
+    - **Authentication & Login**: Unified customer/driver login and refresh (`/identity/auth/login`, `/identity/auth/refresh`) issuing JWT tokens with role claims and driver application status.
+    - **Admin Login**: Admin login, refresh and session check (`/identity/admin/login`, `/identity/admin/refresh`, `/identity/admin/session`).
     - **OTP Password Reset**: Password reset flow via email OTP (`/identity/auth/forgot-password`, `/identity/auth/verify-otp`, `/identity/auth/reset-password`).
+    - **Profile**: Account profile for every role (`/identity/users/me/profile`) and the driver's vehicle info (`/identity/drivers/me/profile`).
     - **Driver Application Onboarding**: Prospective driver application submission (`/identity/drivers/applications`) with multipart document uploads and status tracking.
     - **Admin Operations**: Security audits, rate-limiting, and driver application review endpoints (`/identity/admin/drivers/applications`).
     - **Server-Driven Home Screen**: Anonymous SDUI layout endpoint (`/catalog/home/layout`) returning ordered backend-defined sections and fetch configuration.
-    - **E-Commerce Microservices**: Product Catalog, Shopping Cart, Orders & Fulfillment, Payment Processing, and Store Address Coverage.
+    - **Catalog**: Products, product details, categories and occasions (`/catalog/...`).
+    - **Cart**: Customer cart with live price and stock re-validation (`/cart`).
+    - **Driver Deliveries**: Assigned orders, status updates and live location (`/orders/drivers/me/...`).
+    - **Addresses & Coverage**: Saved addresses, default address, areas lookup and store resolution.
+
+    ### Not on master yet
+    - Customer order history (My Orders) lives on the `Development` branch.
+    - Checkout and payments are planned and not implemented; the Payment service is still a template.
+
+    ### Response envelopes
+    Most endpoints return `OperationResult` (`success`, `statusCode`, `message`, `messageLocalized`, `data`).
+    The customer/driver/admin login and refresh endpoints return `ApiResponse` (`isSuccess`, `message`, `data`, `errors`, `statusCode`, `timestamp`).
 
     ### Seeded test customer accounts:
     - `customer@flower.local` / `CustomerFL@123`
@@ -21,6 +34,8 @@ info:
     name: Elevate E-Commerce Team
     email: support@flower.local
 servers:
+  - url: http://localhost:8080/api/v1
+    description: API Gateway in Docker (docker compose)
   - url: http://localhost:5086/api/v1
     description: Local API Gateway (HTTP)
   - url: https://localhost:7284/api/v1
@@ -36,7 +51,9 @@ tags:
   - name: Driver Applications
     description: Prospective driver onboarding and document submissions
   - name: Admins
-    description: Admin driver review, approvals, rejections, and security audits
+    description: >-
+      Admin login, driver review, approvals, rejections, and security audits. Identity admin
+      endpoints return 403 for any authorization failure, including a missing token.
   - name: Catalog
     description: Flower catalog, categories, and inventory management
   - name: Home
@@ -44,7 +61,7 @@ tags:
   - name: Cart
     description: Customer shopping cart operations
   - name: Orders
-    description: Order placement, tracking, and fulfillment
+    description: Driver deliveries - assigned orders, status updates and live location
   - name: Payments
     description: Payment gateway integration and transaction charges
   - name: Address & Coverage
@@ -220,6 +237,107 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OperationResult'
+
+  /identity/auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh customer/driver tokens
+      description: Exchanges a valid refresh token for a new access token and refresh token. The old refresh token is revoked.
+      operationId: RefreshUserToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: New tokens issued. Same body as login.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserLoginResponse'
+        '401':
+          description: Refresh token is invalid, expired, or revoked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /identity/admin/login:
+    post:
+      tags:
+        - Admins
+      summary: Admin login
+      description: >-
+        Signs in an admin. Every attempt is audited. After repeated failures the account and IP
+        are temporarily blocked; blocked attempts return the same 401 as a wrong password so
+        the response does not reveal the block.
+      operationId: AdminLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLoginRequest'
+      responses:
+        '200':
+          description: Login successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminLoginResponse'
+        '401':
+          description: Invalid email or password, the account is not an admin, or attempts are temporarily blocked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /identity/admin/refresh:
+    post:
+      tags:
+        - Admins
+      summary: Refresh admin tokens
+      description: Exchanges a valid admin refresh token for new tokens.
+      operationId: RefreshAdminToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: New tokens issued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminLoginResponse'
+        '401':
+          description: Refresh token is invalid, expired, or revoked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /identity/admin/session:
+    get:
+      tags:
+        - Admins
+      summary: Check admin session
+      description: Returns 204 when the bearer token belongs to a signed-in admin. Used by the dashboard to validate a stored session.
+      operationId: AdminSession
+      security:
+        - BearerAuth: []
+      responses:
+        '204':
+          description: The token is a valid admin session.
+        '403':
+          description: >-
+            Missing, invalid or non-admin token. Admin endpoints answer every authorization
+            failure with 403 (never 401) and record it in the security audit.
 
   /identity/auth/forgot-password:
     post:
@@ -689,6 +807,72 @@ paths:
         '200':
           description: Catalog items.
 
+  /catalog/products/{id}:
+    get:
+      tags:
+        - Catalog
+      summary: Get product details
+      description: >-
+        Returns one product with images, included items and pricing. Pass `storeId` to get
+        stock for that store; without it `requiresStoreSelection` tells the app that a store
+        must be chosen before stock is known.
+      operationId: GetProductDetails
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: storeId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Product details.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ProductDetail'
+        '404':
+          description: No active product with this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
+
+  /catalog/occasions:
+    get:
+      tags:
+        - Catalog
+      summary: List occasions
+      description: Returns active occasions ordered by `sortOrder`.
+      operationId: GetOccasions
+      security: []
+      responses:
+        '200':
+          description: Active occasions.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Occasion'
+
   /catalog/categories:
     get:
       tags:
@@ -1023,6 +1207,29 @@ paths:
                           take: 10
                           deepLink: "/products?sort=best_sellers"
 
+  /catalog/home/sections:
+    get:
+      tags:
+        - Home
+      summary: Get home sections (alias)
+      description: Same handler and response as `/catalog/home/layout`, kept for clients that use the older name.
+      operationId: GetHomeSections
+      security: []
+      parameters:
+        - name: storeId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Same body as `/catalog/home/layout`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeLayoutOperationResult'
+
   /cart:
     get:
       tags:
@@ -1215,31 +1422,155 @@ paths:
         '403':
           description: Caller is not a Customer.
 
-  /orders:
-    post:
+  /orders/drivers/me/orders:
+    get:
       tags:
         - Orders
-      summary: Place Order
-      description: Submits a new flower order for fulfillment.
-      operationId: PlaceOrder
-      security:
-        - BearerAuth: []
-      responses:
-        '201':
-          description: Order placed successfully.
-
-  /payments/charge:
-    post:
-      tags:
-        - Payments
-      summary: Process Payment
-      description: Charges payment for an active order.
-      operationId: ProcessPayment
+      summary: List my assigned orders
+      description: >-
+        Returns the orders assigned to the signed-in driver, newest first. Also reachable
+        without the gateway prefix at `/drivers/me/orders`.
+      operationId: GetMyDriverOrders
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: Payment successful.
+          description: Assigned orders.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/DriverOrderSummary'
+        '401':
+          description: Missing or invalid token.
+        '403':
+          description: Caller is not a Driver.
+
+  /orders/drivers/me/orders/{id}:
+    get:
+      tags:
+        - Orders
+      summary: Get an assigned order
+      description: >-
+        Returns pickup and drop-off details for one order assigned to the signed-in driver.
+        Also reachable at `/drivers/me/orders/{id}`.
+      operationId: GetDriverOrderDetails
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Order details.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DriverOrderDetails'
+        '401':
+          description: Missing or invalid token.
+        '403':
+          description: Caller is not a Driver, or the order is assigned to another driver.
+        '404':
+          description: Order was not found.
+
+  /orders/orders/{id}/status:
+    patch:
+      tags:
+        - Orders
+      summary: Update order status (driver)
+      description: >-
+        Moves an assigned order forward. Allowed transitions: `PickedUp` (2) to
+        `OutForDelivery` (3), and `OutForDelivery` (3) to `Delivered` (4). Any other move
+        returns 409 with the current order. Also reachable at `/orders/{id}/status`.
+      operationId: UpdateDriverOrderStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrderStatusRequest'
+      responses:
+        '200':
+          description: Status updated. Returns the order.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DriverOrderDetails'
+        '401':
+          description: Missing or invalid token.
+        '403':
+          description: Caller is not a Driver, or the order is assigned to another driver.
+        '404':
+          description: Order was not found.
+        '409':
+          description: The transition is not allowed. `data` holds the order in its current state.
+        '422':
+          description: The status value is not a known order status.
+
+  /orders/drivers/me/location:
+    post:
+      tags:
+        - Orders
+      summary: Report my location
+      description: >-
+        Records the driver's position for live tracking. Accepted only while the order is
+        `PickedUp` or `OutForDelivery`. Also reachable at `/drivers/me/location`.
+      operationId: ReportDriverLocation
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DriverLocationRequest'
+      responses:
+        '204':
+          description: Location recorded.
+        '401':
+          description: Missing or invalid token.
+        '403':
+          description: Caller is not a Driver, or the order is assigned to another driver.
+        '404':
+          description: Order was not found.
+        '409':
+          description: The order is not an active delivery.
+        '422':
+          description: Latitude or longitude is out of range.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResult'
 
   /admin/stores:
     get:
@@ -1549,6 +1880,39 @@ paths:
               schema:
                 $ref: '#/components/schemas/ValidationErrorResult'
   /users/me/addresses/{id}:
+    get:
+      tags:
+        - Address & Coverage
+      summary: Get one of my delivery addresses
+      description: Returns a saved address owned by the signed-in Customer.
+      operationId: GetMyAddressDetails
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The address.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AddressResponse'
+        '401':
+          description: Missing, expired, or invalid JWT.
+        '403':
+          description: Authenticated user is not in the Customer role.
+        '404':
+          description: Address does not exist or is not owned by the current user.
     put:
       tags:
         - Address & Coverage
@@ -1617,16 +1981,63 @@ paths:
           description: Authenticated user is not in the Customer role.
         '404':
           description: Address does not exist or is not owned by the current user.
-  /address-store-coverage/check:
+  /users/me/addresses/{id}/default:
+    patch:
+      tags:
+        - Address & Coverage
+      summary: Make an address my default
+      description: Marks the address as default and clears the flag on the Customer's other addresses.
+      operationId: SetDefaultAddress
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The address, now default.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AddressResponse'
+        '401':
+          description: Missing, expired, or invalid JWT.
+        '403':
+          description: Authenticated user is not in the Customer role.
+        '404':
+          description: Address does not exist or is not owned by the current user.
+
+  /areas:
     get:
       tags:
         - Address & Coverage
-      summary: Check Delivery Coverage
-      description: Validates whether a delivery address is within store coverage zones.
-      operationId: CheckCoverage
+      summary: List areas with their cities
+      description: Anonymous lookup used by the address form. Also reachable at `/areas`, `/api/areas` and `/address/api/areas` without the `/api/v1` prefix.
+      operationId: GetAreasWithCities
+      security: []
       responses:
         '200':
-          description: Coverage result.
+          description: Areas and cities.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/AreaWithCities'
 
 components:
   securitySchemes:
@@ -2562,17 +2973,322 @@ components:
           $ref: '#/components/schemas/SubmitDriverApplicationResponse'
 
     DriverApplicationStatus:
-      type: string
-      enum:
-        - PendingReview
-        - Approved
-        - Rejected
+      type: integer
+      description: "Serialized as a number: 0 PendingReview, 1 Approved, 2 Rejected."
+      enum: [0, 1, 2]
 
     VehicleType:
       type: string
+      description: >-
+        Sent and returned by name on the profile endpoints; forms also accept the number.
+        The admin driver application endpoints still return it as a number (0 Motorcycle, 1 Car).
       enum:
         - Motorcycle
         - Car
+
+    OrderStatus:
+      type: integer
+      description: "Serialized as a number: 0 Placed, 1 Preparing, 2 PickedUp, 3 OutForDelivery, 4 Delivered, 5 Cancelled."
+      enum: [0, 1, 2, 3, 4, 5]
+
+    GeoPoint:
+      type: object
+      properties:
+        latitude:
+          type: number
+          format: double
+          example: 30.0444
+        longitude:
+          type: number
+          format: double
+          example: 31.2357
+
+    DriverOrderSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderNumber:
+          type: string
+          example: "FL-10001"
+        customerArea:
+          type: string
+          example: "Nasr City"
+        itemCount:
+          type: integer
+          example: 3
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+
+    DriverOrderItem:
+      type: object
+      properties:
+        productName:
+          type: string
+          example: "Red Roses Bouquet"
+        quantity:
+          type: integer
+          example: 2
+        unitPrice:
+          type: number
+          format: double
+          example: 450.00
+
+    DriverOrderDetails:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderNumber:
+          type: string
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DriverOrderItem'
+        recipientName:
+          type: string
+        recipientPhone:
+          type: string
+        storeName:
+          type: string
+        storeAddress:
+          type: string
+        pickupLocation:
+          $ref: '#/components/schemas/GeoPoint'
+        deliveryAddressLine:
+          type: string
+        deliveryCity:
+          type: string
+        deliveryArea:
+          type: string
+        dropOffLocation:
+          $ref: '#/components/schemas/GeoPoint'
+
+    UpdateOrderStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+      example:
+        status: 3
+
+    DriverLocationRequest:
+      type: object
+      required: [orderId, latitude, longitude]
+      properties:
+        orderId:
+          type: string
+          format: uuid
+        latitude:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+          example: 30.0444
+        longitude:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+          example: 31.2357
+
+    ProductDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Red Roses Bouquet"
+        description:
+          type: string
+        imageUrls:
+          type: array
+          items:
+            type: string
+        includedItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductIncludedItem'
+        price:
+          type: number
+          format: double
+          example: 800.00
+        discountedPrice:
+          type: number
+          format: double
+          nullable: true
+          example: 600.00
+        discountPercent:
+          type: number
+          format: double
+          nullable: true
+          example: 25
+        requiresStoreSelection:
+          type: boolean
+          description: True when no `storeId` was sent, so stock is unknown until a store is chosen.
+        inStock:
+          type: boolean
+        availableQuantity:
+          type: integer
+
+    ProductIncludedItem:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Red rose"
+        quantity:
+          type: integer
+          example: 12
+
+    Occasion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Wedding"
+        imageUrl:
+          type: string
+          nullable: true
+        sortOrder:
+          type: integer
+          example: 1
+
+    AddressListItemResponse:
+      type: object
+      description: Compact address row used by the saved addresses list.
+      properties:
+        id:
+          type: string
+          format: uuid
+        shortLabel:
+          type: string
+          example: "Home - Nasr City"
+        recipientName:
+          type: string
+        city:
+          type: string
+        area:
+          type: string
+        label:
+          type: string
+          nullable: true
+        isDefault:
+          type: boolean
+        isServiceable:
+          type: boolean
+        servingStoreId:
+          type: string
+          format: uuid
+          nullable: true
+        createdAtUtc:
+          type: string
+          format: date-time
+        lastUsedAtUtc:
+          type: string
+          format: date-time
+          nullable: true
+
+    AreaWithCities:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Cairo"
+        cities:
+          type: array
+          items:
+            $ref: '#/components/schemas/City'
+
+    City:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Nasr City"
+
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    AdminLoginResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                id:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                token:
+                  type: string
+                  description: JWT access token.
+                expiresIn:
+                  type: integer
+                  description: Access token lifetime in seconds.
+                refreshToken:
+                  type: string
+                refreshTokenExpiration:
+                  type: string
+                  format: date-time
+
+    ApiResponse:
+      type: object
+      description: Envelope used by the login and refresh endpoints.
+      properties:
+        isSuccess:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          nullable: true
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "User.InvalidCredentials"
+              description:
+                type: string
+                example: "Invalid email or password."
+              statusCode:
+                type: integer
+                example: 401
+        statusCode:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
 
     HomeSection:
       type: object
@@ -2852,8 +3568,9 @@ components:
 
     ValidationErrorResult:
       type: object
+      description: A 422 `OperationResult` whose `data` maps each field to its error messages.
       properties:
-        isSuccess:
+        success:
           type: boolean
           example: false
         statusCode:
@@ -2862,7 +3579,9 @@ components:
         message:
           type: string
           example: "Customer registration validation failed."
-        errors:
+        messageLocalized:
+          type: string
+        data:
           type: object
           additionalProperties:
             type: array
@@ -2874,15 +3593,19 @@ components:
 
     OperationResult:
       type: object
+      description: >-
+        Standard envelope used by most endpoints. `success` is true for any 2xx `statusCode`.
+        Endpoints that return a payload put it in `data`.
       properties:
-        isSuccess:
+        success:
           type: boolean
         statusCode:
           type: integer
         message:
           type: string
-        errors:
-          type: array
-          items:
-            type: string
+        messageLocalized:
+          type: string
+        data:
+          nullable: true
+          description: Endpoint-specific payload; see each endpoint's schema.
 

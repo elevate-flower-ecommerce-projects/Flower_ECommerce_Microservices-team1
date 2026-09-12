@@ -146,20 +146,20 @@
                                                   }
                                   },
                                   {
-                                      "name":  "Order WeatherForecast (Template)",
+                                      "name":  "Order Service Health",
                                       "request":  {
                                                       "method":  "GET",
                                                       "header":  [
 
                                                                  ],
                                                       "url":  {
-                                                                  "raw":  "{{baseUrl}}/order/weatherforecast",
+                                                                  "raw":  "{{baseUrl}}/order/health",
                                                                   "host":  [
                                                                                "{{baseUrl}}"
                                                                            ],
                                                                   "path":  [
                                                                                "order",
-                                                                               "weatherforecast"
+                                                                               "health"
                                                                            ]
                                                               }
                                                   }
@@ -3149,8 +3149,9 @@
                      "name":  "Orders \u0026 Fulfillment (Team 1)",
                      "item":  [
                                   {
-                                      "name":  "1. List My Orders",
+                                      "name":  "Customer - List My Orders [Development branch, not on master yet]",
                                       "request":  {
+                                                      "description":  "Customer order history lives on the Development branch (My Orders story) and is not merged to master yet, so this returns 404 against master.",
                                                       "method":  "GET",
                                                       "header":  [
                                                                      {
@@ -3209,8 +3210,9 @@
                                                 ]
                                   },
                                   {
-                                      "name":  "2. Get Order Details",
+                                      "name":  "Customer - Get Order Details [Development branch, not on master yet]",
                                       "request":  {
+                                                      "description":  "Customer order details live on the Development branch (My Orders story) and are not merged to master yet, so this returns 404 against master.",
                                                       "method":  "GET",
                                                       "header":  [
                                                                      {
@@ -3257,15 +3259,12 @@
                                                 ]
                                   },
                                   {
-                                      "name":  "3. List My Orders (Direct Route)",
+                                      "name":  "Driver - List My Assigned Orders",
                                       "request":  {
+                                                      "description":  "Driver token required. Returns orders assigned to the signed-in driver, newest first. status is a number: 0 Placed, 1 Preparing, 2 PickedUp, 3 OutForDelivery, 4 Delivered, 5 Cancelled.",
                                                       "method":  "GET",
                                                       "header":  [
-                                                                     {
-                                                                         "key":  "Accept-Language",
-                                                                         "value":  "{{acceptLanguage}}",
-                                                                         "type":  "text"
-                                                                     }
+
                                                                  ],
                                                       "auth":  {
                                                                    "type":  "bearer",
@@ -3278,36 +3277,44 @@
                                                                               ]
                                                                },
                                                       "url":  {
-                                                                  "raw":  "{{baseUrl}}/orders?page=1\u0026pageSize=20",
+                                                                  "raw":  "{{baseUrl}}/api/v1/orders/drivers/me/orders",
                                                                   "host":  [
                                                                                "{{baseUrl}}"
                                                                            ],
                                                                   "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "orders",
+                                                                               "drivers",
+                                                                               "me",
                                                                                "orders"
-                                                                           ],
-                                                                  "query":  [
-                                                                                {
-                                                                                    "key":  "page",
-                                                                                    "value":  "1"
-                                                                                },
-                                                                                {
-                                                                                    "key":  "pageSize",
-                                                                                    "value":  "20"
-                                                                                }
-                                                                            ]
+                                                                           ]
                                                               }
-                                                  }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test('Status is 200 OK', function () { pm.response.to.have.status(200); });",
+                                                                                    "var jsonData = pm.response.json();",
+                                                                                    "if (jsonData && jsonData.data && jsonData.data.length > 0) {",
+                                                                                    "    pm.collectionVariables.set('orderId', jsonData.data[0].id);",
+                                                                                    "    console.log('Saved orderId: ' + jsonData.data[0].id);",
+                                                                                    "}"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   }
+                                                    }
+                                                ]
                                   },
                                   {
-                                      "name":  "4. Get Order Details (Direct Route)",
+                                      "name":  "Driver - Get Assigned Order Details",
                                       "request":  {
+                                                      "description":  "Driver token required. 403 when the order is assigned to another driver.",
                                                       "method":  "GET",
                                                       "header":  [
-                                                                     {
-                                                                         "key":  "Accept-Language",
-                                                                         "value":  "{{acceptLanguage}}",
-                                                                         "type":  "text"
-                                                                     }
+
                                                                  ],
                                                       "auth":  {
                                                                    "type":  "bearer",
@@ -3320,15 +3327,104 @@
                                                                               ]
                                                                },
                                                       "url":  {
-                                                                  "raw":  "{{baseUrl}}/orders/{{orderId}}",
+                                                                  "raw":  "{{baseUrl}}/api/v1/orders/drivers/me/orders/{{orderId}}",
                                                                   "host":  [
                                                                                "{{baseUrl}}"
                                                                            ],
                                                                   "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "orders",
+                                                                               "drivers",
+                                                                               "me",
                                                                                "orders",
                                                                                "{{orderId}}"
                                                                            ]
                                                               }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Driver - Update Order Status",
+                                      "request":  {
+                                                      "description":  "Driver token required. status is a number. Allowed moves: 2 PickedUp to 3 OutForDelivery, and 3 OutForDelivery to 4 Delivered. Any other move returns 409.",
+                                                      "method":  "PATCH",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json",
+                                                                         "type":  "text"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/orders/orders/{{orderId}}/status",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "orders",
+                                                                               "orders",
+                                                                               "{{orderId}}",
+                                                                               "status"
+                                                                           ]
+                                                              },
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"status\": 3\n}"
+                                                               }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Driver - Report Location",
+                                      "request":  {
+                                                      "description":  "Driver token required. Accepted only while the order is PickedUp or OutForDelivery (409 otherwise). Returns 204.",
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json",
+                                                                         "type":  "text"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/orders/drivers/me/location",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "orders",
+                                                                               "drivers",
+                                                                               "me",
+                                                                               "location"
+                                                                           ]
+                                                              },
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"orderId\": \"{{orderId}}\",\n  \"latitude\": 30.0444,\n  \"longitude\": 31.2357\n}"
+                                                               }
                                                   }
                                   }
                               ]
