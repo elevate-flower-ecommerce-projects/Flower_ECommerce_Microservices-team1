@@ -27,9 +27,14 @@ info:
     Most endpoints return `OperationResult` (`success`, `statusCode`, `message`, `messageLocalized`, `data`).
     The customer/driver/admin login and refresh endpoints return `ApiResponse` (`isSuccess`, `message`, `data`, `errors`, `statusCode`, `timestamp`).
 
-    ### Seeded test customer accounts:
-    - `customer@flower.local` / `CustomerFL@123`
-    - `customer2@flower.local` / `CustomerFL@123`
+    ### Seeded test accounts (Development seed):
+    - Customer: `customer@flower.local` / `CustomerFL@123`
+    - Customer: `customer2@flower.local` / `CustomerFL@123`
+    - Driver (approved, Motorcycle `UP16DL0007`): `driver@flower.local` / `DriverFL@123`
+    - Admin: `admin@Flower.local` / `AdminFL@123` (use `/identity/admin/login`)
+
+    A driver's full profile is two calls: `GET /identity/users/me/profile` (account) and
+    `GET /identity/drivers/me/profile` (vehicle info).
   contact:
     name: Elevate E-Commerce Team
     email: support@flower.local

@@ -93,12 +93,22 @@ public sealed class IdentityDataSeeder(
                 EmailConfirmed = true,
                 PhoneNumber = applicant.Phone,
                 FirstName = applicant.FirstName,
-                LastName = applicant.LastName
+                LastName = applicant.LastName,
+                Gender = applicant.Gender
             };
 
             var created = await userManager.CreateAsync(user, applicant.Password);
             if (!created.Succeeded)
                 throw new InvalidOperationException(string.Join(" ", created.Errors.Select(error => error.Description)));
+        }
+        else if (user.Gender is null && applicant.Gender is not null)
+        {
+            // Drivers seeded before Gender was supported were created without one; fill it in
+            // so profile screens do not show a blank gender.
+            user.Gender = applicant.Gender;
+            var updated = await userManager.UpdateAsync(user);
+            if (!updated.Succeeded)
+                throw new InvalidOperationException(string.Join(" ", updated.Errors.Select(error => error.Description)));
         }
 
         if (!await userManager.IsInRoleAsync(user, ApplicationRoleNames.Driver))
@@ -248,6 +258,7 @@ public sealed class IdentityDataSeeder(
         public string Phone { get; set; } = string.Empty;
         public string FirstName { get; set; } = "Seed";
         public string LastName { get; set; } = "Driver";
+        public Gender? Gender { get; set; }
         public string NationalId { get; set; } = string.Empty;
         public string PlateNumber { get; set; } = string.Empty;
         public VehicleType VehicleType { get; set; } = VehicleType.Motorcycle;

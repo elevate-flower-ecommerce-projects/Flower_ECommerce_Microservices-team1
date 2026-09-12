@@ -18,6 +18,7 @@ public static class SwaggerExtensions
 
             options.CustomSchemaIds(type => type.FullName?.Replace('+', '.') ?? type.Name);
             options.OperationFilter<DriverApplicationUploadOperationFilter>();
+            options.OperationFilter<FlattenFormRequestOperationFilter>();
 
             options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
@@ -59,6 +60,57 @@ public static class SwaggerExtensions
         app.MapGet("/", () => Results.Redirect("/swagger"));
 
         return app;
+    }
+}
+
+/// <summary>
+/// Minimal APIs describe a <c>[FromForm]</c> DTO as a single "request" object, which Swagger UI
+/// renders as one JSON text box that the server cannot bind. This spreads the DTO into separate
+/// form fields and lists enums by name, since form binding accepts the names.
+/// </summary>
+internal sealed class FlattenFormRequestOperationFilter : IOperationFilter
+{
+    public void Apply(OpenApiOperation operation, OperationFilterContext context)
+    {
+        if (operation.RequestBody is null
+            || !operation.RequestBody.Content.TryGetValue("multipart/form-data", out var media)
+            || media.Schema?.Properties is not { Count: 1 } wrapper)
+        {
+            return;
+        }
+
+        var (parameterName, wrappedSchema) = wrapper.Single();
+        if (wrappedSchema.Reference is null
+            || !context.SchemaRepository.Schemas.TryGetValue(wrappedSchema.Reference.Id, out var dtoSchema))
+        {
+            return;
+        }
+
+        var dtoType = context.ApiDescription.ParameterDescriptions
+            .FirstOrDefault(parameter => string.Equals(parameter.Name, parameterName, StringComparison.OrdinalIgnoreCase))
+            ?.Type;
+
+        var flattened = new OpenApiSchema { Type = "object" };
+        foreach (var (fieldName, fieldSchema) in dtoSchema.Properties)
+        {
+            var clrType = dtoType?.GetProperty(fieldName, System.Reflection.BindingFlags.IgnoreCase
+                | System.Reflection.BindingFlags.Public
+                | System.Reflection.BindingFlags.Instance)?.PropertyType;
+            var enumType = clrType is null ? null : Nullable.GetUnderlyingType(clrType) ?? clrType;
+
+            flattened.Properties[fieldName] = enumType is { IsEnum: true }
+                ? new OpenApiSchema
+                {
+                    Type = "string",
+                    Enum = Enum.GetNames(enumType)
+                        .Select(name => (Microsoft.OpenApi.Any.IOpenApiAny)new Microsoft.OpenApi.Any.OpenApiString(name))
+                        .ToList()
+                }
+                : fieldSchema;
+        }
+
+        media.Schema = flattened;
+        media.Encoding.Clear();
     }
 }
 
