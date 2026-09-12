@@ -3,21 +3,18 @@ using Flower.Common.StandardizedResponse;
 namespace Identity_service.Features.Drivers.Profile;
 
 /// <summary>
-/// The vehicle license is stored as a <see cref="DriverDocument"/> on the driver's application,
-/// next to the documents uploaded when applying, so no new table is needed and admins keep the
-/// full history.
+/// Driver documents are stored on the driver's application. The profile screen shows the latest
+/// available document as the vehicle license so image uploads are not hidden just because their
+/// stored document type is IdentityImage.
 /// </summary>
 internal static class DriverVehicleLicenseDocuments
 {
     /// <summary>Document type written when the driver replaces the license from the profile.</summary>
     public const string VehicleLicense = "VehicleLicense";
 
-    /// <summary>Document type the application flow gives to PDF uploads, which are licenses.</summary>
-    public const string ApplicationLicensePdf = "LicensePdf";
-
     public const string DownloadUrl = "/drivers/me/profile/vehicle-license";
 
-    /// <summary>The most recent license wins, whether it came from the application or the profile.</summary>
+    /// <summary>The most recent driver-owned document wins, regardless of its stored document type.</summary>
     public static Task<DriverDocument?> FindCurrentAsync(
         ApplicationDbContext dbContext,
         string userId,
@@ -25,8 +22,7 @@ internal static class DriverVehicleLicenseDocuments
         => dbContext.Set<DriverDocument>()
             .AsNoTracking()
             .Where(document => document.Application != null
-                && document.Application.UserId == userId
-                && (document.DocType == VehicleLicense || document.DocType == ApplicationLicensePdf))
+                && document.Application.UserId == userId)
             .OrderByDescending(document => document.UploadedAt)
             .FirstOrDefaultAsync(cancellationToken);
 
