@@ -1,9 +1,6 @@
-using Identity_service.Abstractions;
-using MediatR;
-
 namespace Identity_service.Features.Users.Login;
 
-public sealed record LoginCommand(string Email, string Password)
+public sealed record LoginCommand(string Email, string Password, string? DeviceInfo)
     : IRequest<Result<LoginResponseDto>>;
 
 public class LoginCommandValidator : AbstractValidator<LoginCommand>

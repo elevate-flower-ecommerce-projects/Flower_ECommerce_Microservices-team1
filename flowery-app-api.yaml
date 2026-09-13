@@ -7,9 +7,10 @@ info:
 
     ### Available Modules & APIs:
     - **Customer Registration**: Customer account registration (`/identity/users/register`) with Egyptian mobile validation, password rules, and field-mapped duplicate checks.
-    - **Authentication & Login**: Unified customer/driver login and refresh (`/identity/auth/login`, `/identity/auth/refresh`) issuing JWT tokens with role claims and driver application status.
+    - **Authentication & Login**: Unified customer/driver login and refresh (`/identity/auth/login`, `/identity/auth/refresh-token`) issuing short-lived JWT access tokens with role claims and driver application status.
     - **Admin Login**: Admin login, refresh and session check (`/identity/admin/login`, `/identity/admin/refresh`, `/identity/admin/session`).
     - **OTP Password Reset**: Password reset flow via email OTP (`/identity/auth/forgot-password`, `/identity/auth/verify-otp`, `/identity/auth/reset-password`).
+    - **Account Security**: Change password, logout, refresh-token rotation, and active session management (`/identity/auth/change-password`, `/identity/auth/logout`, `/identity/auth/sessions`).
     - **Profile**: Account profile for every role (`/identity/users/me/profile`) with driver vehicle fields when the caller is a Driver. `/identity/drivers/me/profile` also manages vehicle license uploads.
     - **Driver Application Onboarding**: Prospective driver application submission (`/identity/drivers/applications`) with multipart document uploads and status tracking.
     - **Admin Operations**: Security audits, rate-limiting, and driver application review endpoints (`/identity/admin/drivers/applications`).
@@ -34,7 +35,7 @@ info:
     - Admin: `admin@Flower.local` / `AdminFL@123` (use `/identity/admin/login`)
 
     A driver can read account and vehicle summary fields from `GET /identity/users/me/profile`;
-    `GET /identity/drivers/me/profile` remains available for the vehicle-license document workflow.
+    `GET /identity/drivers/me/profile` remains available for the vehicle document workflow.
   contact:
     name: Elevate E-Commerce Team
     email: support@flower.local
@@ -249,7 +250,7 @@ paths:
       tags:
         - Authentication
       summary: Refresh customer/driver tokens
-      description: Exchanges a valid refresh token for a new access token and refresh token. The old refresh token is revoked.
+      description: Legacy alias for `/identity/auth/refresh-token`. Rotates the refresh token and revokes the old token.
       operationId: RefreshUserToken
       requestBody:
         required: true
@@ -265,12 +266,161 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserLoginResponse'
         '401':
-          description: Refresh token is invalid, expired, or revoked.
+          description: Refresh token is invalid, expired, revoked, or reused after rotation.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
 
+  /identity/auth/refresh-token:
+    post:
+      tags:
+        - Authentication
+      summary: Rotate refresh token
+      description: >-
+        Exchanges a valid refresh token for a new short-lived access token and a new refresh token.
+        The old token is revoked and linked to its replacement. Reuse of an already-rotated token
+        revokes the token family and forces re-login on every device in that family.
+      operationId: RefreshUserTokenRotating
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: New tokens issued. Same body as login.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserLoginResponse'
+        '401':
+          description: Refresh token is invalid, expired, revoked, or reused after rotation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /identity/auth/change-password:
+    post:
+      tags:
+        - Authentication
+      summary: Change password
+      description: >-
+        Authenticated password change from Profile/Settings. The current password is verified first;
+        if it is wrong, the response is specifically `Current password is incorrect` and new-password
+        validity is not evaluated. On success the password is changed, a confirmation email is sent,
+        all refresh tokens are revoked, and the security stamp invalidates existing access tokens.
+      operationId: ChangePassword
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Password changed. Client must clear local session data and redirect to Login.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
+        '401':
+          description: Missing/invalid access token or current password is incorrect.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
+        '422':
+          description: New password validation failed or confirmation mismatch.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResult'
+
+  /identity/auth/sessions:
+    get:
+      tags:
+        - Authentication
+      summary: List active sessions
+      description: Lists active refresh-token sessions for the current user with device, last active time, and approximate IP/location text.
+      operationId: ListMySessions
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Active sessions for the current user.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/SessionResponse'
+        '401':
+          description: Missing, expired, or invalid access token.
+
+  /identity/auth/sessions/{id}:
+    delete:
+      tags:
+        - Authentication
+      summary: Revoke a session
+      description: Revokes one active refresh-token session owned by the current user. Its next refresh attempt fails.
+      operationId: RevokeSession
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Session revoked successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
+        '401':
+          description: Missing, expired, or invalid access token.
+        '404':
+          description: Session was not found for the current user.
+
+  /identity/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout current session
+      description: Revokes the supplied current refresh token server-side. Client should then clear all local session data.
+      operationId: Logout
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+      responses:
+        '200':
+          description: Logged out successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
+        '400':
+          description: Refresh token was not supplied.
+        '401':
+          description: Missing, expired, or invalid access token.
   /identity/admin/login:
     post:
       tags:
@@ -322,7 +472,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdminLoginResponse'
         '401':
-          description: Refresh token is invalid, expired, or revoked.
+          description: Refresh token is invalid, expired, revoked, or reused after rotation.
           content:
             application/json:
               schema:
@@ -470,7 +620,7 @@ paths:
       summary: Get my vehicle info
       description: >-
         Returns the signed-in driver's Vehicle info screen: vehicle type, vehicle number and the
-        current vehicle license. Name, email, phone, gender and photo come from
+        latest available driver document. Name, email, phone, gender and photo come from
         `/identity/users/me/profile`, shared with customers.
       operationId: GetMyDriverProfile
       security:
@@ -543,8 +693,9 @@ paths:
         - Driver Applications
       summary: Download my vehicle license
       description: >-
-        Streams the signed-in driver's current vehicle license. The file is private, so it is
-        only reachable through this authorized endpoint and never through a public link.
+        Streams the signed-in driver's latest application/profile document, regardless of stored
+        document type. The file is private, so it is only reachable through this authorized
+        endpoint and never through a public link.
       operationId: DownloadMyVehicleLicense
       security:
         - BearerAuth: []
@@ -2179,7 +2330,7 @@ components:
 
     DriverVehicleLicense:
       type: object
-      description: The license is private; download it through `downloadUrl` with the driver's token.
+      description: The latest driver document is private; download it through `downloadUrl` with the driver's token.
       properties:
         documentId:
           type: string
@@ -3263,6 +3414,55 @@ components:
           type: string
           example: "Nasr City"
 
+    ChangePasswordRequest:
+      type: object
+      required:
+        - currentPassword
+        - newPassword
+        - confirmNewPassword
+      properties:
+        currentPassword:
+          type: string
+          format: password
+          example: "CustomerFL@123"
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
+          example: "CustomerFL@124!"
+        confirmNewPassword:
+          type: string
+          format: password
+          example: "CustomerFL@124!"
+
+    SessionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        deviceName:
+          type: string
+          example: "PostmanRuntime/7.43.0"
+        lastActiveAt:
+          type: string
+          format: date-time
+        approximateLocationOrIp:
+          type: string
+          nullable: true
+          example: "127.0.0.1"
+        expiresAt:
+          type: string
+          format: date-time
+
+    LogoutRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          example: "{{refreshToken}}"
     RefreshTokenRequest:
       type: object
       required: [refreshToken]
@@ -3648,4 +3848,6 @@ components:
         data:
           nullable: true
           description: Endpoint-specific payload; see each endpoint's schema.
+
+
 

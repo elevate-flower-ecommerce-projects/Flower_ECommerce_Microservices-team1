@@ -1,4 +1,4 @@
-﻿using Identity_service.Infrastructure.Interfaces.Services;
+using Identity_service.Infrastructure.Interfaces.Services;
 using Microsoft.Extensions.Options;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -19,6 +19,7 @@ public class JwtProvider(IOptions<JwtOptions> options) : IJwtProvider
             new(JwtRegisteredClaimNames.GivenName,user.FirstName),
             new(JwtRegisteredClaimNames.FamilyName,user.LastName),
             new(JwtRegisteredClaimNames.Jti,Guid.NewGuid().ToString()),
+            new("security_stamp", user.SecurityStamp ?? string.Empty),
             new(nameof(roles),JsonSerializer.Serialize(roles),JsonClaimValueTypes.JsonArray)
        ];
 
@@ -67,3 +68,4 @@ public class JwtProvider(IOptions<JwtOptions> options) : IJwtProvider
         }
     }
 }
+

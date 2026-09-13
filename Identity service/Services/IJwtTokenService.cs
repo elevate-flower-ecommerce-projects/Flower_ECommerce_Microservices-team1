@@ -6,7 +6,8 @@ public sealed record JwtTokenPair(
     string AccessToken,
     DateTime AccessTokenExpiresOn,
     string RefreshToken,
-    DateTime RefreshTokenExpiresOn);
+    DateTime RefreshTokenExpiresOn,
+    Guid RefreshTokenId);
 
 public interface IJwtTokenService
 {
@@ -14,5 +15,7 @@ public interface IJwtTokenService
         ApplicationUser user,
         IEnumerable<string> roles,
         DriverApplicationStatus? driverApplicationStatus,
+        Guid? refreshTokenFamilyId,
+        string? deviceInfo,
         CancellationToken cancellationToken);
 }

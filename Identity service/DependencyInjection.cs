@@ -46,6 +46,7 @@ public static class DependencyInjection
         services.AddScoped<IIdentityDataSeeder, IdentityDataSeeder>();
         services.AddScoped<PasswordResetOtpService>();
         services.AddScoped<PasswordResetEmailService>();
+        services.AddScoped<PasswordChangedEmailService>();
         services.AddScoped<IJwtProvider, JwtProvider>();
         services.AddScoped<IAdminSecurityAudit, AdminSecurityAuditWriter>();
         services.AddSingleton<IAdminLoginAttemptGuard, AdminLoginAttemptGuard>();
@@ -153,21 +154,21 @@ public static class DependencyInjection
 
         if (string.IsNullOrWhiteSpace(jwtSettings.Key))
         {
-            jwtSettings.Key = configuration["Jwt:Key"] 
-                           ?? configuration["JwtSettings:Secret"] 
-                           ?? configuration["Jwt:Secret"] 
+            jwtSettings.Key = configuration["Jwt:Key"]
+                           ?? configuration["JwtSettings:Secret"]
+                           ?? configuration["Jwt:Secret"]
                            ?? "YOUR_SUPER_SECRET_KEY_CHANGE_IN_PRODUCTION_MIN_32_CHARS";
         }
         if (string.IsNullOrWhiteSpace(jwtSettings.Issuer))
         {
-            jwtSettings.Issuer = configuration["Jwt:Issuer"] 
-                            ?? configuration["JwtSettings:Issuer"] 
+            jwtSettings.Issuer = configuration["Jwt:Issuer"]
+                            ?? configuration["JwtSettings:Issuer"]
                             ?? "FlowersAuth";
         }
         if (string.IsNullOrWhiteSpace(jwtSettings.Audience))
         {
-            jwtSettings.Audience = configuration["Jwt:Audience"] 
-                              ?? configuration["JwtSettings:Audience"] 
+            jwtSettings.Audience = configuration["Jwt:Audience"]
+                              ?? configuration["JwtSettings:Audience"]
                               ?? "FlowersApp";
         }
 
@@ -176,8 +177,8 @@ public static class DependencyInjection
             options.Key = jwtSettings.Key;
             options.Issuer = jwtSettings.Issuer;
             options.Audience = jwtSettings.Audience;
-            options.ExpiryMinutes = jwtSettings.ExpiryMinutes > 0 ? jwtSettings.ExpiryMinutes : 60;
-            options.RefreshTokenExpiryDays = jwtSettings.RefreshTokenExpiryDays > 0 ? jwtSettings.RefreshTokenExpiryDays : 7;
+            options.ExpiryMinutes = jwtSettings.ExpiryMinutes > 0 ? jwtSettings.ExpiryMinutes : 15;
+            options.RefreshTokenExpiryDays = jwtSettings.RefreshTokenExpiryDays > 0 ? jwtSettings.RefreshTokenExpiryDays : 30;
         });
 
         services.AddAuthentication(options =>
@@ -203,7 +204,7 @@ public static class DependencyInjection
                 ValidAudience = jwtSettings.Audience,
                 RoleClaimType = ClaimTypes.Role,
                 NameClaimType = ClaimTypes.NameIdentifier,
-                ClockSkew = TimeSpan.FromMinutes(5)
+                ClockSkew = TimeSpan.FromMinutes(1)
             };
 
             o.Events = new JwtBearerEvents
@@ -225,6 +226,25 @@ public static class DependencyInjection
                         }
                     }
                     return Task.CompletedTask;
+                },
+                OnTokenValidated = async context =>
+                {
+                    var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier)
+                        ?? context.Principal?.FindFirstValue("sub");
+                    var tokenSecurityStamp = context.Principal?.FindFirstValue("security_stamp");
+
+                    if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(tokenSecurityStamp))
+                    {
+                        context.Fail("The access token is no longer valid.");
+                        return;
+                    }
+
+                    var userManager = context.HttpContext.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
+                    var user = await userManager.FindByIdAsync(userId);
+                    if (user is null || user.IsDisabled || !string.Equals(user.SecurityStamp, tokenSecurityStamp, StringComparison.Ordinal))
+                    {
+                        context.Fail("The access token is no longer valid.");
+                    }
                 }
             };
         });

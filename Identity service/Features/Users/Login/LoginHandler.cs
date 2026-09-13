@@ -73,6 +73,8 @@ public sealed class LoginHandler(
             user,
             roles,
             driverAccess.Status,
+            refreshTokenFamilyId: null,
+            request.DeviceInfo,
             cancellationToken);
 
         logger.LogInformation("Login succeeded for account {UserId} with role {Role}", user.Id, role);

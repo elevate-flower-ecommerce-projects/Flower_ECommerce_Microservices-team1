@@ -144,14 +144,14 @@ public sealed class UpdateProfileHandler(
     {
         var activeTokens = await unitOfWork.Repository<RefreshToken, Guid>()
             .Query()
-            .Where(token => token.UserId == userId && token.RevokedOn == null)
+            .Where(token => token.UserId == userId && token.RevokedAt == null)
             .ToListAsync(cancellationToken);
 
         if (activeTokens.Count == 0)
             return;
 
         foreach (var token in activeTokens)
-            token.RevokedOn = DateTime.UtcNow;
+            token.RevokedAt = DateTime.UtcNow;
 
         await unitOfWork.CompleteAsync();
         logger.LogInformation("Revoked {Count} refresh tokens after an email change for {UserId}.", activeTokens.Count, userId);

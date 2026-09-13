@@ -34,8 +34,8 @@ public sealed class ResetPasswordEndpoint : ICarterModule
             return OperationResultFactory.BadRequest(reset.Errors.Select(error => error.Description).ToArray(), "The provided password does not meet the password policy.", "The provided password does not meet the password policy.").ToHttpResult();
 
 
-        foreach (var token in await dbContext.RefreshTokens.Where(token => token.UserId == resetRequest.UserId && token.RevokedOn == null).ToListAsync(cancellationToken))
-            token.RevokedOn = now;
+        foreach (var token in await dbContext.RefreshTokens.Where(token => token.UserId == resetRequest.UserId && token.RevokedAt == null).ToListAsync(cancellationToken))
+            token.RevokedAt = now;
 
         await userManager.UpdateSecurityStampAsync(resetRequest.User);
         resetRequest.ConsumedAtUtc = now;
@@ -54,3 +54,4 @@ public sealed class ResetPasswordEndpoint : ICarterModule
         return OperationResultFactory.Success(message: ResetPasswordResponse.SuccessMessage, messageLocalized: ResetPasswordResponse.SuccessMessage).ToHttpResult();
     }
 }
+

@@ -83,6 +83,12 @@
                          "type":  "string",
                          "description":  "Driver application document ID",
                          "value":  "00000000-0000-0000-0000-000000000000"
+                     },
+                     {
+                         "key":  "sessionId",
+                         "type":  "string",
+                         "description":  "Active session ID returned by GET /auth/sessions",
+                         "value":  ""
                      }
                  ],
     "item":  [
@@ -961,7 +967,206 @@
                                                                                "profile",
                                                                                "vehicle-license"
                                                                            ]
+                                                              },
+                                                      "description":  "Downloads the latest document owned by the signed-in driver, regardless of stored document type."
+                                                  }
+                                  },
+                                  {
+                                      "name":  "User Refresh Token (Rotate)",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json",
+                                                                         "type":  "text"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/identity/auth/refresh-token",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "identity",
+                                                                               "auth",
+                                                                               "refresh-token"
+                                                                           ]
                                                               }
+                                                  },
+                                      "event":  {
+                                                    "listen":  "test",
+                                                    "script":  {
+                                                                   "type":  "text/javascript",
+                                                                   "exec":  [
+                                                                                "var jsonData = pm.response.json();",
+                                                                                "var data = jsonData \u0026\u0026 jsonData.data ? jsonData.data : jsonData;",
+                                                                                "if (data \u0026\u0026 data.accessToken) pm.collectionVariables.set(\u0027bearerToken\u0027, data.accessToken);",
+                                                                                "if (data \u0026\u0026 data.refreshToken) pm.collectionVariables.set(\u0027refreshToken\u0027, data.refreshToken);"
+                                                                            ]
+                                                               }
+                                                }
+                                  },
+                                  {
+                                      "name":  "Change Password",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json",
+                                                                         "type":  "text"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"currentPassword\": \"CustomerFL@123\",\n  \"newPassword\": \"CustomerFL@124!\",\n  \"confirmNewPassword\": \"CustomerFL@124!\"\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/identity/auth/change-password",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "identity",
+                                                                               "auth",
+                                                                               "change-password"
+                                                                           ]
+                                                              },
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "List Active Sessions",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/identity/auth/sessions",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "identity",
+                                                                               "auth",
+                                                                               "sessions"
+                                                                           ]
+                                                              },
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               }
+                                                  },
+                                      "event":  {
+                                                    "listen":  "test",
+                                                    "script":  {
+                                                                   "type":  "text/javascript",
+                                                                   "exec":  [
+                                                                                "var jsonData = pm.response.json();",
+                                                                                "var sessions = jsonData \u0026\u0026 jsonData.data ? jsonData.data : [];",
+                                                                                "if (sessions.length \u003e 0 \u0026\u0026 sessions[0].id) pm.collectionVariables.set(\u0027sessionId\u0027, sessions[0].id);"
+                                                                            ]
+                                                               }
+                                                }
+                                  },
+                                  {
+                                      "name":  "Revoke Session",
+                                      "request":  {
+                                                      "method":  "DELETE",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/identity/auth/sessions/{{sessionId}}",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "identity",
+                                                                               "auth",
+                                                                               "sessions",
+                                                                               "{{sessionId}}"
+                                                                           ]
+                                                              },
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               }
+                                                  }
+                                  },
+                                  {
+                                      "name":  "Logout",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json",
+                                                                         "type":  "text"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/identity/auth/logout",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "identity",
+                                                                               "auth",
+                                                                               "logout"
+                                                                           ]
+                                                              },
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               }
                                                   }
                                   }
                               ]

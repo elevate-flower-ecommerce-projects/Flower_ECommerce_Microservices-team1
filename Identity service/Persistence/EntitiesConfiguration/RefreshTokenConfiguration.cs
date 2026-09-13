@@ -12,13 +12,25 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
 
         builder.HasKey(rt => rt.Id);
 
+        builder.Property(rt => rt.UserId)
+            .HasMaxLength(450)
+            .IsRequired();
+
         builder.Property(rt => rt.TokenHash)
             .HasMaxLength(128)
             .IsRequired();
 
-        builder.HasIndex(rt => rt.TokenHash).IsUnique();
+        builder.Property(rt => rt.DeviceInfo)
+            .HasMaxLength(512);
 
+        builder.HasIndex(rt => rt.TokenHash).IsUnique();
         builder.HasIndex(rt => rt.UserId);
+        builder.HasIndex(rt => rt.FamilyId);
+
+        builder.HasOne(rt => rt.ReplacedByToken)
+            .WithMany()
+            .HasForeignKey(rt => rt.ReplacedByTokenId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.Ignore(rt => rt.IsExpired);
         builder.Ignore(rt => rt.IsActive);

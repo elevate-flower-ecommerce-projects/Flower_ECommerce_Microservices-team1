@@ -1,4 +1,4 @@
-﻿using Identity_service.Contracts.Admins;
+using Identity_service.Contracts.Admins;
 using Identity_service.Errors;
 
 namespace Identity_service.Features.Admins.Login;
@@ -8,7 +8,7 @@ public sealed class AdminLoginCommandHandler(UserManager<ApplicationUser> userMa
     IAdminLoginAttemptGuard attemptGuard, IAdminSecurityAudit audit)
     : IRequestHandler<AdminLoginCommand, Result<LoginResponse>>
 {
-    private const int RefreshTokenExpirationDays = 7;
+    private const int RefreshTokenExpirationDays = 30;
 
     public async Task<Result<LoginResponse>> Handle(AdminLoginCommand request, CancellationToken cancellationToken)
     {
@@ -43,7 +43,10 @@ public sealed class AdminLoginCommandHandler(UserManager<ApplicationUser> userMa
         var refreshTokenEntity = new RefreshToken
         {
             TokenHash = RefreshTokenProtector.Hash(refreshToken),
-            ExpiresOn = refreshTokenExpiration,
+            FamilyId = Guid.CreateVersion7(),
+            DeviceInfo = NormalizeDeviceInfo(request.UserAgent, request.IpAddress),
+            IssuedAt = DateTime.UtcNow,
+            ExpiresAt = refreshTokenExpiration,
             UserId = user.Id
         };
 
@@ -58,6 +61,15 @@ public sealed class AdminLoginCommandHandler(UserManager<ApplicationUser> userMa
         return Result.Success(response);
     }
 
+    private static string? NormalizeDeviceInfo(string? userAgent, string? ipAddress)
+    {
+        if (string.IsNullOrWhiteSpace(userAgent))
+            return ipAddress;
+
+        var deviceInfo = string.IsNullOrWhiteSpace(ipAddress) ? userAgent.Trim() : $"{userAgent.Trim()} ({ipAddress})";
+        return deviceInfo.Length <= 512 ? deviceInfo : deviceInfo[..512];
+    }
+
     private async Task<Result<LoginResponse>> FailedAsync(string outcome, AdminLoginCommand request, CancellationToken cancellationToken)
     {
         attemptGuard.RegisterFailure(request.Email, request.IpAddress);
@@ -65,3 +77,4 @@ public sealed class AdminLoginCommandHandler(UserManager<ApplicationUser> userMa
         return Result.Failure<LoginResponse>(UserErrors.InvalidCredentials);
     }
 }
+

@@ -1,8 +1,8 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 using Identity_service.Entities;
+using Identity_service.Infrastructure.Implementations.Services;
 using Identity_service.Persistence;
 using Identity_service.Settings;
 using Microsoft.Extensions.Options;
@@ -19,6 +19,8 @@ public sealed class JwtTokenService(
         ApplicationUser user,
         IEnumerable<string> roles,
         DriverApplicationStatus? driverApplicationStatus,
+        Guid? refreshTokenFamilyId,
+        string? deviceInfo,
         CancellationToken cancellationToken)
     {
         var options = jwtOptions.Value;
@@ -32,7 +34,8 @@ public sealed class JwtTokenService(
             new(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
             new(JwtRegisteredClaimNames.Jti, Guid.CreateVersion7().ToString()),
             new(ClaimTypes.NameIdentifier, user.Id),
-            new(ClaimTypes.Name, user.UserName ?? user.Email ?? string.Empty)
+            new(ClaimTypes.Name, user.UserName ?? user.Email ?? string.Empty),
+            new("security_stamp", user.SecurityStamp ?? string.Empty)
         };
 
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
@@ -53,15 +56,18 @@ public sealed class JwtTokenService(
             expires: accessTokenExpiresOn,
             signingCredentials: new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256));
 
-        var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
-        var refreshTokenHash = Convert.ToHexString(
-            SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));
+        var refreshToken = RefreshTokenProtector.Generate();
+        var refreshTokenId = Guid.CreateVersion7();
 
         await unitOfWork.Repository<RefreshToken, Guid>().Create(new RefreshToken
         {
-            TokenHash = refreshTokenHash,
-            ExpiresOn = refreshTokenExpiresOn,
-            UserId = user.Id
+            Id = refreshTokenId,
+            UserId = user.Id,
+            TokenHash = RefreshTokenProtector.Hash(refreshToken),
+            FamilyId = refreshTokenFamilyId ?? Guid.CreateVersion7(),
+            DeviceInfo = NormalizeDeviceInfo(deviceInfo),
+            IssuedAt = now,
+            ExpiresAt = refreshTokenExpiresOn
         });
         await unitOfWork.CompleteAsync();
 
@@ -69,6 +75,16 @@ public sealed class JwtTokenService(
             new JwtSecurityTokenHandler().WriteToken(jwt),
             accessTokenExpiresOn,
             refreshToken,
-            refreshTokenExpiresOn);
+            refreshTokenExpiresOn,
+            refreshTokenId);
+    }
+
+    private static string? NormalizeDeviceInfo(string? deviceInfo)
+    {
+        if (string.IsNullOrWhiteSpace(deviceInfo))
+            return null;
+
+        var trimmed = deviceInfo.Trim();
+        return trimmed.Length <= 512 ? trimmed : trimmed[..512];
     }
 }
