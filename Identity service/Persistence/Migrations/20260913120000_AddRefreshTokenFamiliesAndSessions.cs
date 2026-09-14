@@ -1,9 +1,11 @@
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace Identity_service.Persistence.Migrations
 {
+    [DbContext(typeof(ApplicationDbContext))]
     [Migration("20260913120000_AddRefreshTokenFamiliesAndSessions")]
     public partial class AddRefreshTokenFamiliesAndSessions : Migration
     {

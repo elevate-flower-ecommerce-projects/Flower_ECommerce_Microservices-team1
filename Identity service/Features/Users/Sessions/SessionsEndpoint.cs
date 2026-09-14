@@ -71,7 +71,7 @@ public sealed class SessionsEndpoint : ICarterModule
         session.RevokedAt ??= DateTime.UtcNow;
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return OperationResultFactory.Success("Session revoked successfully.", "Session revoked successfully.").ToHttpResult();
+        return OperationResultFactory.Success(message: "Session revoked successfully.", messageLocalized: "Session revoked successfully.").ToHttpResult();
     }
 
     private static async Task<IResult> LogoutAsync(
@@ -96,7 +96,7 @@ public sealed class SessionsEndpoint : ICarterModule
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        return OperationResultFactory.Success("Logged out successfully.", "Logged out successfully.").ToHttpResult();
+        return OperationResultFactory.Success(message: "Logged out successfully.", messageLocalized: "Logged out successfully.").ToHttpResult();
     }
 
     private static bool TryGetUserId(ClaimsPrincipal principal, out string userId)
