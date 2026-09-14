@@ -7,6 +7,7 @@ public static class CartMessages
     public const string ItemAdded = "Item added to your cart.";
     public const string QuantityUpdated = "Cart item quantity updated.";
     public const string ItemRemoved = "Item removed from your cart.";
+    public const string CartCleared = "Your cart was cleared.";
 
     public const string ProductNotFound = "Product was not found.";
     public const string ItemNotFound = "Cart item was not found.";

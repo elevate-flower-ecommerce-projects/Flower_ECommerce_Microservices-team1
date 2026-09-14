@@ -104,6 +104,9 @@ services:
       - Jwt__Key=${JWT_SIGNING_KEY:-FlowerIdentityService_Development_JwtSigningKey_ChangeMe_2026_AtLeast32Chars}
       - Jwt__Issuer=${JWT_ISSUER:-FlowerIdentityService}
       - Jwt__Audience=${JWT_AUDIENCE:-FlowerClients}
+      - Services__CartBaseUrl=${CART_BASE_URL:-http://cartservice:8080}
+      - Services__AddressBaseUrl=${ADDRESS_BASE_URL:-http://addressstorecoverageservice:8080}
+      - Checkout__DeliveryFee=${CHECKOUT_DELIVERY_FEE:-50}
     ports:
       - "5109:8080"
     volumes:

@@ -24,6 +24,19 @@ public sealed class Order
     public decimal DeliveryLatitude { get; set; }
     public decimal DeliveryLongitude { get; set; }
 
+    public bool IsGift { get; set; }
+    public string? GiftMessage { get; set; }
+
+    public PaymentMethodType PaymentMethod { get; set; }
+    public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Pending;
+
+    public decimal Subtotal { get; set; }
+    public decimal DeliveryFee { get; set; }
+    public decimal Discount { get; set; }
+    public decimal Total { get; set; }
+
+    public string? IdempotencyKey { get; set; }
+
     public ICollection<OrderItem> Items { get; set; } = new List<OrderItem>();
     public ICollection<DriverLocation> DriverLocations { get; set; } = new List<DriverLocation>();
 }

@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Order___Fulfillment_Service.Extensions;
+using Order___Fulfillment_Service.Features.Checkout;
+using Order___Fulfillment_Service.Infrastructure.Clients;
 using Order___Fulfillment_Service.Persistence;
 using Order___Fulfillment_Service.Settings;
 using Repository.Layer;
@@ -20,7 +22,26 @@ builder.Services.AddDbContext<OrderDbContext>(options =>
     options.UseSqlServer(connectionString, sqlOptions => sqlOptions.EnableRetryOnFailure()));
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.Configure<CheckoutOptions>(builder.Configuration.GetSection(CheckoutOptions.SectionName));
 builder.Services.AddScoped(typeof(IUnitOfWork<OrderDbContext>), typeof(UnitOfWork<OrderDbContext>));
+
+var downstream = builder.Configuration.GetSection(DownstreamServicesOptions.SectionName).Get<DownstreamServicesOptions>()
+    ?? throw new InvalidOperationException("Downstream service URLs (Services section) are not configured.");
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddTransient<ForwardAuthorizationHandler>();
+builder.Services.AddHttpClient<ICartClient, CartClient>(client =>
+{
+    client.BaseAddress = new Uri(downstream.CartBaseUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromSeconds(downstream.TimeoutSeconds);
+}).AddHttpMessageHandler<ForwardAuthorizationHandler>();
+builder.Services.AddHttpClient<IAddressClient, AddressClient>(client =>
+{
+    client.BaseAddress = new Uri(downstream.AddressBaseUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromSeconds(downstream.TimeoutSeconds);
+}).AddHttpMessageHandler<ForwardAuthorizationHandler>();
+builder.Services.AddScoped<ICheckoutQuoteBuilder, CheckoutQuoteBuilder>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddCarter();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));

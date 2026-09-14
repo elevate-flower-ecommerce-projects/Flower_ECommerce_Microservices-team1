@@ -10,7 +10,9 @@ public sealed class OrderItemConfiguration : IEntityTypeConfiguration<OrderItem>
     {
         builder.HasKey(item => item.Id);
         builder.Property(item => item.ProductName).HasMaxLength(200).IsRequired();
+        builder.Property(item => item.ThumbnailUrl).HasMaxLength(500);
         builder.Property(item => item.UnitPrice).HasPrecision(18, 2);
+        builder.Property(item => item.LineTotal).HasPrecision(18, 2);
         builder.HasOne(item => item.Order)
             .WithMany(order => order.Items)
             .HasForeignKey(item => item.OrderId)

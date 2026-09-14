@@ -17,12 +17,15 @@ info:
     - **Server-Driven Home Screen**: Anonymous SDUI layout endpoint (`/catalog/home/layout`) returning ordered backend-defined sections and fetch configuration.
     - **Catalog**: Products, product details, categories and occasions (`/catalog/...`).
     - **Cart**: Customer cart with live price and stock re-validation (`/cart`).
+    - **Checkout**: Checkout summary and placing orders with Cash on Delivery or Card (`/orders/checkout/preview`, `/orders/checkout`).
     - **Driver Deliveries**: Assigned orders, status updates and live location (`/orders/drivers/me/...`).
     - **Addresses & Coverage**: Saved addresses, default address, areas lookup and store resolution.
 
     ### Not on master yet
     - Customer order history (My Orders) lives on the `Development` branch.
-    - Checkout and payments are planned and not implemented; the Payment service is still a template.
+    - Online card payment (PayTabs) is planned. Card orders are already created by checkout as
+      `PendingPayment` (6) with `paymentRequired: true`; the payment session endpoint
+      (`POST /payments/orders/{orderId}/session`) comes with the Payment task.
 
     ### Response envelopes
     Most endpoints return `OperationResult` (`success`, `statusCode`, `message`, `messageLocalized`, `data`).
@@ -66,6 +69,10 @@ tags:
     description: Server-driven customer home screen layout
   - name: Cart
     description: Customer shopping cart operations
+  - name: Checkout
+    description: >-
+      Checkout summary and placing orders. Every non-2xx response has one `data` shape per status
+      code: 422 maps fields to messages, 409 and 503 carry a `CheckoutError` with a `code`.
   - name: Orders
     description: Driver deliveries - assigned orders, status updates and live location
   - name: Payments
@@ -1426,6 +1433,23 @@ paths:
           description: Missing or invalid token.
         '403':
           description: Caller is not a Customer.
+    delete:
+      tags:
+        - Cart
+      summary: Clear the cart
+      description: >-
+        Removes every line from the caller's cart. Clearing an empty or missing cart also returns
+        `204`, so the call is safe to repeat. Checkout calls it after a Cash on Delivery order is placed.
+      operationId: ClearCart
+      security:
+        - BearerAuth: []
+      responses:
+        '204':
+          description: The cart is empty.
+        '401':
+          description: Missing or invalid token.
+        '403':
+          description: Caller is not a Customer.
 
   /cart/items:
     post:
@@ -1578,6 +1602,215 @@ paths:
           description: Missing or invalid token.
         '403':
           description: Caller is not a Customer.
+
+  /orders/checkout/preview:
+    post:
+      tags:
+        - Checkout
+      summary: Preview the checkout summary
+      description: >-
+        Picks the delivery address, finds the store that serves it, reprices the caller's cart at
+        that store and returns the subtotal, the delivery fee (a flat 50 EGP) and the total.
+        Nothing is saved. Send an empty body to use the default saved address, `addressId` for
+        another saved address, or `gift` to deliver to someone else; `addressId` and `gift`
+        cannot be sent together. Call it again whenever the selected address changes, because
+        the serving store and therefore prices and stock can change.
+      operationId: PreviewCheckout
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutPreviewRequest'
+            examples:
+              defaultAddress:
+                summary: Use the default saved address (first open of the screen)
+                value: {}
+              savedAddress:
+                summary: Use another saved address
+                value:
+                  addressId: "3f1c9a62-7b1e-4c1a-9d2e-6a8b5c4d3e21"
+              gift:
+                summary: Send as a gift
+                value:
+                  gift:
+                    recipientName: "Mona Ali"
+                    phone: "01012345678"
+                    addressLine: "12 El-Tahrir St, Apt 5"
+                    city: "Cairo"
+                    area: "Dokki"
+                    lat: 30.0385
+                    lng: 31.2123
+                    message: "Happy birthday!"
+      responses:
+        '200':
+          description: The checkout summary for the chosen address.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CheckoutSummary'
+        '401':
+          description: Missing or invalid token.
+        '403':
+          description: Caller is not a Customer.
+        '404':
+          description: '`addressId` is not one of the caller''s saved addresses.'
+        '409':
+          description: >-
+            A business rule blocks checkout. `data.code` is `AddressRequired`,
+            `AddressNotServiceable`, `CartEmpty` or `ItemsUnavailable`.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CheckoutError'
+        '422':
+          description: A field is missing or invalid, or `addressId` and `gift` were both sent.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResult'
+        '503':
+          description: >-
+            The Cart, Address or Catalog service is unreachable, so the summary cannot be
+            trusted. `data.code` is `DependencyUnavailable`.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CheckoutError'
+
+  /orders/checkout:
+    post:
+      tags:
+        - Checkout
+      summary: Place the order
+      description: >-
+        Recalculates everything on the server with the same address rules as the preview, then
+        saves the order. The server never charges `expectedTotal`; it only compares it with its own
+        total and returns `409 PriceChanged` with the fresh summary when they differ.
+
+
+        - Cash on Delivery: the order is `Placed` (0), payment is `Pending` (1), the cart is
+        cleared and `paymentRequired` is `false`. Show the order confirmation.
+
+        - Card: the order is `PendingPayment` (6), payment is `Pending` (1), the cart is kept
+        until payment succeeds and `paymentRequired` is `true`. Continue to payment with
+        `orderId`; the payment session endpoint comes with the Payment task.
+
+
+        Retrying with the same `Idempotency-Key` returns the order that key already created
+        instead of creating a second one. If the first attempt failed before an order was saved,
+        the retry runs normally.
+      operationId: PlaceOrder
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: >-
+            Generated by the app (a UUID) on the first tap of "Place order" and reused for every
+            retry of that attempt. Discard it once an order is created. At most 100 characters.
+          schema:
+            type: string
+            maxLength: 100
+            example: "5b0e7c3e-8f5d-4a53-9c1e-2d6f1f0c7a11"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOrderRequest'
+            examples:
+              cashOnDelivery:
+                summary: Cash on Delivery to the default address
+                value:
+                  paymentMethod: 1
+                  expectedTotal: 670.00
+              cardGift:
+                summary: Card payment for a gift
+                value:
+                  gift:
+                    recipientName: "Mona Ali"
+                    phone: "01012345678"
+                    addressLine: "12 El-Tahrir St, Apt 5"
+                    city: "Cairo"
+                    area: "Dokki"
+                    message: "Happy birthday!"
+                  paymentMethod: 2
+                  expectedTotal: 670.00
+      responses:
+        '201':
+          description: >-
+            The order was created, or it already existed for this `Idempotency-Key`.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PlacedOrder'
+        '400':
+          description: The `Idempotency-Key` header is missing or longer than 100 characters.
+        '401':
+          description: Missing or invalid token.
+        '403':
+          description: Caller is not a Customer.
+        '404':
+          description: '`addressId` is not one of the caller''s saved addresses.'
+        '409':
+          description: >-
+            A business rule blocks the order. `data.code` is `AddressRequired`,
+            `AddressNotServiceable`, `CartEmpty`, `ItemsUnavailable` or `PriceChanged`
+            (with the fresh summary in `data.summary`). Keep the user on the checkout screen.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CheckoutError'
+        '422':
+          description: >-
+            A field is missing or invalid: no payment method, an unsupported one (Wallet),
+            a missing `expectedTotal`, gift fields, or `addressId` and `gift` sent together.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResult'
+        '503':
+          description: >-
+            The Cart, Address or Catalog service is unreachable. `data.code` is
+            `DependencyUnavailable`. Retry with the same `Idempotency-Key`.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CheckoutError'
 
   /orders/drivers/me/orders:
     get:
@@ -3179,8 +3412,264 @@ components:
 
     OrderStatus:
       type: integer
-      description: "Serialized as a number: 0 Placed, 1 Preparing, 2 PickedUp, 3 OutForDelivery, 4 Delivered, 5 Cancelled."
-      enum: [0, 1, 2, 3, 4, 5]
+      description: "Serialized as a number: 0 Placed, 1 Preparing, 2 PickedUp, 3 OutForDelivery, 4 Delivered, 5 Cancelled, 6 PendingPayment (card order waiting for payment)."
+      enum: [0, 1, 2, 3, 4, 5, 6]
+
+    PaymentMethodType:
+      type: integer
+      description: "Serialized as a number: 1 CashOnDelivery, 2 Card, 3 Wallet (not accepted yet). 0 means not chosen and is rejected."
+      enum: [1, 2, 3]
+
+    PaymentStatus:
+      type: integer
+      description: "Serialized as a number: 1 Pending, 2 Paid. Only the backend marks an order Paid."
+      enum: [1, 2]
+
+    GiftDetails:
+      type: object
+      description: >-
+        Send this to deliver to someone else. Validated with the same rules as a saved address.
+      required:
+        - recipientName
+        - phone
+        - addressLine
+        - city
+        - area
+      properties:
+        recipientName:
+          type: string
+          maxLength: 120
+          example: "Mona Ali"
+        phone:
+          type: string
+          pattern: '^01[0125]\d{8}$'
+          example: "01012345678"
+        addressLine:
+          type: string
+          maxLength: 500
+          example: "12 El-Tahrir St, Apt 5"
+        city:
+          type: string
+          maxLength: 120
+          example: "Cairo"
+        area:
+          type: string
+          maxLength: 120
+          example: "Dokki"
+        lat:
+          type: number
+          format: double
+          nullable: true
+          description: Send together with `lng`, or leave both out.
+          example: 30.0385
+        lng:
+          type: number
+          format: double
+          nullable: true
+          example: 31.2123
+        message:
+          type: string
+          nullable: true
+          maxLength: 500
+          example: "Happy birthday!"
+
+    CheckoutPreviewRequest:
+      type: object
+      description: >-
+        Send nothing to use the default saved address, `addressId` for another saved address,
+        or `gift`. Never both `addressId` and `gift`.
+      properties:
+        addressId:
+          type: string
+          format: uuid
+          nullable: true
+        gift:
+          allOf:
+            - $ref: '#/components/schemas/GiftDetails'
+          nullable: true
+
+    PlaceOrderRequest:
+      allOf:
+        - $ref: '#/components/schemas/CheckoutPreviewRequest'
+        - type: object
+          required:
+            - paymentMethod
+            - expectedTotal
+          properties:
+            paymentMethod:
+              $ref: '#/components/schemas/PaymentMethodType'
+            expectedTotal:
+              type: number
+              format: double
+              description: The total the customer saw in the preview. Only compared, never charged.
+              example: 670.00
+
+    CheckoutDeliveryAddress:
+      type: object
+      description: Where the order goes. The server returns it because it picks the default address itself.
+      properties:
+        addressId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Null for a gift address.
+        isGift:
+          type: boolean
+          example: false
+        recipientName:
+          type: string
+          example: "Seed Customer"
+        phone:
+          type: string
+          example: "01010000001"
+        addressLine:
+          type: string
+          example: "5 Abbas El-Akkad St"
+        city:
+          type: string
+          example: "Cairo"
+        area:
+          type: string
+          example: "Nasr City"
+
+    CheckoutItem:
+      type: object
+      description: Same field names as a cart line, priced at the store that serves the address.
+      properties:
+        productId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Red Roses Bouquet"
+        imageUrl:
+          type: string
+          nullable: true
+        unitPrice:
+          type: number
+          format: double
+          example: 250.00
+        quantity:
+          type: integer
+          example: 2
+        lineSubtotal:
+          type: number
+          format: double
+          example: 500.00
+
+    CheckoutSummary:
+      type: object
+      properties:
+        deliveryAddress:
+          $ref: '#/components/schemas/CheckoutDeliveryAddress'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CheckoutItem'
+        subtotal:
+          type: number
+          format: double
+          example: 620.00
+        deliveryFee:
+          type: number
+          format: double
+          description: Flat 50 EGP for now.
+          example: 50.00
+        discount:
+          type: number
+          format: double
+          description: Always 0 until discounts exist.
+          example: 0.00
+        total:
+          type: number
+          format: double
+          example: 670.00
+
+    PlacedOrder:
+      type: object
+      properties:
+        orderId:
+          type: string
+          format: uuid
+        orderNumber:
+          type: string
+          example: "FL-260914-482113"
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        paymentMethod:
+          $ref: '#/components/schemas/PaymentMethodType'
+        paymentStatus:
+          $ref: '#/components/schemas/PaymentStatus'
+        paymentRequired:
+          type: boolean
+          description: True for Card. Route to payment when true, to the order confirmation when false.
+          example: true
+        subtotal:
+          type: number
+          format: double
+          example: 620.00
+        deliveryFee:
+          type: number
+          format: double
+          example: 50.00
+        discount:
+          type: number
+          format: double
+          example: 0.00
+        total:
+          type: number
+          format: double
+          example: 670.00
+
+    UnavailableCheckoutItem:
+      type: object
+      properties:
+        productId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "White Tulips"
+        requestedQuantity:
+          type: integer
+          example: 3
+        availableQuantity:
+          type: integer
+          description: 0 when the product is out of stock or no longer sold.
+          example: 1
+
+    CheckoutError:
+      type: object
+      description: >-
+        `data` of a checkout 409 or 503. Switch on `code`; `items` and `summary` appear only for
+        the codes that use them.
+      properties:
+        code:
+          type: string
+          enum:
+            - AddressRequired
+            - AddressNotServiceable
+            - CartEmpty
+            - ItemsUnavailable
+            - PriceChanged
+            - DependencyUnavailable
+          description: >-
+            AddressRequired: no address sent and none saved, open "Add address".
+            AddressNotServiceable: no store delivers there.
+            CartEmpty: nothing to order.
+            ItemsUnavailable: see `items`.
+            PriceChanged: the total moved since the preview, show `summary` and ask again.
+            DependencyUnavailable: try again shortly.
+          example: "ItemsUnavailable"
+        items:
+          type: array
+          description: Only for `ItemsUnavailable`.
+          items:
+            $ref: '#/components/schemas/UnavailableCheckoutItem'
+        summary:
+          allOf:
+            - $ref: '#/components/schemas/CheckoutSummary'
+          description: Only for `PriceChanged`.
 
     GeoPoint:
       type: object

@@ -7,5 +7,8 @@ public enum OrderStatus
     PickedUp,
     OutForDelivery,
     Delivered,
-    Cancelled
+    Cancelled,
+
+    // Appended, not inserted: clients read these as numbers, so existing values must not shift.
+    PendingPayment
 }

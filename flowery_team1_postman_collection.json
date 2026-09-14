@@ -89,6 +89,14 @@
                          "type":  "string",
                          "description":  "Active session ID returned by GET /auth/sessions",
                          "value":  ""
+                     },
+                     {
+                         "key":  "checkoutTotal",
+                         "value":  "0"
+                     },
+                     {
+                         "key":  "idempotencyKey",
+                         "value":  ""
                      }
                  ],
     "item":  [
@@ -3421,6 +3429,342 @@
                                                                    "type":  "bearer"
                                                                }
                                                   }
+                                  },
+                                  {
+                                      "request":  {
+                                                      "description":  "Removes every line. Returns 204 even when the cart is already empty. Checkout calls it after a Cash on Delivery order.",
+                                                      "method":  "DELETE",
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/cart",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "cart"
+                                                                           ]
+                                                              },
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept-Language",
+                                                                         "type":  "text",
+                                                                         "value":  "{{acceptLanguage}}"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               }
+                                                  },
+                                      "name":  "6. Clear Cart",
+                                      "event":  {
+                                                    "listen":  "test",
+                                                    "script":  {
+                                                                   "type":  "text/javascript",
+                                                                   "exec":  [
+                                                                                "pm.test(\u0027Status is 204 No Content\u0027, function () { pm.response.to.have.status(204); });"
+                                                                            ]
+                                                               }
+                                                }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "Checkout (Team 1)",
+                     "item":  [
+                                  {
+                                      "name":  "1. Checkout Preview (default address)",
+                                      "request":  {
+                                                      "description":  "Customer token required. Empty body = the default saved address. Returns deliveryAddress, items, subtotal, deliveryFee (50), discount and total, and saves total to {{checkoutTotal}}. 409 codes: AddressRequired, AddressNotServiceable, CartEmpty, ItemsUnavailable. Try it with the seeded scrum23.addresses@flower.local customer, who has saved addresses.",
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json",
+                                                                         "type":  "text"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/orders/checkout/preview",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "orders",
+                                                                               "checkout",
+                                                                               "preview"
+                                                                           ]
+                                                              },
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{}"
+                                                               }
+                                                  },
+                                      "event":  {
+                                                    "listen":  "test",
+                                                    "script":  {
+                                                                   "type":  "text/javascript",
+                                                                   "exec":  [
+                                                                                "pm.test(\u0027Status is 200 OK\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                "if (pm.response.code === 200) { pm.collectionVariables.set(\u0027checkoutTotal\u0027, String(pm.response.json().data.total)); }"
+                                                                            ]
+                                                               }
+                                                }
+                                  },
+                                  {
+                                      "name":  "2. Checkout Preview (saved address)",
+                                      "request":  {
+                                                      "description":  "Uses {{addressId}} (one of the caller\u0027s saved addresses). 404 when it is not theirs.",
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json",
+                                                                         "type":  "text"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/orders/checkout/preview",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "orders",
+                                                                               "checkout",
+                                                                               "preview"
+                                                                           ]
+                                                              },
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"addressId\": \"{{addressId}}\"\n}"
+                                                               }
+                                                  },
+                                      "event":  {
+                                                    "listen":  "test",
+                                                    "script":  {
+                                                                   "type":  "text/javascript",
+                                                                   "exec":  [
+                                                                                "pm.test(\u0027Status is 200 OK\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                "if (pm.response.code === 200) { pm.collectionVariables.set(\u0027checkoutTotal\u0027, String(pm.response.json().data.total)); }"
+                                                                            ]
+                                                               }
+                                                }
+                                  },
+                                  {
+                                      "name":  "3. Checkout Preview (gift)",
+                                      "request":  {
+                                                      "description":  "Delivers to someone else. Gift fields follow the saved address rules; never send addressId with gift.",
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json",
+                                                                         "type":  "text"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/orders/checkout/preview",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "orders",
+                                                                               "checkout",
+                                                                               "preview"
+                                                                           ]
+                                                              },
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"gift\": {\n    \"recipientName\": \"Mona Ali\",\n    \"phone\": \"01012345678\",\n    \"addressLine\": \"12 Makram Ebeid St\",\n    \"city\": \"Cairo\",\n    \"area\": \"Nasr City\",\n    \"lat\": 30.06,\n    \"lng\": 31.34,\n    \"message\": \"Happy birthday!\"\n  }\n}"
+                                                               }
+                                                  },
+                                      "event":  {
+                                                    "listen":  "test",
+                                                    "script":  {
+                                                                   "type":  "text/javascript",
+                                                                   "exec":  [
+                                                                                "pm.test(\u0027Status is 200 OK\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                "if (pm.response.code === 200) { pm.collectionVariables.set(\u0027checkoutTotal\u0027, String(pm.response.json().data.total)); }"
+                                                                            ]
+                                                               }
+                                                }
+                                  },
+                                  {
+                                      "name":  "4. Place Order (Cash on Delivery)",
+                                      "request":  {
+                                                      "description":  "Run a preview first so {{checkoutTotal}} is set. Creates the order as Placed (0), clears the cart, paymentRequired=false. Sending it again before success reuses the same Idempotency-Key and returns the same order. 409 PriceChanged returns the fresh summary.",
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json",
+                                                                         "type":  "text"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Idempotency-Key",
+                                                                         "value":  "{{idempotencyKey}}",
+                                                                         "type":  "text"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/orders/checkout",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "orders",
+                                                                               "checkout"
+                                                                           ]
+                                                              },
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"paymentMethod\": 1,\n  \"expectedTotal\": {{checkoutTotal}}\n}"
+                                                               }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "prerequest",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "// One key per checkout attempt: kept across retries, cleared once an order is created.",
+                                                                                    "if (!pm.collectionVariables.get(\u0027idempotencyKey\u0027)) { pm.collectionVariables.set(\u0027idempotencyKey\u0027, pm.variables.replaceIn(\u0027{{$guid}}\u0027)); }"
+                                                                                ]
+                                                                   }
+                                                    },
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status is 201 Created\u0027, function () { pm.response.to.have.status(201); });",
+                                                                                    "if (pm.response.code === 201) { pm.collectionVariables.set(\u0027orderId\u0027, pm.response.json().data.orderId); pm.collectionVariables.set(\u0027idempotencyKey\u0027, \u0027\u0027); }"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "5. Place Order (Card, gift)",
+                                      "request":  {
+                                                      "description":  "Run the gift preview first. Creates the order as PendingPayment (6) with paymentRequired=true and keeps the cart until payment succeeds (Payment task).",
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json",
+                                                                         "type":  "text"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Idempotency-Key",
+                                                                         "value":  "{{idempotencyKey}}",
+                                                                         "type":  "text"
+                                                                     }
+                                                                 ],
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/orders/checkout",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "orders",
+                                                                               "checkout"
+                                                                           ]
+                                                              },
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"gift\": {\n    \"recipientName\": \"Mona Ali\",\n    \"phone\": \"01012345678\",\n    \"addressLine\": \"12 Makram Ebeid St\",\n    \"city\": \"Cairo\",\n    \"area\": \"Nasr City\",\n    \"lat\": 30.06,\n    \"lng\": 31.34,\n    \"message\": \"Happy birthday!\"\n  },\n  \"paymentMethod\": 2,\n  \"expectedTotal\": {{checkoutTotal}}\n}"
+                                                               }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "prerequest",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "// One key per checkout attempt: kept across retries, cleared once an order is created.",
+                                                                                    "if (!pm.collectionVariables.get(\u0027idempotencyKey\u0027)) { pm.collectionVariables.set(\u0027idempotencyKey\u0027, pm.variables.replaceIn(\u0027{{$guid}}\u0027)); }"
+                                                                                ]
+                                                                   }
+                                                    },
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status is 201 Created\u0027, function () { pm.response.to.have.status(201); });",
+                                                                                    "if (pm.response.code === 201) { pm.collectionVariables.set(\u0027orderId\u0027, pm.response.json().data.orderId); pm.collectionVariables.set(\u0027idempotencyKey\u0027, \u0027\u0027); }"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
                                   }
                               ]
                  },

@@ -26,5 +26,20 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Property(order => order.StoreLongitude).HasPrecision(9, 6);
         builder.Property(order => order.DeliveryLatitude).HasPrecision(9, 6);
         builder.Property(order => order.DeliveryLongitude).HasPrecision(9, 6);
+        builder.Property(order => order.GiftMessage).HasMaxLength(500);
+        builder.Property(order => order.PaymentMethod).HasConversion<string>().HasMaxLength(32).IsRequired();
+        builder.Property(order => order.PaymentStatus).HasConversion<string>().HasMaxLength(32).IsRequired();
+        builder.Property(order => order.Subtotal).HasPrecision(18, 2);
+        builder.Property(order => order.DeliveryFee).HasPrecision(18, 2);
+        builder.Property(order => order.Discount).HasPrecision(18, 2);
+        builder.Property(order => order.Total).HasPrecision(18, 2);
+        builder.Property(order => order.IdempotencyKey).HasMaxLength(100);
+
+        // One order per checkout attempt: a retried request with the same key cannot insert a
+        // second order even if two retries race past the lookup.
+        builder.HasIndex(order => new { order.CustomerUserId, order.IdempotencyKey })
+            .IsUnique()
+            .HasFilter("[IdempotencyKey] IS NOT NULL")
+            .HasDatabaseName("UX_Order_Customer_IdempotencyKey");
     }
 }
