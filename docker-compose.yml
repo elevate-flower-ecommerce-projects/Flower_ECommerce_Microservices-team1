@@ -60,6 +60,9 @@ services:
     build:
       context: .
       dockerfile: Order & Fulfillment Service/Dockerfile
+    depends_on:
+      sqlserver:
+        condition: service_healthy
 
   paymentservice:
     image: ${DOCKER_REGISTRY-}paymentservice
