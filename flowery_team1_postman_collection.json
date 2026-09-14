@@ -3464,21 +3464,76 @@
                                                                }
                                                   },
                                       "name":  "6. Clear Cart",
-                                      "event":  {
-                                                    "listen":  "test",
-                                                    "script":  {
-                                                                   "type":  "text/javascript",
-                                                                   "exec":  [
-                                                                                "pm.test(\u0027Status is 204 No Content\u0027, function () { pm.response.to.have.status(204); });"
-                                                                            ]
-                                                               }
-                                                }
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status is 204 No Content\u0027, function () { pm.response.to.have.status(204); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
                                   }
                               ]
                  },
                  {
                      "name":  "Checkout (Team 1)",
                      "item":  [
+                                  {
+                                      "name":  "0. Checkout Test Customer Login (scrum23)",
+                                      "request":  {
+                                                      "description":  "Seeded Development customer made for checkout: 3 saved addresses (default in Nasr City, two in Maadi) and a cart with 2 x Amber Rose Bouquet + 1 x Baby Breath Cloud (total 1600 with delivery). The cart is refilled whenever the Cart service starts and finds it empty. Saves bearerToken and sets addressId to the Maadi address for request 2.",
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept-Language",
+                                                                         "value":  "{{acceptLanguage}}",
+                                                                         "type":  "text"
+                                                                     },
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json",
+                                                                         "type":  "text"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"email\": \"scrum23.addresses@flower.local\",\n  \"password\": \"Scrum23Addresses!1\"\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/identity/auth/login",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "identity",
+                                                                               "auth",
+                                                                               "login"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "var jsonData = pm.response.json();",
+                                                                                    "var data = jsonData \u0026\u0026 jsonData.data ? jsonData.data : jsonData;",
+                                                                                    "var accessToken = data \u0026\u0026 (data.accessToken || data.token);",
+                                                                                    "if (accessToken) { pm.collectionVariables.set(\u0027bearerToken\u0027, accessToken); }",
+                                                                                    "if (data \u0026\u0026 data.refreshToken) { pm.collectionVariables.set(\u0027refreshToken\u0027, data.refreshToken); }",
+                                                                                    "pm.collectionVariables.set(\u0027addressId\u0027, \u002780000000-0000-0000-0000-000000000002\u0027);",
+                                                                                    "pm.collectionVariables.set(\u0027idempotencyKey\u0027, \u0027\u0027);"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
                                   {
                                       "name":  "1. Checkout Preview (default address)",
                                       "request":  {
@@ -3519,16 +3574,18 @@
                                                                    "raw":  "{}"
                                                                }
                                                   },
-                                      "event":  {
-                                                    "listen":  "test",
-                                                    "script":  {
-                                                                   "type":  "text/javascript",
-                                                                   "exec":  [
-                                                                                "pm.test(\u0027Status is 200 OK\u0027, function () { pm.response.to.have.status(200); });",
-                                                                                "if (pm.response.code === 200) { pm.collectionVariables.set(\u0027checkoutTotal\u0027, String(pm.response.json().data.total)); }"
-                                                                            ]
-                                                               }
-                                                }
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status is 200 OK\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "if (pm.response.code === 200) { pm.collectionVariables.set(\u0027checkoutTotal\u0027, String(pm.response.json().data.total)); }"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
                                   },
                                   {
                                       "name":  "2. Checkout Preview (saved address)",
@@ -3570,16 +3627,18 @@
                                                                    "raw":  "{\n  \"addressId\": \"{{addressId}}\"\n}"
                                                                }
                                                   },
-                                      "event":  {
-                                                    "listen":  "test",
-                                                    "script":  {
-                                                                   "type":  "text/javascript",
-                                                                   "exec":  [
-                                                                                "pm.test(\u0027Status is 200 OK\u0027, function () { pm.response.to.have.status(200); });",
-                                                                                "if (pm.response.code === 200) { pm.collectionVariables.set(\u0027checkoutTotal\u0027, String(pm.response.json().data.total)); }"
-                                                                            ]
-                                                               }
-                                                }
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status is 200 OK\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "if (pm.response.code === 200) { pm.collectionVariables.set(\u0027checkoutTotal\u0027, String(pm.response.json().data.total)); }"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
                                   },
                                   {
                                       "name":  "3. Checkout Preview (gift)",
@@ -3621,16 +3680,18 @@
                                                                    "raw":  "{\n  \"gift\": {\n    \"recipientName\": \"Mona Ali\",\n    \"phone\": \"01012345678\",\n    \"addressLine\": \"12 Makram Ebeid St\",\n    \"city\": \"Cairo\",\n    \"area\": \"Nasr City\",\n    \"lat\": 30.06,\n    \"lng\": 31.34,\n    \"message\": \"Happy birthday!\"\n  }\n}"
                                                                }
                                                   },
-                                      "event":  {
-                                                    "listen":  "test",
-                                                    "script":  {
-                                                                   "type":  "text/javascript",
-                                                                   "exec":  [
-                                                                                "pm.test(\u0027Status is 200 OK\u0027, function () { pm.response.to.have.status(200); });",
-                                                                                "if (pm.response.code === 200) { pm.collectionVariables.set(\u0027checkoutTotal\u0027, String(pm.response.json().data.total)); }"
-                                                                            ]
-                                                               }
-                                                }
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status is 200 OK\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "if (pm.response.code === 200) { pm.collectionVariables.set(\u0027checkoutTotal\u0027, String(pm.response.json().data.total)); }"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
                                   },
                                   {
                                       "name":  "4. Place Order (Cash on Delivery)",

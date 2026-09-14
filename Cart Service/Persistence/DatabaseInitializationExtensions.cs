@@ -25,6 +25,9 @@ public static class DatabaseInitializationExtensions
 
             await EnsureDatabaseExistsAsync(context, logger);
             await MigrateAsync(context, logger);
+
+            if (app.Environment.IsDevelopment())
+                await CartTestDataSeeder.SeedAsync(context);
         }
         catch (Exception exception)
         {

@@ -36,6 +36,20 @@ info:
     - Customer: `customer2@flower.local` / `CustomerFL@123`
     - Driver (approved, Motorcycle `UP16DL0007`): `driver@flower.local` / `DriverFL@123`
     - Admin: `admin@Flower.local` / `AdminFL@123` (use `/identity/admin/login`)
+    - Checkout test customer: `scrum23.addresses@flower.local` / `Scrum23Addresses!1`. Has 3 saved
+      addresses (default `80000000-0000-0000-0000-000000000001` in Nasr City, `...0002` and `...0003`
+      in Maadi) and a ready cart: 2 x Amber Rose Bouquet + 1 x Baby Breath Cloud, so the preview
+      total is 1600 (1550 + 50 delivery). The Cart service refills this cart on startup whenever it
+      is empty.
+
+    ### Checkout test cases with the seeded data
+    - Default address: preview with `{}` as the checkout test customer.
+    - `AddressRequired`: preview as `customer@flower.local`, who has no saved addresses.
+    - `CartEmpty`: place a Cash on Delivery order (it empties the cart), then preview again.
+    - `ItemsUnavailable`: add Candlelight Carnations (`40000000-0000-0000-0000-000000000014`,
+      stocked in Nasr City only) to the cart, then preview with the Maadi address `...0002`.
+    - `AddressNotServiceable`: preview a gift to `city: "Alexandria"`, `area: "Smouha"` without lat/lng.
+    - `PriceChanged`: place an order with an `expectedTotal` that differs from the preview.
 
     A driver can read account and vehicle summary fields from `GET /identity/users/me/profile`;
     `GET /identity/drivers/me/profile` remains available for the vehicle document workflow.
