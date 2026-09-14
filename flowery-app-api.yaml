@@ -42,6 +42,15 @@ info:
       total is 1600 (1550 + 50 delivery). The Cart service refills this cart on startup whenever it
       is empty.
 
+    ### Running the backend locally
+    - Mobile stack (Docker Hub images, `setup.sh`): gateway on `http://<machine-ip>:8080`.
+    - Repo docker compose (`docker compose up -d --build` from the repo root): gateway on
+      `http://localhost:5086`. In Postman, import `flowery_team1_local_docker.postman_environment.json`
+      and select it; it only overrides `baseUrl`.
+    - Swagger per service: Identity `:5022`, Order and Checkout `:5109`, Cart `:5292`,
+      Address `:5272`, Catalog `:5129` (all `/swagger`). The checkout Swagger examples work as-is
+      with the checkout test customer.
+
     ### Checkout test cases with the seeded data
     - Default address: preview with `{}` as the checkout test customer.
     - `AddressRequired`: preview as `customer@flower.local`, who has no saved addresses.
