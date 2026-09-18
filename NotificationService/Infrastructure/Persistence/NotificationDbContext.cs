@@ -1,11 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using NotificationService.Domain;
 
-namespace NotificationService.Infrastructure;
+namespace NotificationService.Infrastructure.Persistence;
 
 public class NotificationDbContext:DbContext
 {
-    public DbSet<DeviceToken> Notifications { get; set; }
+    public DbSet<DeviceToken> DeviceTokens { get; set; }
     public NotificationDbContext(DbContextOptions<NotificationDbContext> options) : base(options)
     {
     }

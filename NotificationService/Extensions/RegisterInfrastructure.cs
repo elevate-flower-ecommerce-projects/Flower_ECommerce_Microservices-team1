@@ -1,4 +1,6 @@
 ﻿using MassTransit;
+using Microsoft.EntityFrameworkCore;
+using NotificationService.Infrastructure.Persistence;
 using NotificationService.Shared.Models;
 using NotificationService.Shared.Services;
 
@@ -35,6 +37,14 @@ public static class RegisterInfrastructure
         services.AddHttpClient<AuthServiceClient>(client =>
         {
             client.BaseAddress = new Uri("http://identityservice:8080");
+        });
+
+        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(RegisterInfrastructure).Assembly));
+
+        services.AddDbContext<NotificationDbContext>(options =>
+        {
+            var connectionString = configuration.GetConnectionString("NotificationDb");
+            options.UseSqlServer(connectionString);
         });
         return services;
     }
