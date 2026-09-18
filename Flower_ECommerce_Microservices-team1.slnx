@@ -7,6 +7,7 @@
     <Build />
   </Project>
   <Project Path="Identity service/Identity service.csproj" />
+  <Project Path="NotificationService/NotificationService.csproj" Id="3e6bc9d5-9ab5-4d85-b43f-e6be66711280" />
   <Project Path="Order &amp; Fulfillment Service/Order &amp; Fulfillment Service.csproj" />
   <Project Path="Payment Service/Payment Service.csproj" />
 </Solution>
