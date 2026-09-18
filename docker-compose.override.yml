@@ -126,3 +126,13 @@ services:
     volumes:
       - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
+  notificationservice:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ConnectionStrings__NotificationDb=Server=sqlserver,1433;Database=FlowerNotificationDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Flower_Dev_2026!};TrustServerCertificate=True;Encrypt=False;MultipleActiveResultSets=True
+    ports:
+      - "5380:8080"
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro

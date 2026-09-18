@@ -6,7 +6,7 @@ services:
       MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-Flower_Dev_2026!}"
       MSSQL_PID: Developer
     ports:
-      - "1433:1433"
+      - "3535:1433"
     volumes:
       - sqlserver-data:/var/opt/mssql
     healthcheck:
@@ -69,6 +69,11 @@ services:
     build:
       context: .
       dockerfile: Payment Service/Dockerfile
+  notificationservice:
+    image: ${DOCKER_REGISTRY-}notificationservice
+    build:
+      context: .
+      dockerfile: NotificationService/Dockerfile
 
 volumes:
   sqlserver-data:
