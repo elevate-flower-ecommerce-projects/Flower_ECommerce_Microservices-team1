@@ -1,6 +1,7 @@
 ﻿using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using NotificationService.Infrastructure.Persistence;
+using NotificationService.Infrastructure.Persistence.Repositories;
 using NotificationService.Shared.Models;
 using NotificationService.Shared.Services;
 
@@ -46,6 +47,8 @@ public static class RegisterInfrastructure
             var connectionString = configuration.GetConnectionString("NotificationDb");
             options.UseSqlServer(connectionString);
         });
+
+        services.AddScoped(typeof(Repository<>));
         return services;
     }
 }

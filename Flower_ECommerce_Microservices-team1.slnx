@@ -10,4 +10,5 @@
   <Project Path="NotificationService/NotificationService.csproj" Id="3e6bc9d5-9ab5-4d85-b43f-e6be66711280" />
   <Project Path="Order &amp; Fulfillment Service/Order &amp; Fulfillment Service.csproj" />
   <Project Path="Payment Service/Payment Service.csproj" />
+  <Project Path="Shared/Shared.csproj" Id="0ec34813-72c5-4247-af19-a92d2da13cdf" />
 </Solution>
