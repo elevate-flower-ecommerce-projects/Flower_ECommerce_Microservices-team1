@@ -87,11 +87,16 @@ services:
       - Email__Password=${EMAIL_PASSWORD:-exlu nsgy vvsf nhup}
       - Email__FromAddress=${EMAIL_FROM_ADDRESS:-testamr124@gmail.com}
       - Email__FromName=${EMAIL_FROM_NAME:-Flower Delivery}
+      - RabbitMQ__HostName=${RABBITMQ_HOSTNAME:-rabbitmq}
+      - RabbitMQ__UserName=${RABBITMQ_USERNAME:-guest}
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-guest}
     ports:
       - "5022:8080"
     depends_on:
       sqlserver:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy   # was missing this too — it only waited on sqlserver
     volumes:
       - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
@@ -131,8 +136,16 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ConnectionStrings__NotificationDb=Server=sqlserver,1433;Database=FlowerNotificationDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Flower_Dev_2026!};TrustServerCertificate=True;Encrypt=False;MultipleActiveResultSets=True
+      - RabbitMQ__HostName=${RABBITMQ_HOSTNAME:-rabbitmq}
+      - RabbitMQ__UserName=${RABBITMQ_USERNAME:-guest}
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-guest}
     ports:
       - "5380:8080"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     volumes:
       - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro

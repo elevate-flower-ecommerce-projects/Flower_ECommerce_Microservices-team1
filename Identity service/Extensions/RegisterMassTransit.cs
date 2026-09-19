@@ -1,19 +1,14 @@
 ﻿using MassTransit;
-using Microsoft.EntityFrameworkCore;
-using NotificationService.Infrastructure.Persistence;
-using NotificationService.Infrastructure.Persistence.Repositories;
-using NotificationService.Shared.Models;
-using NotificationService.Shared.Services;
+using Shared.Models;
 
-namespace NotificationService.Extensions;
+namespace Identity_service.Extensions;
 
-public static class RegisterInfrastructure
+public static class RegisterMassTransit
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddMassTransitConfiguration(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddMassTransit(cfg =>
         {
-            cfg.AddConsumers(typeof(RegisterInfrastructure).Assembly);
             cfg.UsingRabbitMq((context, cfg) =>
             {
                 // 2. Configure RabbitMQ connection
@@ -34,21 +29,6 @@ public static class RegisterInfrastructure
                 cfg.ConfigureEndpoints(context);
             });
         });
-
-        services.AddHttpClient<AuthServiceClient>(client =>
-        {
-            client.BaseAddress = new Uri("http://identityservice:8080");
-        });
-
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(RegisterInfrastructure).Assembly));
-
-        services.AddDbContext<NotificationDbContext>(options =>
-        {
-            var connectionString = configuration.GetConnectionString("NotificationDb");
-            options.UseSqlServer(connectionString);
-        });
-
-        services.AddScoped(typeof(Repository<>));
         return services;
     }
 }

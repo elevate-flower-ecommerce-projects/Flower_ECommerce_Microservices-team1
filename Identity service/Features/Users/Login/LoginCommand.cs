@@ -1,6 +1,7 @@
 namespace Identity_service.Features.Users.Login;
 
-public sealed record LoginCommand(string Email, string Password, string? DeviceInfo)
+public sealed record LoginCommand(string Email, string Password, string? DeviceInfo 
+    ,string DeviceId,string FCMToken )
     : IRequest<Result<LoginResponseDto>>;
 
 public class LoginCommandValidator : AbstractValidator<LoginCommand>

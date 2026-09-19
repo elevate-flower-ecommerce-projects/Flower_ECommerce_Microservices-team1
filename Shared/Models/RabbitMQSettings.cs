@@ -1,4 +1,5 @@
-﻿namespace NotificationService.Shared.Models;
+﻿
+namespace Shared.Models;
 
 public class RabbitMQSettings
 {

@@ -9,7 +9,7 @@ public sealed class LoginEndpoint : ICarterModule
     {
         app.MapPost("auth/login", async ([FromBody] LoginRequest request, HttpContext httpContext, ISender sender, CancellationToken cancellationToken) =>
         {
-            var result = await sender.Send(new LoginCommand(request.Email, request.Password, BuildDeviceInfo(httpContext)), cancellationToken);
+            var result = await sender.Send(new LoginCommand(request.Email, request.Password, BuildDeviceInfo(httpContext), request.DeviceId, request.FCMToken), cancellationToken);
             return result.ToHandleResult();
         })
         .AllowAnonymous()
