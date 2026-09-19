@@ -51,6 +51,8 @@ services:
       dockerfile: Identity service/Dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+    volumes:
+      - identity-avatars:/app/wwwroot/uploads/avatars
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -72,3 +74,4 @@ services:
 
 volumes:
   sqlserver-data:
+  identity-avatars:
