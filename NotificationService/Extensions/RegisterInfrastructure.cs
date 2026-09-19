@@ -1,4 +1,6 @@
-﻿using MassTransit;
+﻿using FirebaseAdmin;
+using Google.Apis.Auth.OAuth2;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using NotificationService.Infrastructure.Persistence;
 using NotificationService.Infrastructure.Persistence.Repositories;
@@ -47,7 +49,21 @@ public static class RegisterInfrastructure
             var connectionString = configuration.GetConnectionString("NotificationDb");
             options.UseSqlServer(connectionString);
         });
+        var credentialsPath = configuration["Firebase:CredentialsPath"]
+          ?? throw new InvalidOperationException("Firebase:CredentialsPath is not configured.");
 
+        // FirebaseApp.Create must run exactly once per process, before any
+        // FirebaseMessaging.DefaultInstance call. Guard against double-init
+        // (hot reload, multiple calls to this method, etc.).
+        if (FirebaseApp.DefaultInstance is null)
+        {
+            FirebaseApp.Create(new AppOptions
+            {
+                Credential = GoogleCredential.FromFile(credentialsPath)
+            });
+        }
+
+        services.AddScoped<FirebaseFcmSender>();
         services.AddScoped(typeof(Repository<>));
         return services;
     }
