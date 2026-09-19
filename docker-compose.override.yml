@@ -139,6 +139,7 @@ services:
       - RabbitMQ__HostName=${RABBITMQ_HOSTNAME:-rabbitmq}
       - RabbitMQ__UserName=${RABBITMQ_USERNAME:-guest}
       - RabbitMQ__Password=${RABBITMQ_PASSWORD:-guest}
+      - Firebase__CredentialsPath=/app/firebase-service-account.json
     ports:
       - "5380:8080"
     depends_on:
@@ -149,3 +150,4 @@ services:
     volumes:
       - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
+      - ./NotificationService/firebase-service-account.json:/app/firebase-service-account.json

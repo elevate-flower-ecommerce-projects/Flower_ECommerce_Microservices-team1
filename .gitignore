@@ -367,3 +367,6 @@ MigrationBackup/
 FodyWeavers.xsd
 /.env
 /docker-compose.prod.yml
+
+
+firebase-service-account.json
