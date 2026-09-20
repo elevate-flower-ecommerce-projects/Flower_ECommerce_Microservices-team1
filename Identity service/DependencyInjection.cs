@@ -1,5 +1,6 @@
 using Flower.Common.StandardizedResponse;
 using Identity_service.Exceptions;
+using Identity_service.Extensions;
 using System.Reflection;
 using System.Threading.RateLimiting;
 
@@ -80,7 +81,7 @@ public static class DependencyInjection
         mappingConfiguration.Scan(assembly);
 
         services.AddSingleton<IMapper>(new Mapper(mappingConfiguration));
-
+        services.AddMassTransitConfiguration(configuration);
         return services;
     }
 
