@@ -1,5 +1,6 @@
 
 using NotificationService.Extensions;
+using NotificationService.Shared.Interfaces;
 using Scalar.AspNetCore;
 
 namespace NotificationService;
@@ -29,6 +30,18 @@ public class Program
                 option.ShowSidebar = true;
                 option.DefaultHttpClient = new(ScalarTarget.CSharp, ScalarClient.HttpClient);
             });
+        }
+        var globalGroup = app.MapGroup("");
+
+        var endpointDefinitions = typeof(Program).Assembly
+            .GetTypes()
+            .Where(t => typeof(IEndpoint).IsAssignableFrom(t) && !t.IsAbstract)
+            .Select(Activator.CreateInstance)
+            .Cast<IEndpoint>();
+
+        foreach (var endpoint in endpointDefinitions)
+        {
+            endpoint.MapEndpoint(globalGroup);
         }
         app.ApplyDatabaseMigrations(app.Logger);
         app.UseHttpsRedirection();
