@@ -115,8 +115,10 @@ info:
     - `OrderAlreadyPaid`: call the session endpoint again for an order that is already paid.
     - `OrderNotPayable`: call the session endpoint for a Cash on Delivery order.
     - `OrderNotFound`: call it with another customer's order id. It answers 404, not 403, on purpose.
-    - Declined card: pay with `4000 0000 0000 0002`. The order stays `PendingPayment` and
-      `canRetry` turns back to `true`.
+    - Declined card: pay with `4000 0000 0000 0002`. Stripe shows the decline on the same page and
+      the customer can try another card there; the page stays open. The order stays
+      `PendingPayment`, and the status endpoint keeps returning the same `checkoutUrl` with
+      `canRetry: false`. Then pay with `4242 4242 4242 4242` on that page and it becomes paid.
     - Lost webhook: stop `stripe listen`, pay, then call the status endpoint. It reconciles with
       Stripe and the order is paid by the time it answers.
     - Abandoned page: open a session and do not pay. The status endpoint keeps returning the same
