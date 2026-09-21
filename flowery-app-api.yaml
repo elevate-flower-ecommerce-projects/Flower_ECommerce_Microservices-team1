@@ -30,7 +30,10 @@ info:
 
     1. `POST /payments/orders/{orderId}/session` returns `checkoutUrl`. Open it in a webview or an
        external browser. Calling it again while a page is still open returns the same URL (`200`
-       with `reused: true`) instead of opening a second one.
+       with `reused: true`) instead of opening a second one. The backend confirms with Stripe
+       before reusing a page: a page Stripe already closed is replaced with a fresh one, and if the
+       customer has already paid it answers `409 OrderAlreadyPaid` - even before Stripe's
+       confirmation reaches the backend - so a second page is never opened for a paid order.
     2. The customer pays on Stripe's page and Stripe sends them to one of two small pages
        (Arabic + English, light and dark):
        - `/payments/return/success?orderId={id}&sessionId={id}` after paying.
@@ -118,6 +121,10 @@ info:
       Stripe and the order is paid by the time it answers.
     - Abandoned page: open a session and do not pay. The status endpoint keeps returning the same
       `checkoutUrl` until it expires, then reports `Expired` with `canRetry: true`.
+    - Pay again right after paying: stop `stripe listen`, pay, then call the session endpoint
+      (not the status one). It answers `409 OrderAlreadyPaid` and the order is already `Paid`.
+    - Cancel and come back: press back on Stripe's page (lands on `/payments/return/cancel`),
+      then call the session endpoint again. It hands back the same open page.
 
     A driver can read account and vehicle summary fields from `GET /identity/users/me/profile`;
     `GET /identity/drivers/me/profile` remains available for the vehicle document workflow.
@@ -1912,6 +1919,16 @@ paths:
         A new page is opened only when there is none, or the previous one failed or expired.
 
 
+        Before reusing a page the backend asks Stripe about it. A page Stripe has already closed
+        is replaced with a fresh one. A page that was already paid is confirmed on the spot and
+        answered with `409 OrderAlreadyPaid`, even if Stripe's event has not arrived yet.
+
+
+        After paying, Stripe sends the customer to `/payments/return/success?orderId=...&sessionId=...`;
+        pressing back on Stripe's page leads to `/payments/return/cancel?orderId=...`. Close the
+        webview on either URL.
+
+
         Coming back from the page does **not** mean the order is paid. Call the status endpoint.
       operationId: CreatePaymentSession
       security:
@@ -1964,7 +1981,9 @@ paths:
                       data:
                         $ref: '#/components/schemas/PaymentError'
         '409':
-          description: "`OrderAlreadyPaid` or `OrderNotPayable`."
+          description: >-
+            `OrderAlreadyPaid` (including a payment Stripe took whose confirmation had not reached
+            the backend yet) or `OrderNotPayable` (Cash on Delivery or cancelled order).
           content:
             application/json:
               schema:
@@ -1975,7 +1994,10 @@ paths:
                       data:
                         $ref: '#/components/schemas/PaymentError'
         '503':
-          description: "`DependencyUnavailable` or `PaymentUnavailable`. Try again shortly."
+          description: >-
+            `DependencyUnavailable` or `PaymentUnavailable`. Try again shortly. Also returned if
+            Stripe says the order is paid but the order service could not be told yet; no new page
+            is opened, and the status endpoint finishes the job on the next call.
           content:
             application/json:
               schema:

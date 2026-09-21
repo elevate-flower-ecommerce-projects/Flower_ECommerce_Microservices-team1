@@ -189,20 +189,20 @@
                                                   }
                                   },
                                   {
-                                      "name":  "Payment WeatherForecast (Template)",
+                                      "name":  "Payment Service Health",
                                       "request":  {
                                                       "method":  "GET",
                                                       "header":  [
 
                                                                  ],
                                                       "url":  {
-                                                                  "raw":  "{{baseUrl}}/payment/weatherforecast",
+                                                                  "raw":  "{{baseUrl}}/payment/health",
                                                                   "host":  [
                                                                                "{{baseUrl}}"
                                                                            ],
                                                                   "path":  [
                                                                                "payment",
-                                                                               "weatherforecast"
+                                                                               "health"
                                                                            ]
                                                               }
                                                   }
@@ -3773,7 +3773,7 @@
                                   {
                                       "name":  "5. Place Order (Card, gift)",
                                       "request":  {
-                                                      "description":  "Run the gift preview first. Creates the order as PendingPayment (6) with paymentRequired=true and keeps the cart until payment succeeds (Payment task).",
+                                                      "description":  "Run the gift preview first. Creates the order as PendingPayment (6) with paymentRequired=true and keeps the cart until payment succeeds. Saves {{orderId}}; continue in the Payment Service folder to pay it.",
                                                       "method":  "POST",
                                                       "header":  [
                                                                      {
@@ -4129,7 +4129,7 @@
                                   {
                                       "name":  "1. Open Payment Session",
                                       "request":  {
-                                                      "description":  "Returns a Stripe payment URL for the card order in {{orderId}}. Calling it again while the page is still open returns 200 with the same URL and reused=true instead of opening a second one. 409 OrderAlreadyPaid if it is paid, 409 OrderNotPayable for a Cash on Delivery or cancelled order, 404 OrderNotFound for another customer\u0027s order.",
+                                                      "description":  "Returns a Stripe payment URL for the card order in {{orderId}}. While a page is still open it returns 200 with the same URL and reused=true; the backend checks with Stripe first, so a page Stripe already closed is replaced with a fresh one. If the customer already paid - even if Stripe\u0027s confirmation has not arrived yet - it answers 409 OrderAlreadyPaid and never opens a second page. 409 OrderNotPayable for a Cash on Delivery or cancelled order, 404 OrderNotFound for another customer\u0027s order.",
                                                       "method":  "POST",
                                                       "header":  [
 
@@ -4239,7 +4239,7 @@
                                   {
                                       "name":  "3. Open Payment Session again (after paying)",
                                       "request":  {
-                                                      "description":  "Run this after the order is paid. The order can only be paid once, so it answers 409 with code OrderAlreadyPaid.",
+                                                      "description":  "Run this right after paying. The order can only be paid once, so it answers 409 with code OrderAlreadyPaid - also when Stripe\u0027s confirmation has not reached the backend yet, because the session endpoint asks Stripe before reusing a page.",
                                                       "method":  "POST",
                                                       "header":  [
 
@@ -4314,9 +4314,96 @@
                                                                    }
                                                     }
                                                 ]
+                                  },
+                                  {
+                                      "name":  "5. Return Page (success)",
+                                      "request":  {
+                                                      "description":  "The page Stripe sends the customer to after paying, with orderId and Stripe\u0027s sessionId. It is only a screen (Arabic and English): it never marks the order paid. In the app, close the webview when the URL contains /payments/return/ and call request 2. Open the URL in a browser to see it.",
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/payments/return/success?orderId={{orderId}}\u0026sessionId=cs_test_example",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "payments",
+                                                                               "return",
+                                                                               "success"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "orderId",
+                                                                                    "value":  "{{orderId}}"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "sessionId",
+                                                                                    "value":  "cs_test_example"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status is 200 OK\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "pm.test(\u0027It is an HTML page\u0027, function () { pm.expect(pm.response.headers.get(\u0027Content-Type\u0027)).to.include(\u0027text/html\u0027); });",
+                                                                                    "pm.test(\u0027It is never cached\u0027, function () { pm.expect(pm.response.headers.get(\u0027Cache-Control\u0027)).to.eql(\u0027no-store\u0027); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "6. Return Page (cancel)",
+                                      "request":  {
+                                                      "description":  "The page Stripe sends the customer to when they press back on Stripe\u0027s payment page. Nothing was charged and the order stays PendingPayment; the same payment page still works while it is open.",
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/payments/return/cancel?orderId={{orderId}}",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "payments",
+                                                                               "return",
+                                                                               "cancel"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "orderId",
+                                                                                    "value":  "{{orderId}}"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status is 200 OK\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "pm.test(\u0027It is an HTML page\u0027, function () { pm.expect(pm.response.headers.get(\u0027Content-Type\u0027)).to.include(\u0027text/html\u0027); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
                                   }
                               ],
-                     "description":  "Online card payment through Stripe hosted checkout.\n\nRun the Checkout folder first and place a Card order (request 5) - it saves {{orderId}}.\nThen run 1, open the printed URL in a browser, pay with the test card 4242 4242 4242 4242\n(any future expiry, any CVC), and run 2.\n\nRequest 2 is the one the app must trust. It also repairs: if Stripe took the money but no\nevent reached the backend, it finds out, marks the order paid and clears the cart before\nanswering."
+                     "description":  "Online card payment through Stripe hosted checkout (test mode, no real money).\n\nRun the Checkout folder first and place a Card order (request 5) - it saves {{orderId}}.\nThen run 1, open the printed URL in a browser, pay with the test card 4242 4242 4242 4242\n(any future expiry, any CVC), and run 2.\n\nAfter paying, Stripe sends the customer to /payments/return/success; pressing back on\nStripe\u0027s page goes to /payments/return/cancel (requests 5 and 6 show both pages). The app\nshould close its webview as soon as it sees /payments/return/ and call request 2.\n\nRequest 2 is the one the app must trust. It also repairs: if Stripe took the money but no\nevent reached the backend, it finds out, marks the order paid and clears the cart before\nanswering."
                  }
              ]
 }
