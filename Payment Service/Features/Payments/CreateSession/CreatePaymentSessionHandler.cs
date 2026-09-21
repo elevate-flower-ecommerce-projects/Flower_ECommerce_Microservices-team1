@@ -21,6 +21,7 @@ public sealed class CreatePaymentSessionHandler(
     IUnitOfWork<PaymentDbContext> unitOfWork,
     IOrderClient orderClient,
     IStripeGateway stripeGateway,
+    IPaymentSettlement settlement,
     IOptions<StripeOptions> stripeOptions,
     ILogger<CreatePaymentSessionHandler> logger)
     : IRequestHandler<CreatePaymentSessionCommand, OperationResult<object>>
@@ -83,7 +84,7 @@ public sealed class CreatePaymentSessionHandler(
         // rather than leave a trail of abandoned sessions.
         var now = DateTime.UtcNow;
         var reusable = await attemptRepository
-            .Query()
+            .Query(false)
             .Where(candidate => candidate.OrderId == request.OrderId
                 && candidate.Status == PaymentAttemptStatus.Pending
                 && candidate.CheckoutUrl != null
@@ -96,10 +97,48 @@ public sealed class CreatePaymentSessionHandler(
 
         if (reusable is not null)
         {
-            return OperationResultFactory.Success<object>(
-                ToResponse(reusable, reused: true),
-                PaymentMessages.SessionReused,
-                PaymentMessages.SessionReused);
+            // Our stored expiry is only a guess about Stripe's state: a session can be closed early,
+            // or paid with the webhook still on its way. Handing back a dead or already paid page
+            // would strand the customer, so ask Stripe before reusing it.
+            var live = await stripeGateway.GetSessionAsync(reusable.ProviderSessionId!, cancellationToken);
+            var state = live.Status is StripeCallStatus.Ok ? live.Value : null;
+
+            if (state is { IsPaid: true })
+            {
+                var outcome = await settlement.SettleAsync(
+                    reusable,
+                    state.PaymentIntentId,
+                    state.AmountTotalMinorUnits,
+                    state.Currency,
+                    cancellationToken);
+
+                // Never open a second page for money Stripe already took, even if confirming it failed.
+                return outcome is SettlementOutcome.Settled or SettlementOutcome.AlreadySettled
+                    ? OperationResultFactory.Conflict<object>(
+                        new PaymentErrorResponse(PaymentErrorCodes.OrderAlreadyPaid),
+                        PaymentMessages.OrderAlreadyPaid,
+                        PaymentMessages.OrderAlreadyPaid)
+                    : Unavailable(PaymentMessages.PaymentUnavailable, PaymentErrorCodes.PaymentUnavailable);
+            }
+
+            if (state is { IsExpired: true })
+            {
+                reusable.Status = PaymentAttemptStatus.Expired;
+                reusable.FailureReason = "The payment session expired.";
+                reusable.CompletedAtUtc = DateTime.UtcNow;
+                reusable.UpdatedAtUtc = DateTime.UtcNow;
+                await attemptRepository.Update(reusable);
+                await unitOfWork.CompleteAsync();
+                // Fall through and open a fresh page.
+            }
+            else
+            {
+                // Still open, or Stripe could not be asked; the stored expiry is the best we know.
+                return OperationResultFactory.Success<object>(
+                    ToResponse(reusable, reused: true),
+                    PaymentMessages.SessionReused,
+                    PaymentMessages.SessionReused);
+            }
         }
 
         var attempt = new PaymentAttempt

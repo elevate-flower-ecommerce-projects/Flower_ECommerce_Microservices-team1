@@ -6,6 +6,8 @@ public static class PaymentRoutes
     public const string CreateSession = "/orders/{orderId:guid}/session";
     public const string Status = "/orders/{orderId:guid}/status";
     public const string StripeWebhook = "/stripe/webhook";
+    public const string ReturnSuccess = "/return/success";
+    public const string ReturnCancel = "/return/cancel";
     public const string Tag = "Payments";
 }
 

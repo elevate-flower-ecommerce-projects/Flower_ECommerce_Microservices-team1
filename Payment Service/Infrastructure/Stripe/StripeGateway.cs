@@ -36,6 +36,8 @@ public sealed record StripeSessionState(
     DateTime? ExpiresAtUtc)
 {
     public bool IsExpired => string.Equals(Status, "expired", StringComparison.OrdinalIgnoreCase);
+
+    public bool IsOpen => string.Equals(Status, "open", StringComparison.OrdinalIgnoreCase);
 }
 
 /// <summary>A payment event Stripe sent us, after its signature has been verified.</summary>
@@ -173,6 +175,9 @@ public sealed class StripeGateway : IStripeGateway
         return true;
     }
 
+    private static string WithQuery(string url, string query)
+        => url + (url.Contains('?') ? "&" : "?") + query;
+
     private static Guid? ReadAttemptId(IDictionary<string, string>? metadata)
         => metadata is not null
             && metadata.TryGetValue("paymentAttemptId", out var value)
@@ -205,8 +210,10 @@ public sealed class StripeGateway : IStripeGateway
         {
             Mode = "payment",
             ClientReferenceId = attempt.OrderId.ToString(),
-            SuccessUrl = _options.SuccessUrl,
-            CancelUrl = _options.CancelUrl,
+            // The order id lets the app match the return to the order it is paying. Stripe fills in
+            // {CHECKOUT_SESSION_ID} itself, so it must reach Stripe unencoded.
+            SuccessUrl = WithQuery(_options.SuccessUrl, $"orderId={attempt.OrderId}&sessionId={{CHECKOUT_SESSION_ID}}"),
+            CancelUrl = WithQuery(_options.CancelUrl, $"orderId={attempt.OrderId}"),
             ExpiresAt = DateTime.UtcNow.AddMinutes(lifetime),
             Metadata = metadata,
             PaymentIntentData = new SessionPaymentIntentDataOptions { Metadata = metadata },

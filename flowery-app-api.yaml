@@ -31,8 +31,15 @@ info:
     1. `POST /payments/orders/{orderId}/session` returns `checkoutUrl`. Open it in a webview or an
        external browser. Calling it again while a page is still open returns the same URL (`200`
        with `reused: true`) instead of opening a second one.
-    2. The customer pays on Stripe's page and is sent back to `successUrl` or `cancelUrl`. **That
-       return means nothing on its own** - it is a screen, not a confirmation.
+    2. The customer pays on Stripe's page and Stripe sends them to one of two small pages
+       (Arabic + English, light and dark):
+       - `/payments/return/success?orderId={id}&sessionId={id}` after paying.
+       - `/payments/return/cancel?orderId={id}` when they press back on Stripe's page.
+
+       **Watch the webview for a URL containing `/payments/return/`, close it, and call step 3.**
+       The pages are only a fallback for an external browser. Reaching the success page does not
+       mean the order is confirmed yet - it is a screen, not a confirmation. Returning to Stripe's
+       page after cancelling still works while the session is open.
     3. `GET /payments/orders/{orderId}/status` is the single source of truth. Call it when the
        webview closes, and again if the customer reopens the order. If Stripe has taken the money
        but the backend has not heard about it yet, this call finds out and finishes the job
