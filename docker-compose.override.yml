@@ -45,6 +45,7 @@ services:
       - Jwt__Issuer=${JWT_ISSUER:-FlowerIdentityService}
       - Jwt__Audience=${JWT_AUDIENCE:-FlowerClients}
       - Catalog__BaseUrl=${CATALOG_BASE_URL:-http://catalogservice:8080}
+      - Internal__Secret=${INTERNAL_API_SECRET:-Flower_Development_InternalApiSecret_ChangeMe_2026}
     ports:
       - "5292:8080"
     volumes:
@@ -107,6 +108,7 @@ services:
       - Services__CartBaseUrl=${CART_BASE_URL:-http://cartservice:8080}
       - Services__AddressBaseUrl=${ADDRESS_BASE_URL:-http://addressstorecoverageservice:8080}
       - Checkout__DeliveryFee=${CHECKOUT_DELIVERY_FEE:-50}
+      - Internal__Secret=${INTERNAL_API_SECRET:-Flower_Development_InternalApiSecret_ChangeMe_2026}
     ports:
       - "5109:8080"
     volumes:
@@ -121,6 +123,9 @@ services:
       - Jwt__Key=${JWT_SIGNING_KEY:-FlowerIdentityService_Development_JwtSigningKey_ChangeMe_2026_AtLeast32Chars}
       - Jwt__Issuer=${JWT_ISSUER:-FlowerIdentityService}
       - Jwt__Audience=${JWT_AUDIENCE:-FlowerClients}
+      - Internal__Secret=${INTERNAL_API_SECRET:-Flower_Development_InternalApiSecret_ChangeMe_2026}
+      - Services__OrderBaseUrl=${ORDER_BASE_URL:-http://orderfulfillmentservice:8080}
+      - Services__CartBaseUrl=${CART_BASE_URL:-http://cartservice:8080}
     ports:
       - "5260:8080"
     volumes:

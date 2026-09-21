@@ -23,6 +23,7 @@ builder.Services.AddDbContext<CartDbContext>(options =>
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.Configure<CatalogOptions>(builder.Configuration.GetSection(CatalogOptions.SectionName));
+builder.Services.Configure<InternalApiOptions>(builder.Configuration.GetSection(InternalApiOptions.SectionName));
 builder.Services.AddScoped(typeof(IUnitOfWork<CartDbContext>), typeof(UnitOfWork<CartDbContext>));
 builder.Services.AddScoped<ICartResponseBuilder, CartResponseBuilder>();
 

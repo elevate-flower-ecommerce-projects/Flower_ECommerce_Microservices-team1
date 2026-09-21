@@ -71,6 +71,9 @@ services:
     build:
       context: .
       dockerfile: Payment Service/Dockerfile
+    depends_on:
+      sqlserver:
+        condition: service_healthy
 
 volumes:
   sqlserver-data:

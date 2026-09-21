@@ -7,7 +7,8 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "Services__CartBaseUrl": "http://localhost:5292",
-        "Services__AddressBaseUrl": "http://localhost:5272"
+        "Services__AddressBaseUrl": "http://localhost:5272",
+        "Internal__Secret": "Flower_Development_InternalApiSecret_ChangeMe_2026"
       },
       "dotnetRunMessages": true,
       "applicationUrl": "http://localhost:5109"
@@ -19,7 +20,8 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "Services__CartBaseUrl": "http://localhost:5292",
-        "Services__AddressBaseUrl": "http://localhost:5272"
+        "Services__AddressBaseUrl": "http://localhost:5272",
+        "Internal__Secret": "Flower_Development_InternalApiSecret_ChangeMe_2026"
       },
       "dotnetRunMessages": true,
       "applicationUrl": "https://localhost:7051;http://localhost:5109"

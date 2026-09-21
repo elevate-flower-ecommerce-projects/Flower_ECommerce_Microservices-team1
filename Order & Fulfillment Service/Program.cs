@@ -23,6 +23,7 @@ builder.Services.AddDbContext<OrderDbContext>(options =>
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.Configure<CheckoutOptions>(builder.Configuration.GetSection(CheckoutOptions.SectionName));
+builder.Services.Configure<InternalApiOptions>(builder.Configuration.GetSection(InternalApiOptions.SectionName));
 builder.Services.AddScoped(typeof(IUnitOfWork<OrderDbContext>), typeof(UnitOfWork<OrderDbContext>));
 
 var downstream = builder.Configuration.GetSection(DownstreamServicesOptions.SectionName).Get<DownstreamServicesOptions>()

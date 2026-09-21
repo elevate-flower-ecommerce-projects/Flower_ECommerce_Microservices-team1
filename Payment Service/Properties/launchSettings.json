@@ -5,7 +5,10 @@
       "launchBrowser": true,
       "launchUrl": "swagger",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Services__OrderBaseUrl": "http://localhost:5109",
+        "Services__CartBaseUrl": "http://localhost:5292",
+        "Internal__Secret": "Flower_Development_InternalApiSecret_ChangeMe_2026"
       },
       "dotnetRunMessages": true,
       "applicationUrl": "http://localhost:5260"
@@ -15,7 +18,10 @@
       "launchBrowser": true,
       "launchUrl": "swagger",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Services__OrderBaseUrl": "http://localhost:5109",
+        "Services__CartBaseUrl": "http://localhost:5292",
+        "Internal__Secret": "Flower_Development_InternalApiSecret_ChangeMe_2026"
       },
       "dotnetRunMessages": true,
       "applicationUrl": "https://localhost:7034;http://localhost:5260"
