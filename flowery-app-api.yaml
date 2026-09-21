@@ -18,14 +18,29 @@ info:
     - **Catalog**: Products, product details, categories and occasions (`/catalog/...`).
     - **Cart**: Customer cart with live price and stock re-validation (`/cart`).
     - **Checkout**: Checkout summary and placing orders with Cash on Delivery or Card (`/orders/checkout/preview`, `/orders/checkout`).
+    - **Online payment (Stripe)**: Hosted checkout page for card orders (`/payments/orders/{orderId}/session`, `/payments/orders/{orderId}/status`).
     - **Driver Deliveries**: Assigned orders, status updates and live location (`/orders/drivers/me/...`).
     - **Addresses & Coverage**: Saved addresses, default address, areas lookup and store resolution.
 
     ### Not on master yet
     - Customer order history (My Orders) lives on the `Development` branch.
-    - Online card payment (PayTabs) is planned. Card orders are already created by checkout as
-      `PendingPayment` (6) with `paymentRequired: true`; the payment session endpoint
-      (`POST /payments/orders/{orderId}/session`) comes with the Payment task.
+
+    ### Paying for a card order
+    Checkout creates a card order as `PendingPayment` (6) with `paymentRequired: true`. From there:
+
+    1. `POST /payments/orders/{orderId}/session` returns `checkoutUrl`. Open it in a webview or an
+       external browser. Calling it again while a page is still open returns the same URL (`200`
+       with `reused: true`) instead of opening a second one.
+    2. The customer pays on Stripe's page and is sent back to `successUrl` or `cancelUrl`. **That
+       return means nothing on its own** - it is a screen, not a confirmation.
+    3. `GET /payments/orders/{orderId}/status` is the single source of truth. Call it when the
+       webview closes, and again if the customer reopens the order. If Stripe has taken the money
+       but the backend has not heard about it yet, this call finds out and finishes the job
+       (order becomes `Placed` + `Paid`, cart cleared) before answering.
+    4. `canRetry: true` means the app may show "Pay" and call the session endpoint again.
+       `checkoutUrl` is filled only while a page is still open and unexpired.
+
+    The backend never trusts an amount sent by the client: the charge is built from the order total.
 
     ### Response envelopes
     Most endpoints return `OperationResult` (`success`, `statusCode`, `message`, `messageLocalized`, `data`).
@@ -48,8 +63,32 @@ info:
       `http://localhost:5086`. In Postman, import `flowery_team1_local_docker.postman_environment.json`
       and select it; it only overrides `baseUrl`.
     - Swagger per service: Identity `:5022`, Order and Checkout `:5109`, Cart `:5292`,
-      Address `:5272`, Catalog `:5129` (all `/swagger`). The checkout Swagger examples work as-is
-      with the checkout test customer.
+      Address `:5272`, Catalog `:5129`, Payment `:5260` (all `/swagger`). The checkout Swagger
+      examples work as-is with the checkout test customer.
+
+    ### Running online payment locally
+    Payment needs Stripe **test mode** keys, which are free and never move real money. They are per
+    developer and must never be committed:
+
+    ```
+    dotnet user-secrets --project "Payment Service/Payment Service.csproj" set "Stripe:SecretKey" "sk_test_..."
+    dotnet user-secrets --project "Payment Service/Payment Service.csproj" set "Stripe:WebhookSecret" "whsec_..."
+    ```
+
+    Stripe cannot reach a laptop, so the Stripe CLI forwards its events to it:
+
+    ```
+    npm install -g @stripe/cli
+    stripe login
+    stripe listen --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,checkout.session.expired --forward-to http://localhost:5086/api/v1/payments/stripe/webhook
+    ```
+
+    `stripe listen` prints the `whsec_...` to put in user-secrets. Without it the backend still
+    works: the status endpoint reconciles with Stripe on its own, it just happens when the app asks
+    instead of immediately.
+
+    Stripe test cards (any future expiry, any CVC): `4242 4242 4242 4242` succeeds,
+    `4000 0000 0000 0002` is declined, `4000 0025 0000 3155` asks for bank confirmation.
 
     ### Checkout test cases with the seeded data
     - Default address: preview with `{}` as the checkout test customer.
@@ -59,6 +98,19 @@ info:
       stocked in Nasr City only) to the cart, then preview with the Maadi address `...0002`.
     - `AddressNotServiceable`: preview a gift to `city: "Alexandria"`, `area: "Smouha"` without lat/lng.
     - `PriceChanged`: place an order with an `expectedTotal` that differs from the preview.
+
+    ### Payment test cases with the seeded data
+    - Happy path: place a Card order, open a session, pay with `4242 4242 4242 4242`, then call the
+      status endpoint. The order becomes `Placed` + `Paid` and the cart is cleared.
+    - `OrderAlreadyPaid`: call the session endpoint again for an order that is already paid.
+    - `OrderNotPayable`: call the session endpoint for a Cash on Delivery order.
+    - `OrderNotFound`: call it with another customer's order id. It answers 404, not 403, on purpose.
+    - Declined card: pay with `4000 0000 0000 0002`. The order stays `PendingPayment` and
+      `canRetry` turns back to `true`.
+    - Lost webhook: stop `stripe listen`, pay, then call the status endpoint. It reconciles with
+      Stripe and the order is paid by the time it answers.
+    - Abandoned page: open a session and do not pay. The status endpoint keeps returning the same
+      `checkoutUrl` until it expires, then reports `Expired` with `canRetry: true`.
 
     A driver can read account and vehicle summary fields from `GET /identity/users/me/profile`;
     `GET /identity/drivers/me/profile` remains available for the vehicle document workflow.
@@ -99,7 +151,9 @@ tags:
   - name: Orders
     description: Driver deliveries - assigned orders, status updates and live location
   - name: Payments
-    description: Payment gateway integration and transaction charges
+    description: >-
+      Online card payment through Stripe hosted checkout. The app opens a payment URL and then
+      polls the status endpoint; it never marks an order paid itself.
   - name: Address & Coverage
     description: Address validation and store delivery zone coverage
   - name: Admin Stores
@@ -1733,8 +1787,8 @@ paths:
         cleared and `paymentRequired` is `false`. Show the order confirmation.
 
         - Card: the order is `PendingPayment` (6), payment is `Pending` (1), the cart is kept
-        until payment succeeds and `paymentRequired` is `true`. Continue to payment with
-        `orderId`; the payment session endpoint comes with the Payment task.
+        until payment succeeds and `paymentRequired` is `true`. Continue with
+        `POST /payments/orders/{orderId}/session` to get the payment URL.
 
 
         Retrying with the same `Idempotency-Key` returns the order that key already created
@@ -1834,6 +1888,181 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/CheckoutError'
+
+  /payments/orders/{orderId}/session:
+    post:
+      tags:
+        - Payments
+      summary: Open a payment page for a card order
+      description: >-
+        Returns the URL of a Stripe hosted checkout page for this order. Open it in a webview or an
+        external browser.
+
+
+        The amount is read from the order on the server; nothing about the charge comes from the
+        client. Calling this again while a page is still open returns `200` with the same URL and
+        `reused: true`, so reopening the payment screen does not leave abandoned sessions behind.
+        A new page is opened only when there is none, or the previous one failed or expired.
+
+
+        Coming back from the page does **not** mean the order is paid. Call the status endpoint.
+      operationId: CreatePaymentSession
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: A new payment page was opened.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaymentSession'
+        '200':
+          description: A page was already open for this order; the same URL is returned.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaymentSession'
+        '401':
+          description: Missing or invalid token.
+        '403':
+          description: Caller is not a Customer.
+        '404':
+          description: >-
+            `OrderNotFound`. Also returned for another customer's order, so order ids cannot be
+            probed from outside.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaymentError'
+        '409':
+          description: "`OrderAlreadyPaid` or `OrderNotPayable`."
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaymentError'
+        '503':
+          description: "`DependencyUnavailable` or `PaymentUnavailable`. Try again shortly."
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaymentError'
+
+  /payments/orders/{orderId}/status:
+    get:
+      tags:
+        - Payments
+      summary: Where the payment stands
+      description: >-
+        The one endpoint the app should trust. Call it when the payment webview closes, and again
+        whenever the order screen is opened while the order is unpaid.
+
+
+        It repairs as it reads: if Stripe has taken the money but no confirmation reached the
+        backend yet - a lost event, a dropped connection, the app closed mid-payment - this call
+        asks Stripe directly, marks the order paid and clears the cart before answering. So a
+        successful payment can never be left looking unpaid.
+
+
+        Drive the UI from `isPaid`, `checkoutUrl` and `canRetry`: a filled `checkoutUrl` means a
+        page is still usable, and `canRetry: true` means the app may open a new one.
+      operationId: GetPaymentStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Current payment state for this order.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaymentStatusInfo'
+        '401':
+          description: Missing or invalid token.
+        '403':
+          description: Caller is not a Customer.
+        '404':
+          description: "`OrderNotFound`, including another customer's order."
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaymentError'
+        '503':
+          description: "`DependencyUnavailable`. Try again shortly."
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/OperationResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaymentError'
+
+  /payments/stripe/webhook:
+    post:
+      tags:
+        - Payments
+      summary: Stripe event receiver (not for the app)
+      description: >-
+        Called by Stripe, never by a client. Listed only so the route is documented. It is
+        authenticated by Stripe's signature over the raw body; a body without a valid signature is
+        rejected, and a repeated event changes nothing.
+      operationId: StripeWebhook
+      responses:
+        '200':
+          description: Event accepted, or already handled.
+        '400':
+          description: The body did not come from Stripe.
+        '503':
+          description: Could not finish; Stripe will deliver it again.
 
   /orders/drivers/me/orders:
     get:
@@ -3693,6 +3922,119 @@ components:
           allOf:
             - $ref: '#/components/schemas/CheckoutSummary'
           description: Only for `PriceChanged`.
+
+    PaymentSession:
+      type: object
+      description: A hosted payment page waiting for this order.
+      properties:
+        paymentAttemptId:
+          type: string
+          format: uuid
+          description: This attempt. A new one is created for every fresh payment page.
+        orderId:
+          type: string
+          format: uuid
+        orderNumber:
+          type: string
+          example: "FL-260921-908236"
+        amount:
+          type: number
+          format: double
+          description: Taken from the order, never from the client.
+          example: 1600
+        currency:
+          type: string
+          example: "egp"
+        checkoutUrl:
+          type: string
+          description: Open this in a webview or an external browser.
+          example: "https://checkout.stripe.com/c/pay/cs_test_..."
+        expiresAtUtc:
+          type: string
+          format: date-time
+          description: After this the page is dead and a new session must be opened.
+        reused:
+          type: boolean
+          description: "`true` when an already open page was handed back instead of opening a new one."
+          example: false
+
+    PaymentStatusInfo:
+      type: object
+      description: >-
+        Where the payment stands. `orderStatus` and `paymentStatus` come from the order itself and
+        are the truth; the attempt fields describe the last try.
+      properties:
+        orderId:
+          type: string
+          format: uuid
+        orderNumber:
+          type: string
+          example: "FL-260921-908236"
+        orderStatus:
+          type: string
+          description: "Order status name, e.g. `PendingPayment`, `Placed`, `Cancelled`."
+          example: "Placed"
+        paymentStatus:
+          type: string
+          enum: [Pending, Paid]
+          example: "Paid"
+        isPaid:
+          type: boolean
+          example: true
+        amount:
+          type: number
+          format: double
+          example: 1600
+        currency:
+          type: string
+          example: "egp"
+        paymentAttemptId:
+          type: string
+          format: uuid
+          nullable: true
+          description: "`null` when nobody has tried to pay this order yet."
+        attemptStatus:
+          type: string
+          nullable: true
+          enum: [Pending, Succeeded, Failed, Canceled, Expired, null]
+          description: >-
+            Pending: a page is open. Succeeded: paid. Failed / Canceled / Expired: that try is over
+            and the customer may start a new one.
+          example: "Succeeded"
+        checkoutUrl:
+          type: string
+          nullable: true
+          description: "Filled only while a page is still open and unexpired; otherwise `null`."
+        expiresAtUtc:
+          type: string
+          format: date-time
+          nullable: true
+        canRetry:
+          type: boolean
+          description: >-
+            `true` when the order can still be paid online and no page is open, so the app may show
+            "Pay" and call the session endpoint.
+          example: false
+
+    PaymentError:
+      type: object
+      description: "`data` of a payment 404, 409 or 503. Switch on `code`."
+      properties:
+        code:
+          type: string
+          enum:
+            - OrderNotFound
+            - OrderAlreadyPaid
+            - OrderNotPayable
+            - PaymentUnavailable
+            - DependencyUnavailable
+          description: >-
+            OrderNotFound: no such order for this customer.
+            OrderAlreadyPaid: nothing left to pay.
+            OrderNotPayable: not a card order, or it was cancelled.
+            PaymentUnavailable: Stripe could not be reached, try again.
+            DependencyUnavailable: another Flower service is down, try again.
+          example: "OrderAlreadyPaid"
 
     GeoPoint:
       type: object

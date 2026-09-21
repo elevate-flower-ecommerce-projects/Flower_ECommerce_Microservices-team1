@@ -97,6 +97,16 @@
                      {
                          "key":  "idempotencyKey",
                          "value":  ""
+                     },
+                     {
+                         "key":  "paymentAttemptId",
+                         "value":  "",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "paymentCheckoutUrl",
+                         "value":  "",
+                         "type":  "string"
                      }
                  ],
     "item":  [
@@ -4117,25 +4127,196 @@
                      "name":  "Payment Service (Team 1)",
                      "item":  [
                                   {
-                                      "name":  "Payment WeatherForecast",
+                                      "name":  "1. Open Payment Session",
                                       "request":  {
+                                                      "description":  "Returns a Stripe payment URL for the card order in {{orderId}}. Calling it again while the page is still open returns 200 with the same URL and reused=true instead of opening a second one. 409 OrderAlreadyPaid if it is paid, 409 OrderNotPayable for a Cash on Delivery or cancelled order, 404 OrderNotFound for another customer\u0027s order.",
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/payments/orders/{{orderId}}/session",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "payments",
+                                                                               "orders",
+                                                                               "{{orderId}}",
+                                                                               "session"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status is 201 Created or 200 reused\u0027, function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                                                                                    "if ([200, 201].includes(pm.response.code)) {",
+                                                                                    "    const data = pm.response.json().data;",
+                                                                                    "    pm.collectionVariables.set(\u0027paymentAttemptId\u0027, data.paymentAttemptId);",
+                                                                                    "    pm.collectionVariables.set(\u0027paymentCheckoutUrl\u0027, data.checkoutUrl);",
+                                                                                    "    console.log(\u0027Pay here: \u0027 + data.checkoutUrl);",
+                                                                                    "    console.log(\u0027Test card 4242 4242 4242 4242, any future expiry, any CVC.\u0027);",
+                                                                                    "    pm.test(\u0027The amount comes from the order\u0027, function () { pm.expect(data.amount).to.eql(1600); });",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "2. Payment Status",
+                                      "request":  {
+                                                      "description":  "Where the payment stands, and the only thing the app should trust. Drive the UI from isPaid, checkoutUrl and canRetry. If Stripe has been paid but no event arrived, this call reconciles with Stripe first, so a successful payment is never left looking unpaid.",
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/payments/orders/{{orderId}}/status",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "payments",
+                                                                               "orders",
+                                                                               "{{orderId}}",
+                                                                               "status"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status is 200 OK\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "if (pm.response.code === 200) {",
+                                                                                    "    const data = pm.response.json().data;",
+                                                                                    "    console.log(\u0027order \u0027 + data.orderNumber + \u0027: \u0027 + data.orderStatus + \u0027 / \u0027 + data.paymentStatus +",
+                                                                                    "        \u0027 | attempt: \u0027 + data.attemptStatus + \u0027 | canRetry: \u0027 + data.canRetry);",
+                                                                                    "    if (data.isPaid) {",
+                                                                                    "        pm.test(\u0027A paid order offers no page and nothing to retry\u0027, function () {",
+                                                                                    "            pm.expect(data.orderStatus).to.eql(\u0027Placed\u0027);",
+                                                                                    "            pm.expect(data.checkoutUrl).to.eql(null);",
+                                                                                    "            pm.expect(data.canRetry).to.eql(false);",
+                                                                                    "        });",
+                                                                                    "    }",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "3. Open Payment Session again (after paying)",
+                                      "request":  {
+                                                      "description":  "Run this after the order is paid. The order can only be paid once, so it answers 409 with code OrderAlreadyPaid.",
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{bearerToken}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/payments/orders/{{orderId}}/session",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "payments",
+                                                                               "orders",
+                                                                               "{{orderId}}",
+                                                                               "session"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status is 409 Conflict\u0027, function () { pm.response.to.have.status(409); });",
+                                                                                    "pm.test(\u0027Code is OrderAlreadyPaid\u0027, function () { pm.expect(pm.response.json().data.code).to.eql(\u0027OrderAlreadyPaid\u0027); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "4. Payment Service Health",
+                                      "request":  {
+                                                      "description":  "Quick check that the payment service is up behind the gateway.",
                                                       "method":  "GET",
                                                       "header":  [
 
                                                                  ],
                                                       "url":  {
-                                                                  "raw":  "{{baseUrl}}/payment/weatherforecast",
+                                                                  "raw":  "{{baseUrl}}/api/v1/payments/health",
                                                                   "host":  [
                                                                                "{{baseUrl}}"
                                                                            ],
                                                                   "path":  [
-                                                                               "payment",
-                                                                               "weatherforecast"
+                                                                               "api",
+                                                                               "v1",
+                                                                               "payments",
+                                                                               "health"
                                                                            ]
                                                               }
-                                                  }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status is 200 OK\u0027, function () { pm.response.to.have.status(200); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
                                   }
-                              ]
+                              ],
+                     "description":  "Online card payment through Stripe hosted checkout.\n\nRun the Checkout folder first and place a Card order (request 5) - it saves {{orderId}}.\nThen run 1, open the printed URL in a browser, pay with the test card 4242 4242 4242 4242\n(any future expiry, any CVC), and run 2.\n\nRequest 2 is the one the app must trust. It also repairs: if Stripe took the money but no\nevent reached the backend, it finds out, marks the order paid and clears the cart before\nanswering."
                  }
              ]
 }
